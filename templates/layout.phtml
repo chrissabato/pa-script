@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <title><?= htmlspecialchars($title ?? 'PA Script', ENT_QUOTES) ?></title>
 </head>
-<body>
-    <header>
+<body class="<?= htmlspecialchars($bodyClass ?? '', ENT_QUOTES) ?>">
+    <header class="site-header">
         <h1>Willamette Athletics — PA Script</h1>
         <nav>
             <a href="/">Dashboard</a>

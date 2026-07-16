@@ -1,0 +1,62 @@
+<style>
+    body.teleprompter-page .site-header { display: none; }
+    body.teleprompter-page main { margin: 0; padding: 0; max-width: none; }
+
+    .teleprompter { display: flex; flex-direction: column; height: 100vh; background: #000; color: #fff; }
+
+    .teleprompter-controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: #111;
+        border-bottom: 1px solid #333;
+        font-size: 1rem;
+    }
+    .teleprompter-controls label { display: flex; align-items: center; gap: 0.4rem; }
+    .teleprompter-controls a, .teleprompter-controls button {
+        color: #fff;
+        background: #222;
+        border: 1px solid #444;
+        padding: 0.4rem 0.9rem;
+        border-radius: 4px;
+        cursor: pointer;
+        text-decoration: none;
+        font-size: 1rem;
+    }
+    .teleprompter-controls button:hover, .teleprompter-controls a:hover { background: #333; }
+
+    .teleprompter-viewport { flex: 1; overflow-y: auto; scroll-behavior: auto; }
+    .teleprompter-text {
+        margin: 0;
+        padding: 4rem 2rem 90vh;
+        font-size: 3rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        font-family: inherit;
+    }
+</style>
+
+<div class="teleprompter">
+    <div class="teleprompter-controls">
+        <button type="button" id="tp-toggle">Play</button>
+        <label>Speed
+            <input type="range" id="tp-speed" min="10" max="400" value="60">
+        </label>
+        <label>Font size
+            <input type="range" id="tp-fontsize" min="16" max="120" value="48">
+        </label>
+        <a href="/games/<?= (int) $game['id'] ?>/script">Exit</a>
+    </div>
+
+    <div class="teleprompter-viewport" id="tp-viewport">
+        <?php if ($missingTemplateReason !== null): ?>
+            <p style="padding: 2rem; font-size: 1.5rem;"><?= htmlspecialchars($missingTemplateReason, ENT_QUOTES) ?></p>
+        <?php else: ?>
+            <pre class="teleprompter-text" id="tp-text"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
+        <?php endif; ?>
+    </div>
+</div>
+
+<script src="/js/teleprompter.js" defer></script>

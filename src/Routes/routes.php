@@ -332,35 +332,63 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
 
-    $app->get('/games/{id}/script', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($view, $games, $scriptTemplates, $contextBuilder, $renderer) {
-        $game = $games->find((int) $args['id']);
-        if ($game === null) {
-            throw new HttpNotFoundException($request);
-        }
-
+    // Shared by /script and /teleprompter — both just render the same
+    // resolved template/context differently.
+    $resolveScript = function (array $game) use ($scriptTemplates, $contextBuilder, $renderer): array {
         $template = $scriptTemplates->findForGame(
             (int) $game['sport_id'],
             $game['division_id'] !== null ? (int) $game['division_id'] : null,
             (bool) $game['is_neutral_site']
         );
 
-        $renderedScript = null;
-        $missingTemplateReason = null;
-
         if ($template === null) {
-            $missingTemplateReason = 'No script template found for this sport/division/site combination yet.';
-        } else {
-            $blocks = json_decode($template['content_blocks'], true);
-            $context = $contextBuilder->build($game);
-            $renderedScript = $renderer->render($blocks, $context);
+            return [null, 'No script template found for this sport/division/site combination yet.'];
         }
+
+        $blocks = json_decode($template['content_blocks'], true);
+        $context = $contextBuilder->build($game);
+
+        return [$renderer->render($blocks, $context), null];
+    };
+
+    $app->get('/games/{id}/script', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $games, $resolveScript) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        [$renderedScript, $missingTemplateReason] = $resolveScript($game);
 
         $html = $view->render('games/script', [
             'title' => 'Script — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
+            'game' => $game,
+            'renderedScript' => $renderedScript,
+            'missingTemplateReason' => $missingTemplateReason,
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    $app->get('/games/{id}/teleprompter', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $games, $resolveScript) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        [$renderedScript, $missingTemplateReason] = $resolveScript($game);
+
+        $html = $view->render('games/teleprompter', [
+            'title' => 'Teleprompter — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
+            'bodyClass' => 'teleprompter-page',
             'game' => $game,
             'renderedScript' => $renderedScript,
             'missingTemplateReason' => $missingTemplateReason,
