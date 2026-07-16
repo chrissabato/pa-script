@@ -4,10 +4,11 @@ use Phinx\Seed\AbstractSeed;
 
 /**
  * Seeds script_templates rows per PLAN.md's two-axis design (division_id x
- * site_variant): three for Soccer (Women's/home, Men's/home, neutral) and
- * two for Basketball (Women's/home, Men's/home — no neutral variant was
- * read for Basketball). Idempotent: safe to re-run as later phases add more
- * sports' rows to this file.
+ * site_variant): three for Soccer (Women's/home, Men's/home, neutral), two
+ * for Basketball (Women's/home, Men's/home), and one each for Baseball,
+ * Softball, Volleyball, and Lacrosse (all single-division/home-only per
+ * PLAN.md's Phase 3 notes). Idempotent: safe to re-run as later phases add
+ * more sports' rows to this file.
  *
  * NOTE: the block content below is structurally representative of what was
  * read from the source Google Sheets during planning (welcome line, coach
@@ -34,6 +35,8 @@ class ScriptTemplatesSeeder extends AbstractSeed
         $basketballId = $this->fetchRow("select id from sports where slug = 'basketball'")['id'];
         $baseballId = $this->fetchRow("select id from sports where slug = 'baseball'")['id'];
         $softballId = $this->fetchRow("select id from sports where slug = 'softball'")['id'];
+        $volleyballId = $this->fetchRow("select id from sports where slug = 'volleyball'")['id'];
+        $lacrosseId = $this->fetchRow("select id from sports where slug = 'lacrosse'")['id'];
         $womensId = $this->fetchRow("select id from divisions where slug = 'womens'")['id'];
         $mensId = $this->fetchRow("select id from divisions where slug = 'mens'")['id'];
 
@@ -92,6 +95,22 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'site_variant' => 'home',
                 'name' => 'Softball — Home',
                 'content_blocks' => json_encode($this->battingOrderSportHomeBlocks('Softball')),
+                'version' => 1,
+            ],
+            [
+                'sport_id' => $volleyballId,
+                'division_id' => null,
+                'site_variant' => 'home',
+                'name' => 'Volleyball — Home',
+                'content_blocks' => json_encode($this->volleyballHomeBlocks()),
+                'version' => 1,
+            ],
+            [
+                'sport_id' => $lacrosseId,
+                'division_id' => null,
+                'site_variant' => 'home',
+                'name' => 'Lacrosse — Home',
+                'content_blocks' => json_encode($this->lacrosseHomeBlocks()),
                 'version' => 1,
             ],
         ];
@@ -186,6 +205,55 @@ class ScriptTemplatesSeeder extends AbstractSeed
             $this->coachAndLineupBlocks(true),
             $this->officialsAnthemPsaBlocks()
         );
+    }
+
+    /**
+     * Volleyball/Lacrosse are single-division (only one team fielded per
+     * school) per PLAN.md's Phase 3 notes, and follow Basketball's exact
+     * per-player starters+reserves pattern — only the welcome framing and
+     * (for Volleyball) an inline walk-out music cue differ.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function volleyballHomeBlocks(): array
+    {
+        return array_merge(
+            $this->singleDivisionWelcomeBlocks('Volleyball', 'match'),
+            $this->coachAndLineupBlocks(true, [
+                ['type' => 'text', 'content' => "[start Joker and the Thief]\n\n"],
+            ]),
+            $this->officialsAnthemPsaBlocks()
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function lacrosseHomeBlocks(): array
+    {
+        return array_merge(
+            $this->singleDivisionWelcomeBlocks('Lacrosse', 'game'),
+            $this->coachAndLineupBlocks(true),
+            $this->officialsAnthemPsaBlocks()
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function singleDivisionWelcomeBlocks(string $sportName, string $eventWord): array
+    {
+        return [
+            ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
+            ['type' => 'placeholder', 'key' => 'meta.venue'],
+            ['type' => 'text', 'content' => " for today's Willamette {$sportName} {$eventWord}, as your "],
+            ['type' => 'placeholder', 'key' => 'home.mascot'],
+            ['type' => 'text', 'content' => ' take on the '],
+            ['type' => 'placeholder', 'key' => 'away.mascot'],
+            ['type' => 'text', 'content' => ' from '],
+            ['type' => 'placeholder', 'key' => 'away.schoolName'],
+            ['type' => 'text', 'content' => ".\n\n"],
+        ];
     }
 
     /**
@@ -302,10 +370,14 @@ class ScriptTemplatesSeeder extends AbstractSeed
     /**
      * Coach lines and starting-lineup loops, shared by home and neutral
      * variants — only the welcome framing above differs between them.
+     * $beforeHomeLineupBlocks is an insertion point for sport-specific inline
+     * beats between the coach lines and the home lineup call (e.g.
+     * Volleyball's walk-out music cue).
      *
+     * @param array<int, array<string, mixed>> $beforeHomeLineupBlocks
      * @return array<int, array<string, mixed>>
      */
-    private function coachAndLineupBlocks(bool $includeReserves = false): array
+    private function coachAndLineupBlocks(bool $includeReserves = false, array $beforeHomeLineupBlocks = []): array
     {
         return array_merge([
             ['type' => 'text', 'content' => 'Head coach for '],
@@ -318,7 +390,9 @@ class ScriptTemplatesSeeder extends AbstractSeed
             ['type' => 'text', 'content' => ' is '],
             ['type' => 'placeholder', 'key' => 'away.coaches.joinedList'],
             ['type' => 'text', 'content' => ".\n\n"],
-
+        ],
+            $beforeHomeLineupBlocks,
+            [
             ['type' => 'text', 'content' => "Now, introducing your starting lineup for "],
             ['type' => 'placeholder', 'key' => 'home.schoolName'],
             ['type' => 'text', 'content' => ":\n"],

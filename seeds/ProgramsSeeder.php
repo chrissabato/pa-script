@@ -20,6 +20,8 @@ class ProgramsSeeder extends AbstractSeed
         $basketballId = $this->fetchRow("select id from sports where slug = 'basketball'")['id'];
         $baseballId = $this->fetchRow("select id from sports where slug = 'baseball'")['id'];
         $softballId = $this->fetchRow("select id from sports where slug = 'softball'")['id'];
+        $volleyballId = $this->fetchRow("select id from sports where slug = 'volleyball'")['id'];
+        $lacrosseId = $this->fetchRow("select id from sports where slug = 'lacrosse'")['id'];
         $womensId = $this->fetchRow("select id from divisions where slug = 'womens'")['id'];
         $mensId = $this->fetchRow("select id from divisions where slug = 'mens'")['id'];
 
@@ -31,6 +33,8 @@ class ProgramsSeeder extends AbstractSeed
             // Baseball/Softball are single-team sports in practice — no division per PLAN.md.
             ['school_id' => $schoolId, 'sport_id' => $baseballId, 'division_id' => null, 'is_willamette' => true],
             ['school_id' => $schoolId, 'sport_id' => $softballId, 'division_id' => null, 'is_willamette' => true],
+            ['school_id' => $schoolId, 'sport_id' => $volleyballId, 'division_id' => null, 'is_willamette' => true],
+            ['school_id' => $schoolId, 'sport_id' => $lacrosseId, 'division_id' => null, 'is_willamette' => true],
         ];
 
         $data = array_values(array_filter($wanted, function (array $row): bool {
