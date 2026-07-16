@@ -9,6 +9,7 @@ use App\Repository\CoachRepository;
 use App\Repository\DivisionRepository;
 use App\Repository\GameRepository;
 use App\Repository\GameRosterRepository;
+use App\Repository\ImportBatchRepository;
 use App\Repository\OfficialRepository;
 use App\Repository\PlayerRepository;
 use App\Repository\ProgramRepository;
@@ -32,6 +33,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $gameRosters = new GameRosterRepository($pdo);
     $officials = new OfficialRepository($pdo);
     $scriptTemplates = new ScriptTemplateRepository($pdo);
+    $importBatches = new ImportBatchRepository($pdo);
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $renderer = new TemplateRenderer();
 
@@ -396,5 +398,236 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $response->getBody()->write($html);
 
         return $response;
+    });
+
+    // ---- Bookmarklet / roster import -----------------------------------
+    //
+    // The bookmarklet itself is a thin loader: it embeds only the import
+    // token and injects a <script src="/bookmarklet/scraper.js?t=...">.
+    // The actual scraping logic lives here server-side, so it can be fixed
+    // (e.g. after a school's roster page markup changes) without asking
+    // announcers to reinstall anything. Scrapes always land in
+    // import_batches first — nothing touches players/coaches or
+    // game_roster_* until a human reviews and explicitly commits.
+
+    $app->get('/bookmarklet', function (Request $request, Response $response) use ($view) {
+        $token = $_ENV['IMPORT_TOKEN'] ?? '';
+        $uri = $request->getUri();
+        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
+
+        $bookmarkletHref = "javascript:(function(){var s=document.createElement('script');"
+            . "s.src=" . json_encode($baseUrl . '/bookmarklet/scraper.js?t=' . urlencode($token) . '&_=', JSON_UNESCAPED_SLASHES)
+            . "+Date.now();document.body.appendChild(s);})();";
+
+        $html = $view->render('bookmarklet', [
+            'title' => 'Bookmarklet',
+            'bookmarkletHref' => $bookmarkletHref,
+            'tokenConfigured' => $token !== '',
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    $app->get('/bookmarklet/scraper.js', function (Request $request, Response $response) {
+        $response = $response
+            ->withHeader('Content-Type', 'application/javascript')
+            ->withHeader('Cache-Control', 'no-store');
+
+        $expected = $_ENV['IMPORT_TOKEN'] ?? '';
+        $provided = $request->getQueryParams()['t'] ?? '';
+
+        if ($expected === '' || !hash_equals($expected, (string) $provided)) {
+            $response->getBody()->write(
+                "alert('PA Script bookmarklet token invalid or not configured — reinstall from the Bookmarklet page.');"
+            );
+
+            return $response;
+        }
+
+        $uri = $request->getUri();
+        $stageUrl = $uri->getScheme() . '://' . $uri->getAuthority() . '/api/import/stage';
+
+        $core = file_get_contents(__DIR__ . '/../../public/js/scraper-core.js');
+
+        $network = <<<'JS'
+        (function () {
+            var result = PaScriptScrape.run();
+
+            fetch(PA_SCRIPT_STAGE_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    token: PA_SCRIPT_IMPORT_TOKEN,
+                    sourceUrl: result.sourceUrl,
+                    scrapedVia: result.scrapedVia,
+                    players: result.players,
+                    rawText: result.rawText
+                })
+            }).then(function (r) { return r.json(); })
+              .then(function (r) {
+                  if (r.ok) {
+                      window.open(r.reviewUrl, '_blank');
+                  } else {
+                      alert('PA Script import failed: ' + (r.error || 'unknown error'));
+                  }
+              })
+              .catch(function () {
+                  alert('Could not reach the PA Script server.');
+              });
+        })();
+        JS;
+
+        $js = 'var PA_SCRIPT_STAGE_URL = ' . json_encode($stageUrl, JSON_UNESCAPED_SLASHES) . ';'
+            . "\n" . 'var PA_SCRIPT_IMPORT_TOKEN = ' . json_encode($provided) . ';'
+            . "\n" . $core . "\n" . $network;
+
+        $response->getBody()->write($js);
+
+        return $response;
+    });
+
+    $app->options('/api/import/stage', function (Request $request, Response $response) {
+        return $response
+            ->withHeader('Access-Control-Allow-Origin', '*')
+            ->withHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+            ->withHeader('Access-Control-Allow-Headers', 'Content-Type');
+    });
+
+    $app->post('/api/import/stage', function (
+        Request $request,
+        Response $response
+    ) use ($importBatches) {
+        $response = $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withHeader('Access-Control-Allow-Origin', '*');
+
+        $body = (array) $request->getParsedBody();
+        $expected = $_ENV['IMPORT_TOKEN'] ?? '';
+        $provided = $body['token'] ?? '';
+
+        if ($expected === '' || !hash_equals($expected, (string) $provided)) {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'Invalid import token']));
+
+            return $response->withStatus(403);
+        }
+
+        $players = is_array($body['players'] ?? null) ? $body['players'] : [];
+        $rawText = is_string($body['rawText'] ?? null) ? $body['rawText'] : '';
+        $sourceUrl = is_string($body['sourceUrl'] ?? null) ? $body['sourceUrl'] : null;
+
+        if ($players === [] && trim($rawText) === '') {
+            $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No roster data found on that page']));
+
+            return $response->withStatus(400);
+        }
+
+        $batchId = $importBatches->create($sourceUrl, [
+            'scrapedVia' => is_string($body['scrapedVia'] ?? null) ? $body['scrapedVia'] : 'unknown',
+            'players' => $players,
+            'rawText' => $rawText,
+        ]);
+
+        $uri = $request->getUri();
+        $reviewUrl = $uri->getScheme() . '://' . $uri->getAuthority() . '/import/review/' . $batchId;
+
+        $response->getBody()->write(json_encode(['ok' => true, 'batchId' => $batchId, 'reviewUrl' => $reviewUrl]));
+
+        return $response;
+    });
+
+    $app->get('/import/review/{batchId}', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $importBatches, $games, $programs) {
+        $batch = $importBatches->find((int) $args['batchId']);
+        if ($batch === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $payload = json_decode($batch['raw_payload'], true) ?? [];
+
+        $html = $view->render('import/review', [
+            'title' => 'Review Import #' . $batch['id'],
+            'batch' => $batch,
+            'players' => $payload['players'] ?? [],
+            'rawText' => $payload['rawText'] ?? '',
+            'scrapedVia' => $payload['scrapedVia'] ?? 'unknown',
+            'games' => $games->upcoming(),
+            'programs' => $programs->all(),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    $app->post('/import/review/{batchId}/commit', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($importBatches, $gameRosters, $players, $programs) {
+        $batch = $importBatches->find((int) $args['batchId']);
+        if ($batch === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $data = (array) $request->getParsedBody();
+        $rows = is_array($data['players'] ?? null) ? $data['players'] : [];
+        $destinationType = $data['destination_type'] ?? '';
+
+        $redirect = '/bookmarklet';
+
+        if ($destinationType === 'program') {
+            $programId = (int) ($data['program_id'] ?? 0);
+            $program = $programId > 0 ? $programs->find($programId) : null;
+
+            if ($program !== null) {
+                foreach ($rows as $row) {
+                    if (empty($row['include']) || trim((string) ($row['name'] ?? '')) === '') {
+                        continue;
+                    }
+                    $players->create($programId, $row);
+                }
+
+                $redirect = $program['division_slug'] !== null
+                    ? '/sports/' . $program['sport_slug'] . '/' . $program['division_slug'] . '/roster'
+                    : '/sports/' . $program['sport_slug'] . '/roster';
+            }
+        } elseif ($destinationType === 'game') {
+            $gameId = (int) ($data['game_id'] ?? 0);
+            $side = in_array($data['side'] ?? '', ['home', 'away'], true) ? $data['side'] : null;
+            $snapshot = $gameId > 0 && $side !== null ? $gameRosters->findSnapshot($gameId, $side) : null;
+
+            if ($snapshot !== null) {
+                foreach ($rows as $row) {
+                    if (empty($row['include']) || trim((string) ($row['name'] ?? '')) === '') {
+                        continue;
+                    }
+                    $gameRosters->createPlayer((int) $snapshot['id'], $row);
+                }
+
+                $redirect = '/games/' . $gameId;
+            }
+        }
+
+        $importBatches->updateStatus((int) $batch['id'], 'reviewed');
+
+        return $response->withHeader('Location', $redirect)->withStatus(302);
+    });
+
+    $app->post('/import/review/{batchId}/discard', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($importBatches) {
+        $batch = $importBatches->find((int) $args['batchId']);
+        if ($batch === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $importBatches->updateStatus((int) $batch['id'], 'discarded');
+
+        return $response->withHeader('Location', '/bookmarklet')->withStatus(302);
     });
 };

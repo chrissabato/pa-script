@@ -41,6 +41,19 @@ class ProgramRepository
         return $stmt->fetchAll();
     }
 
+    /**
+     * All programs (including opponents) — used by the import review
+     * destination picker.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function all(): array
+    {
+        $stmt = $this->pdo->query(self::SELECT . ' order by schools.name, sports.name, divisions.name');
+
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(self::SELECT . ' where programs.id = :id');

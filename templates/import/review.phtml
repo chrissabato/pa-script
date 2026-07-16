@@ -1,0 +1,108 @@
+<h2>Review Import #<?= (int) $batch['id'] ?></h2>
+<p>
+    Source: <?= $batch['source_url'] !== null ? htmlspecialchars($batch['source_url'], ENT_QUOTES) : '<em>unknown</em>' ?><br>
+    Scraped via: <?= htmlspecialchars($scrapedVia, ENT_QUOTES) ?>
+    &middot; Status: <?= htmlspecialchars($batch['status'], ENT_QUOTES) ?>
+    &middot; <?= htmlspecialchars($batch['created_at'], ENT_QUOTES) ?>
+</p>
+
+<?php if ($rawText !== ''): ?>
+    <p><em>No structured roster table was recognized on that page — here's the raw text of the
+        likely roster region for reference while you add rows manually below.</em></p>
+    <pre style="max-height: 12rem; overflow-y: auto; background: #f5f5f5; padding: 0.75rem; white-space: pre-wrap;"><?= htmlspecialchars($rawText, ENT_QUOTES) ?></pre>
+<?php endif; ?>
+
+<?php if ($batch['status'] !== 'pending'): ?>
+    <p><em>This batch has already been <?= htmlspecialchars($batch['status'], ENT_QUOTES) ?> — committing again will add another copy of whatever rows you submit below.</em></p>
+<?php endif; ?>
+
+<form method="post" action="/import/review/<?= (int) $batch['id'] ?>/commit">
+
+    <h3>Destination</h3>
+    <p>
+        <label><input type="radio" name="destination_type" value="game" checked> Existing game's roster —</label>
+        Game:
+        <select name="game_id">
+            <?php foreach ($games as $game): ?>
+                <option value="<?= (int) $game['id'] ?>">
+                    <?= htmlspecialchars($game['date'], ENT_QUOTES) ?> —
+                    <?= htmlspecialchars($game['home_school_name'], ENT_QUOTES) ?> vs
+                    <?= htmlspecialchars($game['away_school_name'], ENT_QUOTES) ?>
+                    (<?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>)
+                </option>
+            <?php endforeach; ?>
+        </select>
+        Side:
+        <label><input type="radio" name="side" value="away" checked> Away</label>
+        <label><input type="radio" name="side" value="home"> Home</label>
+    </p>
+    <p>
+        <label><input type="radio" name="destination_type" value="program"> Persistent program roster —</label>
+        Program:
+        <select name="program_id">
+            <?php foreach ($programs as $program): ?>
+                <option value="<?= (int) $program['id'] ?>">
+                    <?= htmlspecialchars($program['school_name'], ENT_QUOTES) ?> —
+                    <?= htmlspecialchars($program['sport_name'], ENT_QUOTES) ?>
+                    <?php if ($program['division_name']): ?> (<?= htmlspecialchars($program['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </p>
+
+    <h3>Scraped players</h3>
+    <table border="1" cellpadding="4" id="import-rows-table">
+        <tr>
+            <th>Include</th><th>#</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th><th>Starter</th>
+        </tr>
+        <?php foreach ($players as $i => $player): ?>
+        <tr>
+            <td><input type="checkbox" name="players[<?= (int) $i ?>][include]" value="1" checked></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][number]" value="<?= htmlspecialchars((string) ($player['number'] ?? ''), ENT_QUOTES) ?>" size="3"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][name]" value="<?= htmlspecialchars((string) ($player['name'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][pronunciation]" value="<?= htmlspecialchars((string) ($player['pronunciation'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][position]" value="<?= htmlspecialchars((string) ($player['position'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][year]" value="<?= htmlspecialchars((string) ($player['year'] ?? ''), ENT_QUOTES) ?>" size="4"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][hometown]" value="<?= htmlspecialchars((string) ($player['hometown'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="checkbox" name="players[<?= (int) $i ?>][is_starter]" value="1"></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+    <p><button type="button" id="add-row-button">Add row</button></p>
+
+    <p><button type="submit">Commit selected rows</button></p>
+</form>
+
+<form method="post" action="/import/review/<?= (int) $batch['id'] ?>/discard" onsubmit="return confirm('Discard this batch? This cannot be undone.')">
+    <button type="submit">Discard batch</button>
+</form>
+
+<template id="import-row-template">
+    <tr>
+        <td><input type="checkbox" name="players[__INDEX__][include]" value="1" checked></td>
+        <td><input type="text" name="players[__INDEX__][number]" size="3"></td>
+        <td><input type="text" name="players[__INDEX__][name]"></td>
+        <td><input type="text" name="players[__INDEX__][pronunciation]"></td>
+        <td><input type="text" name="players[__INDEX__][position]"></td>
+        <td><input type="text" name="players[__INDEX__][year]" size="4"></td>
+        <td><input type="text" name="players[__INDEX__][hometown]"></td>
+        <td><input type="checkbox" name="players[__INDEX__][is_starter]" value="1"></td>
+    </tr>
+</template>
+
+<script>
+(function () {
+    var nextIndex = <?= count($players) ?>;
+    var table = document.getElementById('import-rows-table');
+    var template = document.getElementById('import-row-template');
+
+    document.getElementById('add-row-button').addEventListener('click', function () {
+        var html = template.innerHTML.split('__INDEX__').join(String(nextIndex));
+        var tempTable = document.createElement('table');
+        tempTable.innerHTML = html;
+        table.appendChild(tempTable.querySelector('tr'));
+        nextIndex += 1;
+    });
+})();
+</script>

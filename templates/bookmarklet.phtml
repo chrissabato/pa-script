@@ -1,0 +1,38 @@
+<h2>Bookmarklet</h2>
+
+<?php if (!$tokenConfigured): ?>
+    <p><em>IMPORT_TOKEN is not set in .env — the bookmarklet won't work until it is.</em></p>
+<?php endif; ?>
+
+<p>
+    Drag this button to your browser's bookmarks bar. On an opponent's roster page, click it to
+    scrape the roster and open a review screen here — nothing is saved to a real roster until you
+    review and commit it.
+</p>
+
+<p>
+    <a href="<?= htmlspecialchars($bookmarkletHref, ENT_QUOTES) ?>"
+       draggable="true"
+       style="display:inline-block;padding:0.6rem 1.3rem;background:#1a4d8f;color:#fff;border-radius:6px;
+              text-decoration:none;font-weight:bold;cursor:grab;">
+        Import Roster
+    </a>
+    <span> &larr; drag this to your bookmarks bar</span>
+</p>
+
+<h3>How it works</h3>
+<ol>
+    <li>Navigate to the opponent's roster page and wait for it to fully load.</li>
+    <li>Click the <strong>Import Roster</strong> bookmark.</li>
+    <li>A new tab opens with a review screen showing the scraped rows.</li>
+    <li>Fix any typos, add pronunciation guides, then pick a destination (a specific game's roster,
+        or a program's standing roster) and commit.</li>
+</ol>
+
+<p>
+    <em>
+        Works best on Sidearm Sports-hosted roster pages (several template generations are
+        supported); falls back to a generic table scan on other platforms, or grabs the page's raw
+        text if neither matches so the review screen still has something to start from.
+    </em>
+</p>
