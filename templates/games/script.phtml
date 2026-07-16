@@ -1,0 +1,8 @@
+<h2>Script — <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?> vs <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?></h2>
+<p><a href="/games/<?= (int) $game['id'] ?>">&larr; back to game</a></p>
+
+<?php if ($missingTemplateReason !== null): ?>
+    <p><em><?= htmlspecialchars($missingTemplateReason, ENT_QUOTES) ?></em></p>
+<?php else: ?>
+    <pre style="white-space: pre-wrap; font-size: 1.1rem; line-height: 1.6;"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
+<?php endif; ?>

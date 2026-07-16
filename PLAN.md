@@ -14,6 +14,7 @@ The goal is a web app that replaces this: structured roster/coach/game data, one
 - App owns its own data (no live Google Sheets sync); rosters/coaches are edited in-app and differ every game.
 - No auth for v1.
 - Deploys to an existing **RHEL server running PHP 7.2**, with **PostgreSQL** available, and **Composer is allowed**.
+- **The current build/dev environment is not the production RHEL server** and will have tools, PHP extensions, and versions the production server does not. Don't assume something works in production just because it works here — anything environment-sensitive (PHP extensions, CLI tools, PHP/Postgres versions) needs to be verified against the actual RHEL server before being relied on, per the open items below.
 
 This last point overrides the initially-considered Node/Next.js stack — the plan below targets PHP 7.2 + Postgres directly so what's built is what actually runs on the target server, not something requiring a rewrite before deploy.
 
@@ -99,5 +100,6 @@ This confirms the design already validated across every sport: one **block-based
 ## Open items to confirm during build (not blocking, but worth resolving early)
 
 - Exact PHP patch version and enabled extensions on the RHEL server (affects the Twig-vs-plain-templates call above, though plain templates sidestep this entirely).
+- Anything that works in the current build/dev environment but relies on a tool, PHP extension, or version not confirmed present on the RHEL server (Composer packages with native extension dependencies, CLI utilities, etc.) needs an explicit compatibility check before Phase 6 deploy.
 - The soccer `Setup` tab's full field list was never fully retrievable (kept truncating on read) — confirm during Phase 2 seeding whether anything beyond Home/Away team name + game time needs a dedicated `games` column.
 - The two 1/0 flag columns per player in the Roster tabs — one is clearly "starter"; the second flag's meaning (captain? active/inactive?) should be confirmed by opening the actual sheet in Sheets UI rather than the plain-text export, since flags without headers don't carry meaning through the text export.

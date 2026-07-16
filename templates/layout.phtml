@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title><?= htmlspecialchars($title ?? 'PA Script', ENT_QUOTES) ?></title>
+</head>
+<body>
+    <header>
+        <h1>Willamette Athletics — PA Script</h1>
+        <nav>
+            <a href="/">Dashboard</a>
+            <a href="/sports">Sports</a>
+            <a href="/games">Games</a>
+            <a href="/bookmarklet">Bookmarklet</a>
+        </nav>
+    </header>
+    <main>
+        <?= $content ?>
+    </main>
+</body>
+</html>

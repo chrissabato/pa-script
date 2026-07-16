@@ -1,0 +1,26 @@
+<h2>Sports</h2>
+<ul>
+<?php foreach ($sports as $sport): ?>
+    <?php
+        $programsForSport = array_values(array_filter($willamettePrograms, function (array $p) use ($sport): bool {
+            return $p['sport_slug'] === $sport['slug'];
+        }));
+    ?>
+    <li>
+        <strong><?= htmlspecialchars($sport['name'], ENT_QUOTES) ?></strong>
+        <?php if (empty($programsForSport)): ?>
+            <em>(no roster set up yet)</em>
+        <?php else: ?>
+            <ul>
+            <?php foreach ($programsForSport as $program): ?>
+                <li>
+                    <a href="/sports/<?= htmlspecialchars($sport['slug'], ENT_QUOTES) ?>/<?= htmlspecialchars($program['division_slug'], ENT_QUOTES) ?>/roster">
+                        <?= htmlspecialchars($program['division_name'], ENT_QUOTES) ?> roster
+                    </a>
+                </li>
+            <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </li>
+<?php endforeach; ?>
+</ul>

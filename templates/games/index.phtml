@@ -1,0 +1,20 @@
+<h2>Games</h2>
+<p><a href="/games/new">+ New game</a></p>
+<table border="1" cellpadding="4">
+    <tr><th>Date</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th><th></th></tr>
+    <?php foreach ($games as $game): ?>
+    <tr>
+        <td><?= htmlspecialchars($game['date'], ENT_QUOTES) ?></td>
+        <td><?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?></td>
+        <td>
+            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
+            vs
+            <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+            <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
+        </td>
+        <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
+        <td><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></td>
+        <td><a href="/games/<?= (int) $game['id'] ?>">Open</a></td>
+    </tr>
+    <?php endforeach; ?>
+</table>

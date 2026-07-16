@@ -1,0 +1,64 @@
+<h2>New Game</h2>
+<form method="post" action="/games">
+    <p>
+        Sport:
+        <select name="sport_id" required>
+            <?php foreach ($sports as $sport): ?>
+                <option value="<?= (int) $sport['id'] ?>"><?= htmlspecialchars($sport['name'], ENT_QUOTES) ?></option>
+            <?php endforeach; ?>
+        </select>
+        Division:
+        <select name="division_id">
+            <?php foreach ($divisions as $division): ?>
+                <option value="<?= (int) $division['id'] ?>"><?= htmlspecialchars($division['name'], ENT_QUOTES) ?></option>
+            <?php endforeach; ?>
+        </select>
+    </p>
+
+    <p>
+        <label><input type="checkbox" name="is_neutral_site" value="1"> Neutral site (neither team gets home framing)</label>
+        Neutral site note: <input type="text" name="neutral_site_note">
+    </p>
+
+    <fieldset>
+        <legend>Home team</legend>
+        Existing school:
+        <select name="home_school_id">
+            <option value="">— new school below —</option>
+            <?php foreach ($schools as $school): ?>
+                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <br>
+        Or new school name: <input type="text" name="home_school_name">
+        Mascot: <input type="text" name="home_mascot">
+    </fieldset>
+
+    <fieldset>
+        <legend>Away team</legend>
+        Existing school:
+        <select name="away_school_id">
+            <option value="">— new school below —</option>
+            <?php foreach ($schools as $school): ?>
+                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <br>
+        Or new school name: <input type="text" name="away_school_name">
+        Mascot: <input type="text" name="away_mascot">
+    </fieldset>
+
+    <p>
+        Date: <input type="date" name="date" required>
+        Time: <input type="time" name="time_of_day">
+        Venue: <input type="text" name="venue" value="Bearcat Field">
+    </p>
+    <p>
+        Anthem note: <input type="text" name="anthem_note" placeholder="e.g. performed by the Willamette Chorale">
+    </p>
+    <p>
+        Notes: <textarea name="notes"></textarea>
+    </p>
+
+    <button type="submit">Create game</button>
+</form>
