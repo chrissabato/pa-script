@@ -32,6 +32,8 @@ class ScriptTemplatesSeeder extends AbstractSeed
     {
         $soccerId = $this->fetchRow("select id from sports where slug = 'soccer'")['id'];
         $basketballId = $this->fetchRow("select id from sports where slug = 'basketball'")['id'];
+        $baseballId = $this->fetchRow("select id from sports where slug = 'baseball'")['id'];
+        $softballId = $this->fetchRow("select id from sports where slug = 'softball'")['id'];
         $womensId = $this->fetchRow("select id from divisions where slug = 'womens'")['id'];
         $mensId = $this->fetchRow("select id from divisions where slug = 'mens'")['id'];
 
@@ -74,6 +76,22 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'site_variant' => 'home',
                 'name' => "Basketball — Men's — Home",
                 'content_blocks' => json_encode($this->basketballHomeBlocks('men')),
+                'version' => 1,
+            ],
+            [
+                'sport_id' => $baseballId,
+                'division_id' => null,
+                'site_variant' => 'home',
+                'name' => 'Baseball — Home',
+                'content_blocks' => json_encode($this->battingOrderSportHomeBlocks('Baseball')),
+                'version' => 1,
+            ],
+            [
+                'sport_id' => $softballId,
+                'division_id' => null,
+                'site_variant' => 'home',
+                'name' => 'Softball — Home',
+                'content_blocks' => json_encode($this->battingOrderSportHomeBlocks('Softball')),
                 'version' => 1,
             ],
         ];
@@ -171,6 +189,117 @@ class ScriptTemplatesSeeder extends AbstractSeed
     }
 
     /**
+     * Baseball/Softball: no divisions (single team per school) and no
+     * neutral-site variant read. Lineup is ordered by batting order rather
+     * than the starters/reserves pattern, with a standalone starting-pitcher
+     * callout, and umpires get role-specific phrasing instead of a flat list.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function battingOrderSportHomeBlocks(string $sportName): array
+    {
+        return array_merge(
+            [
+                ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
+                ['type' => 'placeholder', 'key' => 'meta.venue'],
+                ['type' => 'text', 'content' => " for today's Willamette {$sportName} game, as your "],
+                ['type' => 'placeholder', 'key' => 'home.mascot'],
+                ['type' => 'text', 'content' => ' take on the '],
+                ['type' => 'placeholder', 'key' => 'away.mascot'],
+                ['type' => 'text', 'content' => ' from '],
+                ['type' => 'placeholder', 'key' => 'away.schoolName'],
+                ['type' => 'text', 'content' => ".\n\n"],
+            ],
+            $this->coachAndBattingOrderBlocks(),
+            $this->umpiresAnthemPsaBlocks()
+        );
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function coachAndBattingOrderBlocks(): array
+    {
+        return array_merge([
+            ['type' => 'text', 'content' => 'Head coach for '],
+            ['type' => 'placeholder', 'key' => 'home.schoolName'],
+            ['type' => 'text', 'content' => ' is '],
+            ['type' => 'placeholder', 'key' => 'home.coaches.joinedList'],
+            ['type' => 'text', 'content' => ".\n"],
+            ['type' => 'text', 'content' => 'Head coach for '],
+            ['type' => 'placeholder', 'key' => 'away.schoolName'],
+            ['type' => 'text', 'content' => ' is '],
+            ['type' => 'placeholder', 'key' => 'away.coaches.joinedList'],
+            ['type' => 'text', 'content' => ".\n\n"],
+        ],
+            $this->battingOrderLineup('home'),
+            [['type' => 'text', 'content' => "\n"]],
+            $this->battingOrderLineup('away'),
+            [['type' => 'text', 'content' => "\n"]]
+        );
+    }
+
+    /**
+     * Standalone starting-pitcher callout followed by the batting-order
+     * loop for one side.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function battingOrderLineup(string $side): array
+    {
+        return [
+            ['type' => 'text', 'content' => "Today's starting pitcher for "],
+            ['type' => 'placeholder', 'key' => "{$side}.schoolName"],
+            ['type' => 'text', 'content' => ' is '],
+            ['type' => 'placeholder', 'key' => "{$side}.startingPitcher.name"],
+            ['type' => 'text', 'content' => ".\n\n"],
+            ['type' => 'text', 'content' => "Now, introducing the batting order for "],
+            ['type' => 'placeholder', 'key' => "{$side}.schoolName"],
+            ['type' => 'text', 'content' => ":\n"],
+            [
+                'type' => 'loop',
+                'over' => "{$side}.battingOrder",
+                'template' => [
+                    ['type' => 'placeholder', 'key' => 'item.battingOrderLabel'],
+                    ['type' => 'text', 'content' => ' at '],
+                    ['type' => 'placeholder', 'key' => 'item.position'],
+                    ['type' => 'text', 'content' => ', '],
+                    ['type' => 'placeholder', 'key' => 'item.name'],
+                    ['type' => 'text', 'content' => ".\n"],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Baseball/Softball variant of officialsAnthemPsaBlocks(): umpires get
+     * role-specific phrasing ("behind the plate", "at first base", ...)
+     * rather than a flat joined list.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function umpiresAnthemPsaBlocks(): array
+    {
+        return array_merge(
+            [
+                ['type' => 'text', 'content' => "Today's umpires:\n"],
+                [
+                    'type' => 'loop',
+                    'over' => 'officials',
+                    'template' => [
+                        ['type' => 'placeholder', 'key' => 'item.role'],
+                        ['type' => 'text', 'content' => ', '],
+                        ['type' => 'placeholder', 'key' => 'item.name'],
+                        ['type' => 'text', 'content' => ".\n"],
+                    ],
+                ],
+                ['type' => 'text', 'content' => "\n"],
+            ],
+            $this->anthemPsaBlocks()
+        );
+    }
+
+    /**
      * Coach lines and starting-lineup loops, shared by home and neutral
      * variants — only the welcome framing above differs between them.
      *
@@ -258,10 +387,25 @@ class ScriptTemplatesSeeder extends AbstractSeed
      */
     private function officialsAnthemPsaBlocks(): array
     {
+        return array_merge(
+            [
+                ['type' => 'text', 'content' => "Today's officials are "],
+                ['type' => 'placeholder', 'key' => 'officials.joinedList'],
+                ['type' => 'text', 'content' => ".\n\n"],
+            ],
+            $this->anthemPsaBlocks()
+        );
+    }
+
+    /**
+     * Anthem cue and sportsmanship PSA — generic PA-program boilerplate
+     * shared by every sport regardless of how officials/lineup are announced.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function anthemPsaBlocks(): array
+    {
         return [
-            ['type' => 'text', 'content' => "Today's officials are "],
-            ['type' => 'placeholder', 'key' => 'officials.joinedList'],
-            ['type' => 'text', 'content' => ".\n\n"],
             ['type' => 'text', 'content' => 'Please rise and remove your caps for the singing of our national anthem'],
             ['type' => 'placeholder', 'key' => 'meta.anthemNote'],
             ['type' => 'text', 'content' => ".\n\n"],

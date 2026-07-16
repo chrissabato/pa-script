@@ -77,6 +77,37 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response;
     });
 
+    // Divisionless sports (Baseball, Softball — a school fields one team, no
+    // Women's/Men's split) skip the {division} segment entirely rather than
+    // routing through a fake division slug.
+    $app->get('/sports/{sport}/roster', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $sports, $programs, $players, $coaches) {
+        $sport = $sports->findBySlug($args['sport']);
+        if ($sport === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $program = $programs->findWillametteProgram((int) $sport['id'], null);
+        if ($program === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $html = $view->render('sports/roster', [
+            'title' => $sport['name'] . ' — Roster',
+            'sport' => $sport,
+            'division' => null,
+            'program' => $program,
+            'players' => $players->findByProgram((int) $program['id']),
+            'coaches' => $coaches->findByProgram((int) $program['id']),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
     $app->post('/programs/{programId}/players', function (
         Request $request,
         Response $response,

@@ -32,7 +32,7 @@ class PlaceholderRegistry
                 return self::joinCoaches($context['away']['coaches'] ?? []);
             },
             'item.battingOrderLabel' => function (array $context): string {
-                $order = $context['item']['battingOrder'] ?? null;
+                $order = $context['item']['batting_order'] ?? null;
 
                 return is_int($order) || ctype_digit((string) $order)
                     ? self::battingOrderLabel((int) $order)

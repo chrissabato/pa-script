@@ -91,9 +91,9 @@ class TemplateRendererTest extends TestCase
         $context = [
             'home' => [
                 'battingOrder' => [
-                    ['battingOrder' => 1, 'position' => 'shortstop', 'name' => 'Sam Lee'],
-                    ['battingOrder' => 2, 'position' => 'catcher', 'name' => 'Pat Kim'],
-                    ['battingOrder' => 3, 'position' => 'first base', 'name' => 'Jo Ray'],
+                    ['batting_order' => 1, 'position' => 'shortstop', 'name' => 'Sam Lee'],
+                    ['batting_order' => 2, 'position' => 'catcher', 'name' => 'Pat Kim'],
+                    ['batting_order' => 3, 'position' => 'first base', 'name' => 'Jo Ray'],
                 ],
             ],
         ];

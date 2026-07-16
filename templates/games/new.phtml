@@ -9,6 +9,7 @@
         </select>
         Division:
         <select name="division_id">
+            <option value="">— none (e.g. Baseball, Softball) —</option>
             <?php foreach ($divisions as $division): ?>
                 <option value="<?= (int) $division['id'] ?>"><?= htmlspecialchars($division['name'], ENT_QUOTES) ?></option>
             <?php endforeach; ?>

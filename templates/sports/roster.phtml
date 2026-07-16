@@ -1,4 +1,7 @@
-<h2><?= htmlspecialchars($program['school_name'], ENT_QUOTES) ?> — <?= htmlspecialchars($sport['name'], ENT_QUOTES) ?> (<?= htmlspecialchars($division['name'], ENT_QUOTES) ?>)</h2>
+<h2>
+    <?= htmlspecialchars($program['school_name'], ENT_QUOTES) ?> — <?= htmlspecialchars($sport['name'], ENT_QUOTES) ?>
+    <?php if ($division !== null): ?> (<?= htmlspecialchars($division['name'], ENT_QUOTES) ?>)<?php endif; ?>
+</h2>
 
 <h3>Coaches</h3>
 <table border="1" cellpadding="4">

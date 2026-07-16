@@ -62,6 +62,14 @@ class GameContextBuilder
             return $a['batting_order'] <=> $b['batting_order'];
         });
 
+        $startingPitcher = null;
+        foreach ($players as $p) {
+            if ((bool) $p['is_starter'] && self::isPitcher($p['position'])) {
+                $startingPitcher = $p;
+                break;
+            }
+        }
+
         return [
             'schoolName' => $schoolName ?? '',
             'mascot' => $mascot ?? '',
@@ -69,6 +77,18 @@ class GameContextBuilder
             'starters' => $starters,
             'reserves' => $reserves,
             'battingOrder' => $battingOrder,
+            'startingPitcher' => $startingPitcher,
         ];
+    }
+
+    /**
+     * Baseball/Softball announce the starting pitcher as its own callout,
+     * separate from the batting-order loop (which may or may not include
+     * them depending on DH use) — identified by position text rather than a
+     * dedicated column, so no schema change is needed for other sports.
+     */
+    private static function isPitcher(?string $position): bool
+    {
+        return $position !== null && stripos($position, 'pitcher') !== false;
     }
 }

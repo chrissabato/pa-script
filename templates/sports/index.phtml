@@ -14,9 +14,13 @@
             <ul>
             <?php foreach ($programsForSport as $program): ?>
                 <li>
-                    <a href="/sports/<?= htmlspecialchars($sport['slug'], ENT_QUOTES) ?>/<?= htmlspecialchars($program['division_slug'], ENT_QUOTES) ?>/roster">
-                        <?= htmlspecialchars($program['division_name'], ENT_QUOTES) ?> roster
-                    </a>
+                    <?php if ($program['division_slug'] !== null): ?>
+                        <a href="/sports/<?= htmlspecialchars($sport['slug'], ENT_QUOTES) ?>/<?= htmlspecialchars($program['division_slug'], ENT_QUOTES) ?>/roster">
+                            <?= htmlspecialchars($program['division_name'], ENT_QUOTES) ?> roster
+                        </a>
+                    <?php else: ?>
+                        <a href="/sports/<?= htmlspecialchars($sport['slug'], ENT_QUOTES) ?>/roster">Roster</a>
+                    <?php endif; ?>
                 </li>
             <?php endforeach; ?>
             </ul>

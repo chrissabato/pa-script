@@ -38,6 +38,12 @@ class ScriptTemplateRepository
                 . 'and division_id is null'
             );
             $stmt->execute(['sport_id' => $sportId]);
+        } elseif ($divisionId === null) {
+            $stmt = $this->pdo->prepare(
+                "select * from script_templates where sport_id = :sport_id and site_variant = 'home' "
+                . 'and division_id is null'
+            );
+            $stmt->execute(['sport_id' => $sportId]);
         } else {
             $stmt = $this->pdo->prepare(
                 "select * from script_templates where sport_id = :sport_id and site_variant = 'home' "
