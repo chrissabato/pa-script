@@ -122,6 +122,33 @@ class TemplateRendererTest extends TestCase
         ]));
     }
 
+    public function testLoopOverReservesRendersPlainNumberNameLine(): void
+    {
+        $blocks = [
+            [
+                'type' => 'loop',
+                'over' => 'home.reserves',
+                'template' => [
+                    ['type' => 'text', 'content' => 'Number '],
+                    ['type' => 'placeholder', 'key' => 'item.number'],
+                    ['type' => 'text', 'content' => ', '],
+                    ['type' => 'placeholder', 'key' => 'item.name'],
+                    ['type' => 'text', 'content' => ".\n"],
+                ],
+            ],
+        ];
+
+        $context = [
+            'home' => [
+                'reserves' => [
+                    ['number' => '15', 'name' => 'Erin Cole'],
+                ],
+            ],
+        ];
+
+        self::assertSame("Number 15, Erin Cole.\n", $this->renderer->render($blocks, $context));
+    }
+
     public function testLoopOverMissingKeyRendersEmptyRatherThanError(): void
     {
         $blocks = [
