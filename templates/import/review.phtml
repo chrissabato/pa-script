@@ -9,7 +9,7 @@
 <?php if ($rawText !== ''): ?>
     <p><em>No structured roster table was recognized on that page — here's the raw text of the
         likely roster region for reference while you add rows manually below.</em></p>
-    <pre style="max-height: 12rem; overflow-y: auto; background: #f5f5f5; padding: 0.75rem; white-space: pre-wrap;"><?= htmlspecialchars($rawText, ENT_QUOTES) ?></pre>
+    <pre class="raw-text-preview"><?= htmlspecialchars($rawText, ENT_QUOTES) ?></pre>
 <?php endif; ?>
 
 <?php if ($batch['status'] !== 'pending'): ?>
@@ -51,7 +51,8 @@
     </p>
 
     <h3>Scraped players</h3>
-    <table border="1" cellpadding="4" id="import-rows-table">
+    <div class="table-scroll">
+    <table id="import-rows-table">
         <tr>
             <th>Include</th><th>#</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th><th>Starter</th>
         </tr>
@@ -68,14 +69,15 @@
         </tr>
         <?php endforeach; ?>
     </table>
+    </div>
 
-    <p><button type="button" id="add-row-button">Add row</button></p>
+    <p><button type="button" id="add-row-button" class="button-secondary">Add row</button></p>
 
     <p><button type="submit">Commit selected rows</button></p>
 </form>
 
 <form method="post" action="/import/review/<?= (int) $batch['id'] ?>/discard" onsubmit="return confirm('Discard this batch? This cannot be undone.')">
-    <button type="submit">Discard batch</button>
+    <button type="submit" class="button-danger">Discard batch</button>
 </form>
 
 <template id="import-row-template">

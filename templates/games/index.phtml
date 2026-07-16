@@ -1,6 +1,6 @@
 <h2>Games</h2>
-<p><a href="/games/new">+ New game</a></p>
-<table border="1" cellpadding="4">
+<p><a href="/games/new" class="button">+ New game</a></p>
+<table>
     <tr><th>Date</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th><th></th></tr>
     <?php foreach ($games as $game): ?>
     <tr>
@@ -13,7 +13,7 @@
             <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
         </td>
         <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
-        <td><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></td>
+        <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
         <td><a href="/games/<?= (int) $game['id'] ?>">Open</a></td>
     </tr>
     <?php endforeach; ?>

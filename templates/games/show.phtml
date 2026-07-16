@@ -9,8 +9,9 @@
     <?= $game['is_neutral_site'] ? ' (neutral site)' : '' ?>
     — <?= htmlspecialchars($game['date'], ENT_QUOTES) ?>
     <?php if ($game['venue']): ?> at <?= htmlspecialchars($game['venue'], ENT_QUOTES) ?><?php endif; ?>
+    <span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span>
 </p>
-<ul>
+<ul class="link-list">
     <li><a href="/games/<?= (int) $game['id'] ?>/roster/home">Home roster</a></li>
     <li><a href="/games/<?= (int) $game['id'] ?>/roster/away">Away roster</a></li>
     <li><a href="/games/<?= (int) $game['id'] ?>/script">Script preview</a></li>
@@ -19,8 +20,10 @@
 
 <h3>Officials</h3>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/officials">
-    Name: <input type="text" name="name" required>
-    Role: <input type="text" name="role">
-    Sort: <input type="number" name="sort_order" value="0" size="3">
-    <button type="submit">Add official</button>
+    <p>
+        Name: <input type="text" name="name" required>
+        Role: <input type="text" name="role">
+        Sort: <input type="number" name="sort_order" value="0" size="3">
+        <button type="submit">Add official</button>
+    </p>
 </form>

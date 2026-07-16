@@ -4,5 +4,5 @@
 <?php if ($missingTemplateReason !== null): ?>
     <p><em><?= htmlspecialchars($missingTemplateReason, ENT_QUOTES) ?></em></p>
 <?php else: ?>
-    <pre style="white-space: pre-wrap; font-size: 1.1rem; line-height: 1.6;"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
+    <pre class="script-text"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
 <?php endif; ?>

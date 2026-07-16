@@ -23,30 +23,28 @@
 
     <fieldset>
         <legend>Home team</legend>
-        Existing school:
+        <p>Existing school:
         <select name="home_school_id">
             <option value="">— new school below —</option>
             <?php foreach ($schools as $school): ?>
                 <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
             <?php endforeach; ?>
-        </select>
-        <br>
-        Or new school name: <input type="text" name="home_school_name">
-        Mascot: <input type="text" name="home_mascot">
+        </select></p>
+        <p>Or new school name: <input type="text" name="home_school_name">
+        Mascot: <input type="text" name="home_mascot"></p>
     </fieldset>
 
     <fieldset>
         <legend>Away team</legend>
-        Existing school:
+        <p>Existing school:
         <select name="away_school_id">
             <option value="">— new school below —</option>
             <?php foreach ($schools as $school): ?>
                 <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
             <?php endforeach; ?>
-        </select>
-        <br>
-        Or new school name: <input type="text" name="away_school_name">
-        Mascot: <input type="text" name="away_mascot">
+        </select></p>
+        <p>Or new school name: <input type="text" name="away_school_name">
+        Mascot: <input type="text" name="away_mascot"></p>
     </fieldset>
 
     <p>

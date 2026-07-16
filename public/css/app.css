@@ -1,0 +1,321 @@
+/*
+ * PA Script — site stylesheet.
+ * Plain CSS, no build step (see CLAUDE.md: no Node/build pipeline).
+ * Not applied to the teleprompter view, which has its own dark,
+ * distraction-free full-screen styling in games/teleprompter.phtml.
+ */
+
+:root {
+    --color-primary: #9e1b32;
+    --color-primary-dark: #7a1526;
+    --color-text: #1f2328;
+    --color-text-muted: #5b6470;
+    --color-border: #d8dce1;
+    --color-bg: #f4f5f7;
+    --color-surface: #ffffff;
+    --color-danger: #b3261e;
+    --color-danger-dark: #8f1e18;
+    --radius: 6px;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+h1, h2, h3, h4 {
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 1.4rem 0 0.7rem;
+}
+
+h1 { font-size: 1.3rem; margin: 0; }
+h2 { font-size: 1.5rem; margin-top: 0; }
+h3 {
+    font-size: 1.1rem;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--color-border);
+}
+h4 { font-size: 0.95rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.02em; }
+
+p { margin: 0.6rem 0; }
+
+a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+code {
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+em { color: var(--color-text-muted); }
+
+/* ---- Layout --------------------------------------------------------- */
+
+.site-header {
+    background: var(--color-primary);
+    color: #fff;
+    padding: 0.9rem 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+}
+.site-header h1 { color: #fff; }
+.site-header nav { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+.site-header nav a {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+.site-header nav a:hover { color: #fff; text-decoration: none; }
+
+main {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 1.75rem 1.5rem 4rem;
+}
+
+/* ---- Tables ----------------------------------------------------------
+ * Overrides the plain border="1" cellpadding="4" attributes already on
+ * every table in the templates — author CSS wins over those presentational
+ * HTML attributes, so no markup changes were needed here.
+ */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 0.75rem 0 1.25rem;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.92rem;
+}
+th, td {
+    border: 1px solid var(--color-border);
+    padding: 0.5rem 0.6rem;
+    text-align: left;
+    vertical-align: middle;
+}
+th {
+    background: var(--color-bg);
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--color-text-muted);
+}
+tr:nth-child(even) td { background: rgba(0, 0, 0, 0.015); }
+
+/* ---- Forms ------------------------------------------------------------
+ * Most "Add X" forms wrap their label+input pairs in a <p> already; this
+ * turns each into a wrapped, gap-spaced row without touching any markup.
+ */
+
+form p, form > .field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    margin: 0.6rem 0;
+}
+
+label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.92rem;
+}
+
+fieldset {
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.9rem 1rem 1rem;
+    margin: 1rem 0;
+    background: var(--color-surface);
+}
+legend {
+    font-weight: 600;
+    padding: 0 0.4rem;
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="password"],
+select,
+textarea {
+    font: inherit;
+    font-size: 0.92rem;
+    padding: 0.4rem 0.55rem;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+input:focus, select:focus, textarea:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 1px;
+}
+textarea { min-height: 4.5rem; vertical-align: top; min-width: 16rem; }
+
+/* Inputs without an explicit `size` attribute are free-text fields (name,
+   hometown, venue, ...) — give them real room. Fields the templates
+   deliberately sized narrow (jersey #, sort order, year) keep their
+   HTML `size` as-is so dense roster tables don't get any wider than
+   they need to. */
+input[type="text"]:not([size]),
+input[type="date"],
+input[type="time"] {
+    min-width: 11rem;
+}
+
+/* Wide, many-column roster tables scroll horizontally on narrow
+   viewports instead of squeezing every input down to unreadable widths. */
+.table-scroll {
+    overflow-x: auto;
+    margin: 0.75rem 0 1.25rem;
+}
+.table-scroll table { margin: 0; }
+
+td input[type="checkbox"] { transform: scale(1.05); }
+
+button, .button {
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--radius);
+    border: 1px solid var(--color-primary);
+    background: var(--color-primary);
+    color: #fff;
+    cursor: pointer;
+    display: inline-block;
+    line-height: 1.3;
+}
+button:hover, .button:hover {
+    background: var(--color-primary-dark);
+    border-color: var(--color-primary-dark);
+    text-decoration: none;
+}
+.button[draggable] { cursor: grab; }
+
+/* Delete / discard actions — same shape, danger color, so they read as
+   distinct from primary Save/Add actions without shifting layout. */
+button[name="_method"][value="DELETE"],
+.button-danger {
+    background: var(--color-surface);
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+}
+button[name="_method"][value="DELETE"]:hover,
+.button-danger:hover {
+    background: var(--color-danger);
+    color: #fff;
+    border-color: var(--color-danger-dark);
+}
+
+/* Secondary / low-emphasis actions (e.g. "Discard batch"). */
+.button-secondary {
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+.button-secondary:hover {
+    background: var(--color-bg);
+    border-color: var(--color-text-muted);
+}
+
+/* ---- Lists / nav-style link lists ------------------------------------ */
+
+main ul { padding-left: 1.3rem; }
+.link-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+}
+
+/* ---- Small components -------------------------------------------------- */
+
+.badge {
+    display: inline-block;
+    padding: 0.15em 0.6em;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: var(--color-bg);
+    color: var(--color-text-muted);
+    border: 1px solid var(--color-border);
+}
+.badge-draft { background: #fff4e5; color: #8a5300; border-color: #f3d9a4; }
+.badge-final { background: #e8f5e9; color: #256029; border-color: #b7dfba; }
+
+.card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.1rem 1.25rem;
+    margin: 1rem 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.script-text {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    white-space: pre-wrap;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    box-shadow: var(--shadow-sm);
+}
+
+.raw-text-preview {
+    max-height: 12rem;
+    overflow-y: auto;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    white-space: pre-wrap;
+    font-size: 0.88rem;
+    color: var(--color-text-muted);
+}
+
+@media (max-width: 640px) {
+    .site-header { padding: 0.8rem 1rem; }
+    main { padding: 1.25rem 1rem 3rem; }
+    table, thead, tbody, th, td, tr { font-size: 0.85rem; }
+}

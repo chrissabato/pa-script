@@ -4,7 +4,7 @@
 </h2>
 
 <h3>Coaches</h3>
-<table border="1" cellpadding="4">
+<table>
     <tr><th>Name</th><th>Title</th><th>Order</th><th></th></tr>
     <?php foreach ($coaches as $coach): ?>
     <tr>
@@ -23,14 +23,17 @@
 
 <h4>Add coach</h4>
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches">
-    Name: <input type="text" name="name" required>
-    Title: <input type="text" name="title">
-    Order: <input type="number" name="sort_order" value="0" size="3">
-    <button type="submit">Add</button>
+    <p>
+        Name: <input type="text" name="name" required>
+        Title: <input type="text" name="title">
+        Order: <input type="number" name="sort_order" value="0" size="3">
+        <button type="submit">Add</button>
+    </p>
 </form>
 
 <h3>Players</h3>
-<table border="1" cellpadding="4">
+<div class="table-scroll">
+<table>
     <tr>
         <th>#</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
         <th>Starter</th><th>Batting order</th><th>Sort</th><th>Active</th><th></th>
@@ -56,18 +59,21 @@
     </tr>
     <?php endforeach; ?>
 </table>
+</div>
 
 <h4>Add player</h4>
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/players">
-    #: <input type="text" name="number" size="3">
-    Name: <input type="text" name="name" required>
-    Pronunciation: <input type="text" name="pronunciation">
-    Position: <input type="text" name="position">
-    Year: <input type="text" name="year" size="4">
-    Hometown: <input type="text" name="hometown">
-    Starter: <input type="checkbox" name="is_starter" value="1">
-    Batting order: <input type="number" name="batting_order" size="3">
-    Sort: <input type="number" name="sort_order" value="0" size="3">
     <input type="hidden" name="is_active" value="1">
-    <button type="submit">Add</button>
+    <p>
+        #: <input type="text" name="number" size="3">
+        Name: <input type="text" name="name" required>
+        Pronunciation: <input type="text" name="pronunciation">
+        Position: <input type="text" name="position">
+        Year: <input type="text" name="year" size="4">
+        Hometown: <input type="text" name="hometown">
+        Starter: <input type="checkbox" name="is_starter" value="1">
+        Batting order: <input type="number" name="batting_order" size="3">
+        Sort: <input type="number" name="sort_order" value="0" size="3">
+        <button type="submit">Add</button>
+    </p>
 </form>
