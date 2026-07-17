@@ -1,0 +1,26 @@
+<h2>Teams</h2>
+<p><em>Schools used across games and rosters (Willamette and opponents). Editing a name/mascot here updates it everywhere it's referenced.</em></p>
+
+<table>
+    <tr><th>Name</th><th>Mascot</th><th>Short name</th><th></th></tr>
+    <?php foreach ($schools as $school): ?>
+    <tr>
+        <form method="post" action="/schools/<?= (int) $school['id'] ?>">
+            <td><input type="text" name="name" value="<?= htmlspecialchars($school['name'], ENT_QUOTES) ?>" required></td>
+            <td><input type="text" name="mascot" value="<?= htmlspecialchars((string) $school['mascot'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="short_name" value="<?= htmlspecialchars((string) $school['short_name'], ENT_QUOTES) ?>"></td>
+            <td><button type="submit">Save</button></td>
+        </form>
+    </tr>
+    <?php endforeach; ?>
+</table>
+
+<h4>Add team</h4>
+<form method="post" action="/schools">
+    <p>
+        Name: <input type="text" name="name" required>
+        Mascot: <input type="text" name="mascot">
+        Short name: <input type="text" name="short_name">
+        <button type="submit">Add</button>
+    </p>
+</form>

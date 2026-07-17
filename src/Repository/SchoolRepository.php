@@ -52,6 +52,15 @@ class SchoolRepository
         return (int) $stmt->fetchColumn();
     }
 
+    public function update(int $id, string $name, ?string $mascot, ?string $shortName): void
+    {
+        $stmt = $this->pdo->prepare(
+            'update schools set name = :name, mascot = :mascot, short_name = :short_name, '
+            . 'updated_at = current_timestamp where id = :id'
+        );
+        $stmt->execute(['id' => $id, 'name' => $name, 'mascot' => $mascot, 'short_name' => $shortName]);
+    }
+
     public function findOrCreateByName(string $name, ?string $mascot = null): array
     {
         $existing = $this->findByName($name);

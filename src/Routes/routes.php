@@ -37,6 +37,41 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $renderer = new TemplateRenderer();
 
+    // ---- Schools (teams) -------------------------------------------------
+
+    $app->get('/schools', function (Request $request, Response $response) use ($view, $schools) {
+        $html = $view->render('schools/index', [
+            'title' => 'Teams',
+            'schools' => $schools->all(),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    $app->post('/schools', function (Request $request, Response $response) use ($schools) {
+        $data = (array) $request->getParsedBody();
+        $schools->create(
+            $data['name'],
+            ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
+            ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
+        );
+
+        return $response->withHeader('Location', '/schools')->withStatus(302);
+    });
+
+    $app->post('/schools/{id}', function (Request $request, Response $response, array $args) use ($schools) {
+        $data = (array) $request->getParsedBody();
+        $schools->update(
+            (int) $args['id'],
+            $data['name'],
+            ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
+            ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
+        );
+
+        return $response->withHeader('Location', '/schools')->withStatus(302);
+    });
+
     // ---- Sports / roster ----------------------------------------------
 
     $app->get('/sports', function (Request $request, Response $response) use ($view, $sports, $programs) {
