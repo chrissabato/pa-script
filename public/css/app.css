@@ -158,12 +158,30 @@ form p.stacked-fields { align-items: flex-end; }
     font-weight: 400;
     color: var(--color-text);
 }
-/* Center a lone checkbox under its label at input height. */
-.stacked-fields label input[type="checkbox"] {
-    align-self: center;
-    height: 2.2rem;
+/* Roster checkboxes (Starter, Active) drawn as a square the same
+   height as the text inputs beside them: font-size x line-height +
+   vertical padding + border, mirroring the text input rule below. */
+.roster-table input[type="checkbox"],
+.stacked-fields input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    font-size: 0.92rem;
+    height: calc(1.55em + 0.8rem + 2px);
+    width: calc(1.55em + 0.8rem + 2px);
     margin: 0;
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    background: var(--color-surface) center / 70% no-repeat;
+    cursor: pointer;
+    vertical-align: middle;
 }
+.roster-table input[type="checkbox"]:checked,
+.stacked-fields input[type="checkbox"]:checked {
+    background-color: var(--color-primary);
+    border-color: var(--color-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.stacked-fields label input[type="checkbox"] { align-self: center; }
 
 label {
     display: inline-flex;
@@ -252,7 +270,6 @@ main:has(.roster-table) { max-width: 1440px; }
 .roster-table td:last-child { white-space: nowrap; }
 .roster-table td button { padding: 0.3rem 0.65rem; }
 
-td input[type="checkbox"] { transform: scale(1.05); }
 
 button, .button {
     font: inherit;
