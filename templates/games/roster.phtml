@@ -35,19 +35,19 @@
 <div class="table-scroll">
 <table class="roster-table">
     <tr>
-        <th>#</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
-        <th>Starter</th><th></th>
+        <th>#</th><th>Starter</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
+        <th></th>
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
         <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>">
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
+            <td><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
             <td><input type="text" name="player" value="<?= htmlspecialchars($player['name'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $player['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="position" value="<?= htmlspecialchars((string) $player['position'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="year" value="<?= htmlspecialchars((string) $player['year'], ENT_QUOTES) ?>" size="4"></td>
             <td><input type="text" name="hometown" value="<?= htmlspecialchars((string) $player['hometown'], ENT_QUOTES) ?>"></td>
-            <td><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
             <td>
                 <button type="submit">Save</button>
                 <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this player?')">Delete</button>
@@ -63,12 +63,12 @@
     <input type="hidden" name="snapshot_id" value="<?= (int) $snapshot['id'] ?>">
     <p class="stacked-fields">
         <label># <input type="text" name="number" size="3"></label>
+        <label>Starter <input type="checkbox" name="is_starter" value="1"></label>
         <label>Player <input type="text" name="player" required></label>
         <label>Pronunciation <input type="text" name="pronunciation"></label>
         <label>Position <input type="text" name="position"></label>
         <label>Year <input type="text" name="year" size="4"></label>
         <label>Hometown <input type="text" name="hometown"></label>
-        <label>Starter <input type="checkbox" name="is_starter" value="1"></label>
         <button type="submit">Add</button>
     </p>
 </form>
