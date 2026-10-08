@@ -39,6 +39,20 @@ function playerFormData(array $data): array
     return $data;
 }
 
+/**
+ * Same idea for the Teams form: its full-name field is posted as `school`.
+ *
+ * @param array<string, mixed> $data
+ * @return array<string, mixed>
+ */
+function schoolFormData(array $data): array
+{
+    $data['name'] = (string) ($data['school'] ?? '');
+    unset($data['school']);
+
+    return $data;
+}
+
 return function (App $app, PDO $pdo, Renderer $view): void {
     $sports = new SportRepository($pdo);
     $divisions = new DivisionRepository($pdo);
@@ -68,23 +82,14 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
     $app->post('/schools', function (Request $request, Response $response) use ($schools) {
         $data = (array) $request->getParsedBody();
-        $schools->create(
-            $data['school'],
-            ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
-            ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
-        );
+        $schools->create(schoolFormData($data));
 
         return $response->withHeader('Location', '/schools')->withStatus(302);
     });
 
     $app->post('/schools/{id}', function (Request $request, Response $response, array $args) use ($schools) {
         $data = (array) $request->getParsedBody();
-        $schools->update(
-            (int) $args['id'],
-            $data['school'],
-            ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
-            ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
-        );
+        $schools->update((int) $args['id'], schoolFormData($data));
 
         return $response->withHeader('Location', '/schools')->withStatus(302);
     });

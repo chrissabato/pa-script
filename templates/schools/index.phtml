@@ -1,26 +1,92 @@
-<h2>Teams</h2>
-<p><em>Schools used across games and rosters (Willamette and opponents). Editing a name/mascot here updates it everywhere it's referenced.</em></p>
+<?php
+$cmsProviders = ['sidearm' => 'Sidearm', 'presto' => 'Presto', 'presto_old' => 'Presto (old)'];
 
-<table>
-    <tr><th>Name</th><th>Mascot</th><th>Short name</th><th></th></tr>
+// Logo is either an absolute URL or a filename under public/logos/.
+$logoSrc = function (?string $logo): ?string {
+    if ($logo === null || $logo === '') {
+        return null;
+    }
+    if (preg_match('#^https?://#i', $logo)) {
+        return $logo;
+    }
+
+    return is_file(__DIR__ . '/../../public/logos/' . $logo) ? '/logos/' . rawurlencode($logo) : null;
+};
+
+$cmsSelect = function (?string $current) use ($cmsProviders): string {
+    $options = $cmsProviders;
+    if ($current !== null && $current !== '' && !isset($options[$current])) {
+        $options[$current] = $current;
+    }
+    $html = '<select name="cms_provider"><option value=""></option>';
+    foreach ($options as $value => $label) {
+        $html .= sprintf(
+            '<option value="%s"%s>%s</option>',
+            htmlspecialchars($value, ENT_QUOTES),
+            $value === $current ? ' selected' : '',
+            htmlspecialchars($label, ENT_QUOTES)
+        );
+    }
+
+    return $html . '</select>';
+};
+?>
+<h2>Teams</h2>
+<p><em>Schools used across games and rosters (Willamette and opponents). Editing a team here updates it everywhere it's referenced.</em></p>
+
+<div class="table-scroll">
+<table class="roster-table teams-table">
+    <tr>
+        <th>Full name</th><th>Short name</th><th>Mascot</th><th>Logo</th><th>Color</th><th>URL</th><th>CMS provider</th><th></th>
+    </tr>
     <?php foreach ($schools as $school): ?>
+    <?php $src = $logoSrc($school['logo']); ?>
     <tr>
         <form method="post" action="/schools/<?= (int) $school['id'] ?>">
             <td><input type="text" name="school" value="<?= htmlspecialchars($school['name'], ENT_QUOTES) ?>" required></td>
-            <td><input type="text" name="mascot" value="<?= htmlspecialchars((string) $school['mascot'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="short_name" value="<?= htmlspecialchars((string) $school['short_name'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="mascot" value="<?= htmlspecialchars((string) $school['mascot'], ENT_QUOTES) ?>"></td>
+            <td class="logo-cell">
+                <span class="logo-thumb" style="background: <?= htmlspecialchars((string) ($school['color'] ?? 'transparent'), ENT_QUOTES) ?>"><?php if ($src !== null): ?><img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" alt=""><?php endif; ?></span>
+                <input type="text" name="logo" value="<?= htmlspecialchars((string) $school['logo'], ENT_QUOTES) ?>">
+            </td>
+            <td>
+                <input type="text" name="color" value="<?= htmlspecialchars((string) $school['color'], ENT_QUOTES) ?>" size="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#RRGGBB">
+            </td>
+            <td><input type="text" name="url" value="<?= htmlspecialchars((string) $school['url'], ENT_QUOTES) ?>"></td>
+            <td><?= $cmsSelect($school['cms_provider']) ?></td>
             <td><button type="submit">Save</button></td>
         </form>
     </tr>
     <?php endforeach; ?>
 </table>
+</div>
 
 <h4>Add team</h4>
 <form method="post" action="/schools">
-    <p>
-        Team: <input type="text" name="school" required>
-        Mascot: <input type="text" name="mascot">
-        Short name: <input type="text" name="short_name">
+    <p class="stacked-fields">
+        <label>Full name <input type="text" name="school" required></label>
+        <label>Short name <input type="text" name="short_name"></label>
+        <label>Mascot <input type="text" name="mascot"></label>
+        <label>Logo <input type="text" name="logo" placeholder="file.png or URL"></label>
+        <label>Color <input type="text" name="color" size="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#RRGGBB"></label>
+        <label>URL <input type="text" name="url"></label>
+        <label>CMS provider <?= $cmsSelect(null) ?></label>
         <button type="submit">Add</button>
     </p>
 </form>
+
+<script>
+    // Live-update the row's logo background as its color hex is edited.
+    document.querySelectorAll('.teams-table td input[name="color"]').forEach(function (input) {
+        input.addEventListener('input', function () {
+            var hex = input.value.trim().replace(/^#?/, '#');
+            var thumb = input.closest('tr').querySelector('.logo-thumb');
+            if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
+                thumb.style.background = hex;
+            } else if (input.value.trim() === '') {
+                thumb.style.background = 'transparent';
+            }
+        });
+    });
+</script>
