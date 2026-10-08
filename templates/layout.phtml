@@ -20,5 +20,14 @@
     <main>
         <?= $content ?>
     </main>
+    <script>
+        // None of these forms hold credentials or personal info, but fields
+        // named "name"/"title" trip password-manager and browser autofill
+        // icons. Opt every field out once, here, instead of per template.
+        document.querySelectorAll('input, textarea, select').forEach(function (el) {
+            el.setAttribute('data-lpignore', 'true');
+            el.setAttribute('autocomplete', 'off');
+        });
+    </script>
 </body>
 </html>
