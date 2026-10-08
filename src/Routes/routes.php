@@ -316,7 +316,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $snapshot = $gameRosters->findSnapshot((int) $game['id'], $side);
 
         $html = $view->render('games/roster', [
-            'title' => ucfirst($side) . ' Roster — Game #' . $game['id'],
+            'title' => ($game[$side . '_school_name'] ?? ucfirst($side)) . ' Roster',
             'game' => $game,
             'side' => $side,
             'snapshot' => $snapshot,
