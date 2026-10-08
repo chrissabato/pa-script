@@ -24,9 +24,9 @@
 <h4>Add coach</h4>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches">
     <input type="hidden" name="snapshot_id" value="<?= (int) $snapshot['id'] ?>">
-    <p>
-        Coach: <input type="text" name="coach" required>
-        Title: <input type="text" name="staff_role">
+    <p class="stacked-fields">
+        <label>Coach <input type="text" name="coach" required></label>
+        <label>Title <input type="text" name="staff_role"></label>
         <button type="submit">Add</button>
     </p>
 </form>
@@ -61,14 +61,14 @@
 <h4>Add player</h4>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players">
     <input type="hidden" name="snapshot_id" value="<?= (int) $snapshot['id'] ?>">
-    <p>
-        #: <input type="text" name="number" size="3">
-        Player: <input type="text" name="player" required>
-        Pronunciation: <input type="text" name="pronunciation">
-        Position: <input type="text" name="position">
-        Year: <input type="text" name="year" size="4">
-        Hometown: <input type="text" name="hometown">
-        Starter: <input type="checkbox" name="is_starter" value="1">
+    <p class="stacked-fields">
+        <label># <input type="text" name="number" size="3"></label>
+        <label>Player <input type="text" name="player" required></label>
+        <label>Pronunciation <input type="text" name="pronunciation"></label>
+        <label>Position <input type="text" name="position"></label>
+        <label>Year <input type="text" name="year" size="4"></label>
+        <label>Hometown <input type="text" name="hometown"></label>
+        <label>Starter <input type="checkbox" name="is_starter" value="1"></label>
         <button type="submit">Add</button>
     </p>
 </form>

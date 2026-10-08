@@ -23,10 +23,10 @@
 
 <h4>Add coach</h4>
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches">
-    <p>
-        Coach: <input type="text" name="coach" required>
-        Title: <input type="text" name="staff_role">
-        Order: <input type="number" name="sort_order" value="0" size="3">
+    <p class="stacked-fields">
+        <label>Coach <input type="text" name="coach" required></label>
+        <label>Title <input type="text" name="staff_role"></label>
+        <label>Order <input type="number" name="sort_order" value="0" size="3"></label>
         <button type="submit">Add</button>
     </p>
 </form>
@@ -62,14 +62,14 @@
 <h4>Add player</h4>
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/players">
     <input type="hidden" name="is_active" value="1">
-    <p>
-        #: <input type="text" name="number" size="3">
-        Player: <input type="text" name="player" required>
-        Pronunciation: <input type="text" name="pronunciation">
-        Position: <input type="text" name="position">
-        Year: <input type="text" name="year" size="4">
-        Hometown: <input type="text" name="hometown">
-        Starter: <input type="checkbox" name="is_starter" value="1">
+    <p class="stacked-fields">
+        <label># <input type="text" name="number" size="3"></label>
+        <label>Player <input type="text" name="player" required></label>
+        <label>Pronunciation <input type="text" name="pronunciation"></label>
+        <label>Position <input type="text" name="position"></label>
+        <label>Year <input type="text" name="year" size="4"></label>
+        <label>Hometown <input type="text" name="hometown"></label>
+        <label>Starter <input type="checkbox" name="is_starter" value="1"></label>
         <button type="submit">Add</button>
     </p>
 </form>
