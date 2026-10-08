@@ -68,6 +68,18 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $renderer = new TemplateRenderer();
 
+    // ---- Dashboard -------------------------------------------------------
+
+    $app->get('/', function (Request $request, Response $response) use ($view, $games) {
+        $html = $view->render('home', [
+            'title' => 'PA Script — Dashboard',
+            'games' => $games->onOrAfter(date('Y-m-d')),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
     // ---- Schools (teams) -------------------------------------------------
 
     $app->get('/schools', function (Request $request, Response $response) use ($view, $schools) {

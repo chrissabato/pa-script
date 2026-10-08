@@ -47,6 +47,21 @@ class GameRepository
         return $stmt->fetchAll();
     }
 
+    /**
+     * Games on or after a date (Y-m-d, in the app's local timezone).
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function onOrAfter(string $date): array
+    {
+        $stmt = $this->pdo->prepare(
+            self::SELECT . ' where games.date >= :date order by games.date, games.time_of_day'
+        );
+        $stmt->execute(['date' => $date]);
+
+        return $stmt->fetchAll();
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(self::SELECT . ' where games.id = :id');

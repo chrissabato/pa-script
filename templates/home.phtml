@@ -1,3 +1,33 @@
-<h2>Dashboard</h2>
-<p>Database connection OK. Server time: <?= htmlspecialchars((string) $dbTime, ENT_QUOTES) ?></p>
-<p>Upcoming games will be listed here once <code>games</code> is seeded.</p>
+<h2>Upcoming games</h2>
+<p><a href="/games/new" class="button">+ New game</a> &nbsp; <a href="/games">All games</a></p>
+
+<?php if ($games === []): ?>
+    <p><em>No upcoming games scheduled.</em></p>
+<?php else: ?>
+<table>
+    <tr><th>Date</th><th>Time</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th><th></th></tr>
+    <?php foreach ($games as $game): ?>
+    <tr>
+        <td class="nowrap"><?= htmlspecialchars(date('l, M j', strtotime($game['date'])), ENT_QUOTES) ?></td>
+        <td class="nowrap"><?= $game['time_of_day'] ? htmlspecialchars(date('g:i A', strtotime($game['time_of_day'])), ENT_QUOTES) : '' ?></td>
+        <td>
+            <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>
+            <?php if ($game['division_name']): ?>(<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
+        </td>
+        <td>
+            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
+            vs
+            <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+            <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
+        </td>
+        <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
+        <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
+        <td class="nowrap">
+            <a href="/games/<?= (int) $game['id'] ?>">Open</a> ·
+            <a href="/games/<?= (int) $game['id'] ?>/script">Script</a> ·
+            <a href="/games/<?= (int) $game['id'] ?>/teleprompter">Teleprompter</a>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</table>
+<?php endif; ?>
