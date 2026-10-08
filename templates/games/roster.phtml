@@ -5,7 +5,7 @@ $opponentName = $game[($side === 'home' ? 'away' : 'home') . '_school_name'] ?? 
 <h2><?= $teamName !== null ? htmlspecialchars($teamName, ENT_QUOTES) : ucfirst($side) . ' team' ?></h2>
 <p><em>
     <?= ucfirst($side) ?> roster<?php if ($opponentName !== null): ?> vs <?= htmlspecialchars($opponentName, ENT_QUOTES) ?><?php endif; ?>
-    — <?= htmlspecialchars($game['date'], ENT_QUOTES) ?>
+    — <?= htmlspecialchars(date('l, M j', strtotime($game['date'])), ENT_QUOTES) ?>
 </em></p>
 <p><a href="/games/<?= (int) $game['id'] ?>">&larr; back to game</a></p>
 
