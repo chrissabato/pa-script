@@ -208,6 +208,7 @@ legend {
 }
 
 input[type="text"],
+input[type="url"],
 input[type="number"],
 input[type="date"],
 input[type="time"],
@@ -410,3 +411,82 @@ main ul { padding-left: 1.3rem; }
     main { padding: 1.25rem 1rem 3rem; }
     table, thead, tbody, th, td, tr { font-size: 0.85rem; }
 }
+
+/* ---- Roster import panel (partials/roster-import.phtml) -------------- */
+
+.roster-import {
+    margin: 1rem 0 1.5rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    background: var(--color-surface);
+}
+.roster-import h3 { margin-top: 0; padding-top: 0; border-top: 0; }
+.roster-import-url { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem; }
+.roster-import-url label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    flex: 1 1 22rem;
+    min-width: 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+.roster-import-url label input { font-weight: 400; color: var(--color-text); }
+.roster-import-url input { width: 100%; box-sizing: border-box; }
+.roster-import .hint { color: var(--color-text-muted); font-size: 0.9rem; }
+.roster-import textarea { width: 100%; box-sizing: border-box; font-family: monospace; font-size: 0.8rem; }
+.roster-import summary { cursor: pointer; }
+
+/* ---- Game header + sub-nav (partials/game-nav.phtml) ----------------- */
+
+.game-header { margin-bottom: 1.5rem; }
+.game-header h2 { margin: 0.2rem 0 0.3rem; }
+.game-header-vs { color: var(--color-text-muted); font-weight: 400; font-size: 0.8em; }
+.game-header-crumb { margin: 0; font-size: 0.9rem; }
+.game-header-meta { margin: 0 0 0.9rem; color: var(--color-text-muted); }
+.game-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--color-border);
+}
+.game-tabs a:not(.button) {
+    padding: 0.55rem 0.95rem;
+    margin-bottom: -2px;
+    border-bottom: 3px solid transparent;
+    color: var(--color-text-muted);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.game-tabs a:not(.button):hover { color: var(--color-text); text-decoration: none; border-bottom-color: var(--color-border); }
+.game-tabs a.is-active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+.game-tabs .game-tabs-launch { margin: 0 0 0.4rem auto; padding: 0.35rem 0.8rem; }
+@media (max-width: 640px) {
+    .game-tabs a:not(.button) { padding: 0.45rem 0.6rem; }
+    .game-tabs .game-tabs-launch { margin: 0.3rem 0 0.4rem; }
+}
+/* The tab strip already draws a rule — drop the h3's own top border. */
+.game-header + h3 { margin-top: 0; padding-top: 0; border-top: 0; }
+
+/* Overview roster status cards — at a glance, were both rosters imported? */
+.roster-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.8rem; margin-bottom: 1.5rem; }
+.roster-status-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--color-border);
+    border-left: 4px solid #3c8a46;
+    border-radius: var(--radius);
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+.roster-status-card:hover { text-decoration: none; border-color: var(--color-text-muted); }
+.roster-status-card.is-empty { border-left-color: var(--color-danger); background: #fdf4f3; }
+.roster-status-side { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); }
+.roster-status-counts { color: var(--color-text-muted); }
+.roster-status-card.is-empty .roster-status-counts { color: var(--color-danger-dark); font-weight: 600; }

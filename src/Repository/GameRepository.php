@@ -27,8 +27,10 @@ class GameRepository
             home_division.name as division_name,
             home_division.slug as division_slug,
             home_school.name as home_school_name,
+            home_school.short_name as home_short_name,
             home_school.mascot as home_mascot,
             away_school.name as away_school_name,
+            away_school.short_name as away_short_name,
             away_school.mascot as away_mascot
         from games
         join sports on sports.id = games.sport_id

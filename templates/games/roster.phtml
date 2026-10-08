@@ -1,17 +1,17 @@
 <?php
 $teamName = $game[$side . '_school_name'] ?? null;
-$opponentName = $game[($side === 'home' ? 'away' : 'home') . '_school_name'] ?? null;
 ?>
-<h2><?= $teamName !== null ? htmlspecialchars($teamName, ENT_QUOTES) : ucfirst($side) . ' team' ?></h2>
-<p><em>
-    <?= ucfirst($side) ?> roster<?php if ($opponentName !== null): ?> vs <?= htmlspecialchars($opponentName, ENT_QUOTES) ?><?php endif; ?>
-    — <?= htmlspecialchars(date('l, M j', strtotime($game['date'])), ENT_QUOTES) ?>
-</em></p>
-<p><a href="/games/<?= (int) $game['id'] ?>">&larr; back to game</a></p>
+<?php $gameTab = $side; require __DIR__ . '/../partials/game-nav.phtml'; ?>
+
+<h3><?= ucfirst($side) ?> roster — <?= $teamName !== null ? htmlspecialchars($teamName, ENT_QUOTES) : ucfirst($side) . ' team' ?></h3>
 
 <?php if ($snapshot === null): ?>
     <p><em>No roster snapshot exists for this side yet.</em></p>
 <?php else: ?>
+
+<?php if ($program !== null && $rosterImport !== null): ?>
+    <?php require __DIR__ . '/../partials/roster-import.phtml'; ?>
+<?php endif; ?>
 
 <h3>Coaches</h3>
 <table class="roster-table">

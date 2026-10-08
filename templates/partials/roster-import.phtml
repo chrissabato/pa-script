@@ -1,0 +1,52 @@
+<?php
+/**
+ * Roster-import panel on a game's roster page.
+ *
+ * Expects: $game, $side, $program (the side's team: id, school name, CMS
+ * provider) and $rosterImport (['url' => ?string, 'isGuess' => bool]).
+ * The roster URL is saved on the program, so the next game against the
+ * same team starts from it.
+ */
+$rosterUrl = (string) ($rosterImport['url'] ?? '');
+?>
+<section class="roster-import" data-program-id="<?= (int) $program['id'] ?>">
+    <h3>Import from roster page</h3>
+    <form method="post" action="/programs/<?= (int) $program['id'] ?>/roster-url" class="roster-import-url">
+        <label>Roster URL
+            <input type="url" name="roster_url" value="<?= htmlspecialchars($rosterUrl, ENT_QUOTES) ?>"
+                   placeholder="https://…/sports/…/roster">
+        </label>
+        <button type="button" class="roster-import-fetch">Fetch roster</button>
+        <button type="submit" class="button-secondary">Save URL</button>
+        <a class="roster-import-open button button-secondary" href="<?= htmlspecialchars($rosterUrl, ENT_QUOTES) ?>"
+           target="_blank" rel="noopener"<?= $rosterUrl === '' ? ' hidden' : '' ?>>Open page ↗</a>
+    </form>
+    <p class="hint">
+        <?php if ($rosterUrl !== '' && $rosterImport['isGuess']): ?>
+            Suggested from <?= htmlspecialchars($program['school_name'], ENT_QUOTES) ?>'s
+            <?= htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $program['school_cms_provider'])), ENT_QUOTES) ?> site — check it before fetching.
+        <?php elseif ($rosterUrl === ''): ?>
+            No URL could be suggested for this team's site — paste the roster page's address.
+        <?php endif; ?>
+        Fetched players go to a review page first; nothing changes here until you commit them.
+    </p>
+    <p class="roster-import-status notice" hidden></p>
+
+    <details class="roster-import-paste">
+        <summary>Can't fetch it? Paste the page HTML instead</summary>
+        <p class="hint">
+            Open the roster page, then either use the <a href="/bookmarklet">bookmarklet</a>, or View Source
+            (Ctrl/Cmd+U), select all, copy, and paste it here.
+        </p>
+        <textarea rows="6" placeholder="Paste the roster page's HTML"></textarea>
+        <p><button type="button" class="roster-import-parse button-secondary">Import pasted HTML</button></p>
+    </details>
+
+    <form method="post" action="/import/stage" class="roster-import-stage" hidden>
+        <input type="hidden" name="scrape">
+        <input type="hidden" name="game_id" value="<?= (int) $game['id'] ?>">
+        <input type="hidden" name="side" value="<?= htmlspecialchars($side, ENT_QUOTES) ?>">
+    </form>
+</section>
+<script src="<?= htmlspecialchars($this->asset('/js/scraper-core.js'), ENT_QUOTES) ?>"></script>
+<script src="<?= htmlspecialchars($this->asset('/js/roster-import.js'), ENT_QUOTES) ?>"></script>

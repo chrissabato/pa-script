@@ -1,3 +1,10 @@
+<?php
+// Game and side preselected by the game roster page that staged this
+// batch (?game_id=&side=).
+$preset = $preset ?? [];
+$presetSide = ($preset['side'] ?? '') === 'home' ? 'home' : 'away';
+$presetGameId = (int) ($preset['game_id'] ?? 0);
+?>
 <h2>Review Import #<?= (int) $batch['id'] ?></h2>
 <p>
     Source: <?= $batch['source_url'] !== null ? htmlspecialchars($batch['source_url'], ENT_QUOTES) : '<em>unknown</em>' ?><br>
@@ -18,13 +25,15 @@
 
 <form method="post" action="/import/review/<?= (int) $batch['id'] ?>/commit">
 
-    <h3>Destination</h3>
+    <h3>Add to game</h3>
+    <?php if ($games === []): ?>
+        <p class="notice notice-error">There are no games to import into — <a href="/games/new">create the game</a> first.</p>
+    <?php endif; ?>
     <p>
-        <label><input type="radio" name="destination_type" value="game" checked> Existing game's roster —</label>
         Game:
-        <select name="game_id">
+        <select name="game_id" required>
             <?php foreach ($games as $game): ?>
-                <option value="<?= (int) $game['id'] ?>">
+                <option value="<?= (int) $game['id'] ?>" <?= (int) $game['id'] === $presetGameId ? 'selected' : '' ?>>
                     <?= htmlspecialchars($game['date'], ENT_QUOTES) ?> —
                     <?= htmlspecialchars($game['home_school_name'], ENT_QUOTES) ?> vs
                     <?= htmlspecialchars($game['away_school_name'], ENT_QUOTES) ?>
@@ -33,22 +42,34 @@
             <?php endforeach; ?>
         </select>
         Side:
-        <label><input type="radio" name="side" value="away" checked> Away</label>
-        <label><input type="radio" name="side" value="home"> Home</label>
+        <label><input type="radio" name="side" value="away" <?= $presetSide === 'away' ? 'checked' : '' ?>> Away</label>
+        <label><input type="radio" name="side" value="home" <?= $presetSide === 'home' ? 'checked' : '' ?>> Home</label>
     </p>
-    <p>
-        <label><input type="radio" name="destination_type" value="program"> Persistent program roster —</label>
-        Program:
-        <select name="program_id">
-            <?php foreach ($programs as $program): ?>
-                <option value="<?= (int) $program['id'] ?>">
-                    <?= htmlspecialchars($program['school_name'], ENT_QUOTES) ?> —
-                    <?= htmlspecialchars($program['sport_name'], ENT_QUOTES) ?>
-                    <?php if ($program['division_name']): ?> (<?= htmlspecialchars($program['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </p>
+
+    <h3>Scraped coaches</h3>
+    <?php if ($coaches === []): ?>
+        <p><em>No coaching staff found on that page.</em></p>
+    <?php else: ?>
+        <p><em>Coaches already on that side's roster (same name) are skipped. Staff whose title doesn't say
+            "coach" start unchecked.</em></p>
+    <?php endif; ?>
+    <div class="table-scroll">
+    <table id="import-coaches-table">
+        <tr><th>Include</th><th>Name</th><th>Pronunciation</th><th>Title</th><th>Order</th></tr>
+        <?php foreach ($coaches as $i => $coach): ?>
+        <?php $coachTitle = (string) ($coach['title'] ?? ''); ?>
+        <tr>
+            <td><input type="checkbox" name="coaches[<?= (int) $i ?>][include]" value="1" <?= $coachTitle === '' || stripos($coachTitle, 'coach') !== false ? 'checked' : '' ?>></td>
+            <td><input type="text" name="coaches[<?= (int) $i ?>][coach]" value="<?= htmlspecialchars((string) ($coach['name'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="coaches[<?= (int) $i ?>][pronunciation]" value="<?= htmlspecialchars((string) ($coach['pronunciation'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="coaches[<?= (int) $i ?>][staff_role]" value="<?= htmlspecialchars($coachTitle, ENT_QUOTES) ?>"></td>
+            <td><input type="number" name="coaches[<?= (int) $i ?>][sort_order]" value="<?= (int) $i ?>" size="3"></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+    </div>
+
+    <p><button type="button" id="add-coach-row-button" class="button-secondary">Add coach</button></p>
 
     <h3>Scraped players</h3>
     <div class="table-scroll">
@@ -93,18 +114,32 @@
     </tr>
 </template>
 
+<template id="import-coach-row-template">
+    <tr>
+        <td><input type="checkbox" name="coaches[__INDEX__][include]" value="1" checked></td>
+        <td><input type="text" name="coaches[__INDEX__][coach]"></td>
+        <td><input type="text" name="coaches[__INDEX__][pronunciation]"></td>
+        <td><input type="text" name="coaches[__INDEX__][staff_role]"></td>
+        <td><input type="number" name="coaches[__INDEX__][sort_order]" value="__INDEX__" size="3"></td>
+    </tr>
+</template>
+
 <script>
 (function () {
-    var nextIndex = <?= count($players) ?>;
-    var table = document.getElementById('import-rows-table');
-    var template = document.getElementById('import-row-template');
+    function addRowButton(buttonId, tableId, templateId, nextIndex) {
+        var table = document.getElementById(tableId);
+        var template = document.getElementById(templateId);
 
-    document.getElementById('add-row-button').addEventListener('click', function () {
-        var html = template.innerHTML.split('__INDEX__').join(String(nextIndex));
-        var tempTable = document.createElement('table');
-        tempTable.innerHTML = html;
-        table.appendChild(tempTable.querySelector('tr'));
-        nextIndex += 1;
-    });
+        document.getElementById(buttonId).addEventListener('click', function () {
+            var html = template.innerHTML.split('__INDEX__').join(String(nextIndex));
+            var tempTable = document.createElement('table');
+            tempTable.innerHTML = html;
+            table.appendChild(tempTable.querySelector('tr'));
+            nextIndex += 1;
+        });
+    }
+
+    addRowButton('add-row-button', 'import-rows-table', 'import-row-template', <?= count($players) ?>);
+    addRowButton('add-coach-row-button', 'import-coaches-table', 'import-coach-row-template', <?= count($coaches) ?>);
 })();
 </script>

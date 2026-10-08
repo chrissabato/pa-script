@@ -1,0 +1,41 @@
+<?php
+/**
+ * Game header + sub-nav shared by every page of one game (overview, each
+ * side's roster, script). Expects $game and $gameTab: 'overview', 'home',
+ * 'away' or 'script'. The teleprompter is full-screen, so it's a launch
+ * button here rather than a tab.
+ */
+$gameUrl = '/games/' . (int) $game['id'];
+$teamLabel = function (string $side) use ($game): string {
+    $short = trim((string) ($game[$side . '_short_name'] ?? ''));
+
+    return $short !== '' ? $short : (string) $game[$side . '_school_name'];
+};
+$gameTabs = [
+    'overview' => ['Overview', $gameUrl],
+    'home' => ['Home · ' . $teamLabel('home'), $gameUrl . '/roster/home'],
+    'away' => ['Away · ' . $teamLabel('away'), $gameUrl . '/roster/away'],
+    'script' => ['Script', $gameUrl . '/script'],
+];
+?>
+<div class="game-header">
+    <p class="game-header-crumb"><a href="/games">&larr; All games</a></p>
+    <h2>
+        <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
+        <span class="game-header-vs">vs</span>
+        <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+    </h2>
+    <p class="game-header-meta">
+        <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?><?php if ($game['division_name']): ?> (<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
+        &middot; <?= htmlspecialchars(date('l, M j, Y', strtotime($game['date'])), ENT_QUOTES) ?>
+        <?php if ($game['venue']): ?>&middot; <?= htmlspecialchars($game['venue'], ENT_QUOTES) ?><?php endif; ?>
+        <?php if ($game['is_neutral_site']): ?>&middot; neutral site<?php endif; ?>
+        <span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span>
+    </p>
+    <nav class="game-tabs" aria-label="Game sections">
+        <?php foreach ($gameTabs as $key => [$label, $href]): ?>
+            <a href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"<?= $key === $gameTab ? ' class="is-active" aria-current="page"' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></a>
+        <?php endforeach; ?>
+        <a href="<?= htmlspecialchars($gameUrl . '/teleprompter', ENT_QUOTES) ?>" class="game-tabs-launch button">Teleprompter &rarr;</a>
+    </nav>
+</div>

@@ -5,17 +5,19 @@ declare(strict_types=1);
 use App\Database\PgType;
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
-use App\Repository\CoachRepository;
 use App\Repository\DivisionRepository;
 use App\Repository\GameRepository;
 use App\Repository\GameRosterRepository;
 use App\Repository\ImportBatchRepository;
 use App\Repository\OfficialRepository;
-use App\Repository\PlayerRepository;
 use App\Repository\ProgramRepository;
 use App\Repository\SchoolRepository;
 use App\Repository\ScriptTemplateRepository;
 use App\Repository\SportRepository;
+use App\Roster\RosterFetchBlocked;
+use App\Roster\RosterFetchException;
+use App\Roster\RosterPageFetcher;
+use App\Roster\RosterUrlGuesser;
 use App\Teams\TeamApiSync;
 use App\View\Renderer;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -48,8 +50,6 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $divisions = new DivisionRepository($pdo);
     $schools = new SchoolRepository($pdo);
     $programs = new ProgramRepository($pdo);
-    $players = new PlayerRepository($pdo);
-    $coaches = new CoachRepository($pdo);
     $games = new GameRepository($pdo);
     $gameRosters = new GameRosterRepository($pdo);
     $officials = new OfficialRepository($pdo);
@@ -58,6 +58,29 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $teamSync = new TeamApiSync($pdo);
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $renderer = new TemplateRenderer();
+    $rosterUrlGuesser = new RosterUrlGuesser();
+    $rosterFetcher = new RosterPageFetcher();
+
+    // The roster-import panel's URL for a program: the saved one (rolled
+    // forward to the current Presto season), else a guess from the
+    // school's site + CMS provider. `isGuess` lets the page say so.
+    $rosterImportUrl = function (array $program, string $onDate) use ($rosterUrlGuesser): array {
+        $saved = trim((string) ($program['roster_url'] ?? ''));
+        if ($saved !== '') {
+            return ['url' => $rosterUrlGuesser->currentSeason($saved, $onDate), 'isGuess' => false];
+        }
+
+        return [
+            'url' => $rosterUrlGuesser->guess(
+                $program['school_url'] ?? null,
+                $program['school_cms_provider'] ?? null,
+                (string) $program['sport_slug'],
+                $program['division_slug'] ?? null,
+                $onDate
+            ),
+            'isGuess' => true,
+        ];
+    };
 
     // ---- Dashboard -------------------------------------------------------
 
@@ -103,132 +126,6 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         return $response->withHeader('Location', '/schools?' . http_build_query($params))->withStatus(302);
-    });
-
-    // ---- Sports / roster ----------------------------------------------
-
-    $app->get('/sports', function (Request $request, Response $response) use ($view, $sports, $programs) {
-        $html = $view->render('sports/index', [
-            'title' => 'Sports',
-            'sports' => $sports->all(),
-            'willamettePrograms' => $programs->allWillamette(),
-        ]);
-        $response->getBody()->write($html);
-
-        return $response;
-    });
-
-    $app->get('/sports/{sport}/{division}/roster', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($view, $sports, $divisions, $programs, $players, $coaches) {
-        $sport = $sports->findBySlug($args['sport']);
-        $division = $divisions->findBySlug($args['division']);
-        if ($sport === null || $division === null) {
-            throw new HttpNotFoundException($request);
-        }
-
-        $program = $programs->findWillametteProgram((int) $sport['id'], (int) $division['id']);
-        if ($program === null) {
-            throw new HttpNotFoundException($request);
-        }
-
-        $html = $view->render('sports/roster', [
-            'title' => $sport['name'] . ' — ' . $division['name'] . ' Roster',
-            'sport' => $sport,
-            'division' => $division,
-            'program' => $program,
-            'players' => $players->findByProgram((int) $program['id']),
-            'coaches' => $coaches->findByProgram((int) $program['id']),
-        ]);
-        $response->getBody()->write($html);
-
-        return $response;
-    });
-
-    // Divisionless sports (Baseball, Softball — a school fields one team, no
-    // Women's/Men's split) skip the {division} segment entirely rather than
-    // routing through a fake division slug.
-    $app->get('/sports/{sport}/roster', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($view, $sports, $programs, $players, $coaches) {
-        $sport = $sports->findBySlug($args['sport']);
-        if ($sport === null) {
-            throw new HttpNotFoundException($request);
-        }
-
-        $program = $programs->findWillametteProgram((int) $sport['id'], null);
-        if ($program === null) {
-            throw new HttpNotFoundException($request);
-        }
-
-        $html = $view->render('sports/roster', [
-            'title' => $sport['name'] . ' — Roster',
-            'sport' => $sport,
-            'division' => null,
-            'program' => $program,
-            'players' => $players->findByProgram((int) $program['id']),
-            'coaches' => $coaches->findByProgram((int) $program['id']),
-        ]);
-        $response->getBody()->write($html);
-
-        return $response;
-    });
-
-    $app->post('/programs/{programId}/players', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($players) {
-        $programId = (int) $args['programId'];
-        $data = (array) $request->getParsedBody();
-        $players->create($programId, playerFormData($data));
-
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
-    });
-
-    $app->post('/programs/{programId}/players/{playerId}', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($players) {
-        $data = (array) $request->getParsedBody();
-        if (($data['_method'] ?? '') === 'DELETE') {
-            $players->delete((int) $args['playerId']);
-        } else {
-            $players->update((int) $args['playerId'], playerFormData($data));
-        }
-
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
-    });
-
-    $app->post('/programs/{programId}/coaches', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($coaches) {
-        $data = (array) $request->getParsedBody();
-        $coaches->create((int) $args['programId'], $data['coach'], $data['pronunciation'] ?? null, $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
-
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
-    });
-
-    $app->post('/programs/{programId}/coaches/{coachId}', function (
-        Request $request,
-        Response $response,
-        array $args
-    ) use ($coaches) {
-        $data = (array) $request->getParsedBody();
-        if (($data['_method'] ?? '') === 'DELETE') {
-            $coaches->delete((int) $args['coachId']);
-        } else {
-            $coaches->update((int) $args['coachId'], $data['coach'], $data['pronunciation'] ?? null, $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
-        }
-
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
 
     // ---- Games ----------------------------------------------------------
@@ -306,8 +203,8 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'status' => 'draft',
         ]);
 
-        $gameRosters->createSnapshotFromProgram($gameId, (int) $homeProgram['id'], 'home');
-        $gameRosters->createSnapshotFromProgram($gameId, (int) $awayProgram['id'], 'away');
+        $gameRosters->createSnapshot($gameId, (int) $homeProgram['id'], 'home');
+        $gameRosters->createSnapshot($gameId, (int) $awayProgram['id'], 'away');
 
         return $response->withHeader('Location', '/games/' . $gameId)->withStatus(302);
     });
@@ -321,7 +218,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response->withHeader('Location', '/games')->withStatus(302);
     });
 
-    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games) {
+    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games, $gameRosters) {
         $game = $games->find((int) $args['id']);
         if ($game === null) {
             throw new HttpNotFoundException($request);
@@ -330,6 +227,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $html = $view->render('games/show', [
             'title' => 'Game — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,
+            'rosterCounts' => $gameRosters->countsForGame((int) $game['id']),
         ]);
         $response->getBody()->write($html);
 
@@ -340,7 +238,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         Request $request,
         Response $response,
         array $args
-    ) use ($view, $games, $gameRosters) {
+    ) use ($view, $games, $gameRosters, $programs, $rosterImportUrl) {
         $game = $games->find((int) $args['id']);
         $side = $args['side'];
         if ($game === null || !in_array($side, ['home', 'away'], true)) {
@@ -348,6 +246,9 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         $snapshot = $gameRosters->findSnapshot((int) $game['id'], $side);
+        $program = $snapshot !== null && $snapshot['program_id'] !== null
+            ? $programs->find((int) $snapshot['program_id'])
+            : null;
 
         $html = $view->render('games/roster', [
             'title' => ($game[$side . '_school_name'] ?? ucfirst($side)) . ' Roster',
@@ -356,6 +257,8 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'snapshot' => $snapshot,
             'players' => $snapshot !== null ? $gameRosters->playersFor((int) $snapshot['id']) : [],
             'coaches' => $snapshot !== null ? $gameRosters->coachesFor((int) $snapshot['id']) : [],
+            'program' => $program,
+            'rosterImport' => $program !== null ? $rosterImportUrl($program, (string) $game['date']) : null,
         ]);
         $response->getBody()->write($html);
 
@@ -486,6 +389,79 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response;
     });
 
+    // ---- Roster URL fetch ------------------------------------------------
+    //
+    // The roster page's import panel: the server fetches the school's
+    // roster page (browsers can't, cross-origin), the page parses it with
+    // the same scraper-core.js the bookmarklet uses, then posts the result
+    // to /import/stage so it lands in import_batches for review like any
+    // other scrape. When a site blocks the server (WAF bot check), the
+    // panel falls back to the bookmarklet or pasted page HTML.
+
+    $app->post('/programs/{programId}/roster-url', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($programs) {
+        $data = (array) $request->getParsedBody();
+        $url = trim((string) ($data['roster_url'] ?? ''));
+        $programs->updateRosterUrl((int) $args['programId'], $url !== '' ? $url : null);
+
+        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
+    });
+
+    $app->post('/roster/fetch', function (Request $request, Response $response) use ($programs, $rosterFetcher) {
+        $response = $response->withHeader('Content-Type', 'application/json');
+        $body = json_decode((string) $request->getBody(), true);
+        $url = trim((string) ($body['url'] ?? ''));
+        $programId = (int) ($body['programId'] ?? 0);
+
+        // Remember the URL even if the fetch fails, so the bookmarklet/paste
+        // fallbacks (and next game) start from it.
+        if ($programId > 0 && $url !== '' && $programs->find($programId) !== null) {
+            $programs->updateRosterUrl($programId, $url);
+        }
+
+        try {
+            $page = $rosterFetcher->fetch($url);
+            $result = ['ok' => true, 'html' => $page['html'], 'url' => $page['url']];
+        } catch (RosterFetchException $e) {
+            $result = ['ok' => false, 'error' => $e->getMessage(), 'blocked' => $e instanceof RosterFetchBlocked];
+        }
+
+        $response->getBody()->write((string) json_encode($result, JSON_INVALID_UTF8_SUBSTITUTE));
+
+        return $response;
+    });
+
+    // In-app counterpart of the token-gated /api/import/stage: a game's
+    // roster page posts a scrape here and lands on its review page with
+    // that game and side already selected.
+    $app->post('/import/stage', function (Request $request, Response $response) use ($importBatches) {
+        $data = (array) $request->getParsedBody();
+        $scrape = json_decode((string) ($data['scrape'] ?? ''), true);
+        if (!is_array($scrape)) {
+            return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
+        }
+
+        $sourceUrl = is_string($scrape['sourceUrl'] ?? null) && $scrape['sourceUrl'] !== '' ? $scrape['sourceUrl'] : null;
+        $batchId = $importBatches->create($sourceUrl, [
+            'scrapedVia' => is_string($scrape['scrapedVia'] ?? null) ? $scrape['scrapedVia'] : 'unknown',
+            'players' => is_array($scrape['players'] ?? null) ? $scrape['players'] : [],
+            'coaches' => is_array($scrape['coaches'] ?? null) ? $scrape['coaches'] : [],
+            'rawText' => is_string($scrape['rawText'] ?? null) ? $scrape['rawText'] : '',
+        ]);
+
+        $preset = array_filter([
+            'game_id' => (int) ($data['game_id'] ?? 0) ?: null,
+            'side' => in_array($data['side'] ?? '', ['home', 'away'], true) ? $data['side'] : null,
+        ]);
+
+        return $response
+            ->withHeader('Location', '/import/review/' . $batchId . ($preset !== [] ? '?' . http_build_query($preset) : ''))
+            ->withStatus(302);
+    });
+
     // ---- Bookmarklet / roster import -----------------------------------
     //
     // The bookmarklet itself is a thin loader: it embeds only the import
@@ -540,16 +516,29 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         (function () {
             var result = PaScriptScrape.run();
 
-            fetch(PA_SCRIPT_STAGE_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    token: PA_SCRIPT_IMPORT_TOKEN,
-                    sourceUrl: result.sourceUrl,
-                    scrapedVia: result.scrapedVia,
-                    players: result.players,
-                    rawText: result.rawText
+            // Legacy Presto lists coaches on a separate page; the
+            // bookmarklet runs on the school's site, so fetch it same-origin.
+            var coachesUrl = result.coaches.length ? null : PaScriptScrape.coachesPageUrl(document, location.href);
+            var coaches = !coachesUrl ? Promise.resolve(result.coaches) : fetch(coachesUrl)
+                .then(function (r) { return r.text(); })
+                .then(function (html) {
+                    return PaScriptScrape.coachesFromPage(new DOMParser().parseFromString(html, 'text/html'));
                 })
+                .catch(function () { return []; });
+
+            coaches.then(function (coaches) {
+                return fetch(PA_SCRIPT_STAGE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        token: PA_SCRIPT_IMPORT_TOKEN,
+                        sourceUrl: result.sourceUrl,
+                        scrapedVia: result.scrapedVia,
+                        players: result.players,
+                        coaches: coaches,
+                        rawText: result.rawText
+                    })
+                });
             }).then(function (r) { return r.json(); })
               .then(function (r) {
                   if (r.ok) {
@@ -599,10 +588,11 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         $players = is_array($body['players'] ?? null) ? $body['players'] : [];
+        $coachRows = is_array($body['coaches'] ?? null) ? $body['coaches'] : [];
         $rawText = is_string($body['rawText'] ?? null) ? $body['rawText'] : '';
         $sourceUrl = is_string($body['sourceUrl'] ?? null) ? $body['sourceUrl'] : null;
 
-        if ($players === [] && trim($rawText) === '') {
+        if ($players === [] && $coachRows === [] && trim($rawText) === '') {
             $response->getBody()->write(json_encode(['ok' => false, 'error' => 'No roster data found on that page']));
 
             return $response->withStatus(400);
@@ -611,6 +601,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $batchId = $importBatches->create($sourceUrl, [
             'scrapedVia' => is_string($body['scrapedVia'] ?? null) ? $body['scrapedVia'] : 'unknown',
             'players' => $players,
+            'coaches' => $coachRows,
             'rawText' => $rawText,
         ]);
 
@@ -626,7 +617,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         Request $request,
         Response $response,
         array $args
-    ) use ($view, $importBatches, $games, $programs) {
+    ) use ($view, $importBatches, $games) {
         $batch = $importBatches->find((int) $args['batchId']);
         if ($batch === null) {
             throw new HttpNotFoundException($request);
@@ -638,10 +629,11 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'title' => 'Review Import #' . $batch['id'],
             'batch' => $batch,
             'players' => $payload['players'] ?? [],
+            'coaches' => $payload['coaches'] ?? [],
             'rawText' => $payload['rawText'] ?? '',
             'scrapedVia' => $payload['scrapedVia'] ?? 'unknown',
             'games' => $games->upcoming(),
-            'programs' => $programs->all(),
+            'preset' => $request->getQueryParams(),
         ]);
         $response->getBody()->write($html);
 
@@ -652,56 +644,54 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         Request $request,
         Response $response,
         array $args
-    ) use ($importBatches, $gameRosters, $players, $programs) {
+    ) use ($importBatches, $gameRosters) {
         $batch = $importBatches->find((int) $args['batchId']);
         if ($batch === null) {
             throw new HttpNotFoundException($request);
         }
 
         $data = (array) $request->getParsedBody();
-        $rows = is_array($data['players'] ?? null) ? $data['players'] : [];
-        $destinationType = $data['destination_type'] ?? '';
+        $gameId = (int) ($data['game_id'] ?? 0);
+        $side = in_array($data['side'] ?? '', ['home', 'away'], true) ? $data['side'] : null;
+        $snapshot = $gameId > 0 && $side !== null ? $gameRosters->findSnapshot($gameId, $side) : null;
+        if ($snapshot === null) {
+            return $response->withHeader('Location', '/import/review/' . (int) $batch['id'])->withStatus(302);
+        }
+        $snapshotId = (int) $snapshot['id'];
 
-        $redirect = '/bookmarklet';
-
-        if ($destinationType === 'program') {
-            $programId = (int) ($data['program_id'] ?? 0);
-            $program = $programId > 0 ? $programs->find($programId) : null;
-
-            if ($program !== null) {
-                foreach ($rows as $row) {
-                    $row = playerFormData($row);
-                    if (empty($row['include']) || trim($row['name']) === '') {
-                        continue;
-                    }
-                    $players->create($programId, $row);
-                }
-
-                $redirect = $program['division_slug'] !== null
-                    ? '/sports/' . $program['sport_slug'] . '/' . $program['division_slug'] . '/roster'
-                    : '/sports/' . $program['sport_slug'] . '/roster';
+        foreach (is_array($data['players'] ?? null) ? $data['players'] : [] as $row) {
+            $row = playerFormData($row);
+            if (empty($row['include']) || trim($row['name']) === '') {
+                continue;
             }
-        } elseif ($destinationType === 'game') {
-            $gameId = (int) ($data['game_id'] ?? 0);
-            $side = in_array($data['side'] ?? '', ['home', 'away'], true) ? $data['side'] : null;
-            $snapshot = $gameId > 0 && $side !== null ? $gameRosters->findSnapshot($gameId, $side) : null;
+            $gameRosters->createPlayer($snapshotId, $row);
+        }
 
-            if ($snapshot !== null) {
-                foreach ($rows as $row) {
-                    $row = playerFormData($row);
-                    if (empty($row['include']) || trim($row['name']) === '') {
-                        continue;
-                    }
-                    $gameRosters->createPlayer((int) $snapshot['id'], $row);
-                }
-
-                $redirect = '/games/' . $gameId;
+        // Coaches already on this side's roster (matched by name) are
+        // skipped, so re-importing the same page doesn't double the staff.
+        $haveCoach = [];
+        foreach ($gameRosters->coachesFor($snapshotId) as $coach) {
+            $haveCoach[strtolower(trim($coach['name']))] = true;
+        }
+        foreach (is_array($data['coaches'] ?? null) ? $data['coaches'] : [] as $row) {
+            $name = trim((string) ($row['coach'] ?? ''));
+            $key = strtolower($name);
+            if (empty($row['include']) || $name === '' || isset($haveCoach[$key])) {
+                continue;
             }
+            $haveCoach[$key] = true;
+            $gameRosters->createCoach(
+                $snapshotId,
+                $name,
+                trim((string) ($row['pronunciation'] ?? '')),
+                trim((string) ($row['staff_role'] ?? '')),
+                (int) ($row['sort_order'] ?? 0)
+            );
         }
 
         $importBatches->updateStatus((int) $batch['id'], 'reviewed');
 
-        return $response->withHeader('Location', $redirect)->withStatus(302);
+        return $response->withHeader('Location', '/games/' . $gameId . '/roster/' . $side)->withStatus(302);
     });
 
     $app->post('/import/review/{batchId}/discard', function (

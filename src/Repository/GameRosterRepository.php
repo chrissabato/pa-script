@@ -8,9 +8,9 @@ use App\Database\PgType;
 use PDO;
 
 /**
- * Manages the per-game roster snapshots (game_roster_snapshots +
- * game_roster_players/coaches). Snapshots are copies: editing them never
- * writes back to the persistent players/coaches tables, per PLAN.md.
+ * Per-game rosters (game_roster_snapshots + game_roster_players/coaches) —
+ * the only rosters the app keeps. Each game side has its own, edited on
+ * that game's roster page.
  */
 class GameRosterRepository
 {
@@ -31,6 +31,38 @@ class GameRosterRepository
         $row = $stmt->fetch();
 
         return $row === false ? null : $row;
+    }
+
+    /**
+     * Roster size per side, for the game overview's at-a-glance check that
+     * both rosters were imported.
+     *
+     * @return array<string, array{players: int, starters: int, coaches: int}> keyed by side
+     */
+    public function countsForGame(int $gameId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'select s.side, '
+            . '(select count(*) from game_roster_players p where p.snapshot_id = s.id) as players, '
+            . '(select count(*) from game_roster_players p where p.snapshot_id = s.id and p.is_starter) as starters, '
+            . '(select count(*) from game_roster_coaches c where c.snapshot_id = s.id) as coaches '
+            . 'from game_roster_snapshots s where s.game_id = :game_id'
+        );
+        $stmt->execute(['game_id' => $gameId]);
+
+        $counts = [];
+        foreach (['home', 'away'] as $side) {
+            $counts[$side] = ['players' => 0, 'starters' => 0, 'coaches' => 0];
+        }
+        foreach ($stmt->fetchAll() as $row) {
+            $counts[$row['side']] = [
+                'players' => (int) $row['players'],
+                'starters' => (int) $row['starters'],
+                'coaches' => (int) $row['coaches'],
+            ];
+        }
+
+        return $counts;
     }
 
     /** @return array<int, array<string, mixed>> */
@@ -58,48 +90,20 @@ class GameRosterRepository
     }
 
     /**
-     * Creates a snapshot for a side, seeding it from a program's current
-     * persistent roster (if any) — used at game-creation time. An opponent
-     * with no persistent roster yet still gets an empty snapshot to fill in
-     * later via the snapshot editor or the bookmarklet import.
+     * Creates an empty roster for one side of a new game. It's filled in on
+     * the game's roster page — fetched from the team's roster URL, imported
+     * with the bookmarklet, or typed in. `program_id` records which team
+     * (and so which saved roster URL) the side belongs to.
      */
-    public function createSnapshotFromProgram(int $gameId, ?int $programId, string $side): int
+    public function createSnapshot(int $gameId, int $programId, string $side): int
     {
         $stmt = $this->pdo->prepare(
             'insert into game_roster_snapshots (game_id, program_id, side) values (:game_id, :program_id, :side) '
             . 'returning id'
         );
         $stmt->execute(['game_id' => $gameId, 'program_id' => $programId, 'side' => $side]);
-        $snapshotId = (int) $stmt->fetchColumn();
 
-        if ($programId !== null) {
-            $this->copyPlayers($snapshotId, $programId);
-            $this->copyCoaches($snapshotId, $programId);
-        }
-
-        return $snapshotId;
-    }
-
-    private function copyPlayers(int $snapshotId, int $programId): void
-    {
-        $stmt = $this->pdo->prepare(
-            'insert into game_roster_players '
-            . '(snapshot_id, source_player_id, number, name, pronunciation, position, year, hometown, '
-            . 'is_starter, batting_order) '
-            . 'select :snapshot_id, id, number, name, pronunciation, position, year, hometown, '
-            . 'is_starter, batting_order '
-            . 'from players where program_id = :program_id and is_active = true'
-        );
-        $stmt->execute(['snapshot_id' => $snapshotId, 'program_id' => $programId]);
-    }
-
-    private function copyCoaches(int $snapshotId, int $programId): void
-    {
-        $stmt = $this->pdo->prepare(
-            'insert into game_roster_coaches (snapshot_id, source_coach_id, name, pronunciation, title, sort_order) '
-            . 'select :snapshot_id, id, name, pronunciation, title, sort_order from coaches where program_id = :program_id'
-        );
-        $stmt->execute(['snapshot_id' => $snapshotId, 'program_id' => $programId]);
+        return (int) $stmt->fetchColumn();
     }
 
     /** @param array<string, mixed> $data */

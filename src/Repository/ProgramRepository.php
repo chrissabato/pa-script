@@ -7,6 +7,12 @@ namespace App\Repository;
 use App\Database\PgType;
 use PDO;
 
+/**
+ * Programs are a team in a sport (school × sport × division). Games point
+ * at one per side, and a program remembers its team's roster-page URL so
+ * the next game against that team can fetch from it again. Programs hold
+ * no roster themselves — rosters live on each game.
+ */
 class ProgramRepository
 {
     /** @var PDO */
@@ -23,6 +29,8 @@ class ProgramRepository
             schools.name as school_name,
             schools.mascot as school_mascot,
             schools.short_name as school_short_name,
+            schools.url as school_url,
+            schools.cms_provider as school_cms_provider,
             sports.name as sport_name,
             sports.slug as sport_slug,
             divisions.name as division_name,
@@ -33,50 +41,10 @@ class ProgramRepository
         left join divisions on divisions.id = programs.division_id
         SQL;
 
-    /** @return array<int, array<string, mixed>> */
-    public function allWillamette(): array
-    {
-        $stmt = $this->pdo->query(self::SELECT . ' where programs.is_willamette = true order by sports.name, divisions.name');
-
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * All programs (including opponents) — used by the import review
-     * destination picker.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    public function all(): array
-    {
-        $stmt = $this->pdo->query(self::SELECT . ' order by schools.name, sports.name, divisions.name');
-
-        return $stmt->fetchAll();
-    }
-
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(self::SELECT . ' where programs.id = :id');
         $stmt->execute(['id' => $id]);
-        $row = $stmt->fetch();
-
-        return $row === false ? null : $row;
-    }
-
-    public function findWillametteProgram(int $sportId, ?int $divisionId): ?array
-    {
-        $sql = self::SELECT . ' where programs.sport_id = :sport_id and programs.is_willamette = true';
-        $params = ['sport_id' => $sportId];
-
-        if ($divisionId === null) {
-            $sql .= ' and programs.division_id is null';
-        } else {
-            $sql .= ' and programs.division_id = :division_id';
-            $params['division_id'] = $divisionId;
-        }
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
         $row = $stmt->fetch();
 
         return $row === false ? null : $row;
@@ -128,4 +96,14 @@ class ProgramRepository
 
         return $this->find($id);
     }
+
+    public function updateRosterUrl(int $id, ?string $rosterUrl): void
+    {
+        $stmt = $this->pdo->prepare(
+            'update programs set roster_url = :roster_url, updated_at = current_timestamp where id = :id'
+        );
+        $stmt->execute(['id' => $id, 'roster_url' => $rosterUrl]);
+    }
+
+
 }

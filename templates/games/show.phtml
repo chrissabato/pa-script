@@ -1,22 +1,27 @@
-<h2>
-    <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
-    vs
-    <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
-</h2>
-<p>
-    <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>
-    <?php if ($game['division_name']): ?> — <?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?><?php endif; ?>
-    <?= $game['is_neutral_site'] ? ' (neutral site)' : '' ?>
-    — <?= htmlspecialchars($game['date'], ENT_QUOTES) ?>
-    <?php if ($game['venue']): ?> at <?= htmlspecialchars($game['venue'], ENT_QUOTES) ?><?php endif; ?>
-    <span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span>
-</p>
-<ul class="link-list">
-    <li><a href="/games/<?= (int) $game['id'] ?>/roster/home">Home roster</a></li>
-    <li><a href="/games/<?= (int) $game['id'] ?>/roster/away">Away roster</a></li>
-    <li><a href="/games/<?= (int) $game['id'] ?>/script">Script preview</a></li>
-    <li><a href="/games/<?= (int) $game['id'] ?>/teleprompter">Teleprompter</a></li>
-</ul>
+<?php $gameTab = 'overview'; require __DIR__ . '/../partials/game-nav.phtml'; ?>
+
+<h3>Rosters</h3>
+<div class="roster-status">
+    <?php foreach (['home', 'away'] as $side): ?>
+    <?php
+        $count = $rosterCounts[$side];
+        $isEmpty = $count['players'] === 0 && $count['coaches'] === 0;
+    ?>
+    <a class="roster-status-card<?= $isEmpty ? ' is-empty' : '' ?>" href="/games/<?= (int) $game['id'] ?>/roster/<?= $side ?>">
+        <span class="roster-status-side"><?= ucfirst($side) ?></span>
+        <strong><?= htmlspecialchars((string) $game[$side . '_school_name'], ENT_QUOTES) ?></strong>
+        <?php if ($isEmpty): ?>
+            <span class="roster-status-counts">Not imported yet — open to fetch the roster</span>
+        <?php else: ?>
+            <span class="roster-status-counts">
+                <?= $count['players'] ?> athlete<?= $count['players'] === 1 ? '' : 's' ?>
+                <?php if ($count['starters'] > 0): ?>(<?= $count['starters'] ?> starting)<?php endif; ?>
+                &middot; <?= $count['coaches'] ?> coach<?= $count['coaches'] === 1 ? '' : 'es' ?>
+            </span>
+        <?php endif; ?>
+    </a>
+    <?php endforeach; ?>
+</div>
 
 <h3>Officials</h3>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/officials">
