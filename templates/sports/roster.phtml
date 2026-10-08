@@ -35,20 +35,20 @@
 <div class="table-scroll">
 <table class="roster-table">
     <tr>
-        <th>#</th><th>Starter</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
-        <th>Active</th><th></th>
+        <th>#</th><th class="cell-center">Starter</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
+        <th class="cell-center">Active</th><th></th>
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
         <form method="post" action="/programs/<?= (int) $program['id'] ?>/players/<?= (int) $player['id'] ?>">
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
-            <td><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
+            <td class="cell-center"><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
             <td><input type="text" name="player" value="<?= htmlspecialchars($player['name'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $player['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="position" value="<?= htmlspecialchars((string) $player['position'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="year" value="<?= htmlspecialchars((string) $player['year'], ENT_QUOTES) ?>" size="4"></td>
             <td><input type="text" name="hometown" value="<?= htmlspecialchars((string) $player['hometown'], ENT_QUOTES) ?>"></td>
-            <td><input type="checkbox" name="is_active" value="1" <?= $player['is_active'] ? 'checked' : '' ?>></td>
+            <td class="cell-center"><input type="checkbox" name="is_active" value="1" <?= $player['is_active'] ? 'checked' : '' ?>></td>
             <td>
                 <button type="submit">Save</button>
                 <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this player?')">Delete</button>
