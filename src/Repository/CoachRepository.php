@@ -27,15 +27,16 @@ class CoachRepository
         return $stmt->fetchAll();
     }
 
-    public function create(int $programId, string $name, ?string $title, int $sortOrder): int
+    public function create(int $programId, string $name, ?string $pronunciation, ?string $title, int $sortOrder): int
     {
         $stmt = $this->pdo->prepare(
-            'insert into coaches (program_id, name, title, sort_order) '
-            . 'values (:program_id, :name, :title, :sort_order) returning id'
+            'insert into coaches (program_id, name, pronunciation, title, sort_order) '
+            . 'values (:program_id, :name, :pronunciation, :title, :sort_order) returning id'
         );
         $stmt->execute([
             'program_id' => $programId,
             'name' => $name,
+            'pronunciation' => $pronunciation !== '' ? $pronunciation : null,
             'title' => $title !== '' ? $title : null,
             'sort_order' => $sortOrder,
         ]);
@@ -43,15 +44,16 @@ class CoachRepository
         return (int) $stmt->fetchColumn();
     }
 
-    public function update(int $id, string $name, ?string $title, int $sortOrder): void
+    public function update(int $id, string $name, ?string $pronunciation, ?string $title, int $sortOrder): void
     {
         $stmt = $this->pdo->prepare(
-            'update coaches set name = :name, title = :title, sort_order = :sort_order, '
+            'update coaches set name = :name, pronunciation = :pronunciation, title = :title, sort_order = :sort_order, '
             . 'updated_at = current_timestamp where id = :id'
         );
         $stmt->execute([
             'id' => $id,
             'name' => $name,
+            'pronunciation' => $pronunciation !== '' ? $pronunciation : null,
             'title' => $title !== '' ? $title : null,
             'sort_order' => $sortOrder,
         ]);

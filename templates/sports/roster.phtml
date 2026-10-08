@@ -5,11 +5,12 @@
 
 <h3>Coaches</h3>
 <table class="roster-table">
-    <tr><th>Name</th><th>Title</th><th>Order</th><th></th></tr>
+    <tr><th>Name</th><th>Pronunciation</th><th>Title</th><th>Order</th><th></th></tr>
     <?php foreach ($coaches as $coach): ?>
     <tr>
         <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches/<?= (int) $coach['id'] ?>">
             <td><input type="text" name="coach" value="<?= htmlspecialchars($coach['name'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $coach['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="staff_role" value="<?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?>"></td>
             <td><input type="number" name="sort_order" value="<?= (int) $coach['sort_order'] ?>" size="3"></td>
             <td>
@@ -25,6 +26,7 @@
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches">
     <p class="stacked-fields">
         <label>Coach <input type="text" name="coach" required></label>
+        <label>Pronunciation <input type="text" name="pronunciation"></label>
         <label>Title <input type="text" name="staff_role"></label>
         <label>Order <input type="number" name="sort_order" value="0" size="3"></label>
         <button type="submit">Add</button>
@@ -64,7 +66,6 @@
     <input type="hidden" name="is_active" value="1">
     <p class="stacked-fields">
         <label># <input type="text" name="number" size="3"></label>
-        <label>Starter <input type="checkbox" name="is_starter" value="1"></label>
         <label>Player <input type="text" name="player" required></label>
         <label>Pronunciation <input type="text" name="pronunciation"></label>
         <label>Position <input type="text" name="position"></label>

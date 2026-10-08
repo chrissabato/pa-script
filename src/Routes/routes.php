@@ -195,7 +195,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($coaches) {
         $data = (array) $request->getParsedBody();
-        $coaches->create((int) $args['programId'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $coaches->create((int) $args['programId'], $data['coach'], $data['pronunciation'] ?? null, $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -209,7 +209,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         if (($data['_method'] ?? '') === 'DELETE') {
             $coaches->delete((int) $args['coachId']);
         } else {
-            $coaches->update((int) $args['coachId'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
+            $coaches->update((int) $args['coachId'], $data['coach'], $data['pronunciation'] ?? null, $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
         }
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
@@ -360,7 +360,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($gameRosters) {
         $data = (array) $request->getParsedBody();
-        $gameRosters->createCoach((int) $data['snapshot_id'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $gameRosters->createCoach((int) $data['snapshot_id'], $data['coach'], $data['pronunciation'] ?? null, $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });

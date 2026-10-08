@@ -96,8 +96,8 @@ class GameRosterRepository
     private function copyCoaches(int $snapshotId, int $programId): void
     {
         $stmt = $this->pdo->prepare(
-            'insert into game_roster_coaches (snapshot_id, source_coach_id, name, title, sort_order) '
-            . 'select :snapshot_id, id, name, title, sort_order from coaches where program_id = :program_id'
+            'insert into game_roster_coaches (snapshot_id, source_coach_id, name, pronunciation, title, sort_order) '
+            . 'select :snapshot_id, id, name, pronunciation, title, sort_order from coaches where program_id = :program_id'
         );
         $stmt->execute(['snapshot_id' => $snapshotId, 'program_id' => $programId]);
     }
@@ -143,15 +143,16 @@ class GameRosterRepository
         $stmt->execute(['id' => $id]);
     }
 
-    public function createCoach(int $snapshotId, string $name, ?string $title, int $sortOrder): int
+    public function createCoach(int $snapshotId, string $name, ?string $pronunciation, ?string $title, int $sortOrder): int
     {
         $stmt = $this->pdo->prepare(
-            'insert into game_roster_coaches (snapshot_id, name, title, sort_order) '
-            . 'values (:snapshot_id, :name, :title, :sort_order) returning id'
+            'insert into game_roster_coaches (snapshot_id, name, pronunciation, title, sort_order) '
+            . 'values (:snapshot_id, :name, :pronunciation, :title, :sort_order) returning id'
         );
         $stmt->execute([
             'snapshot_id' => $snapshotId,
             'name' => $name,
+            'pronunciation' => $pronunciation !== '' ? $pronunciation : null,
             'title' => $title !== '' ? $title : null,
             'sort_order' => $sortOrder,
         ]);
