@@ -1,92 +1,59 @@
 <?php
-$cmsProviders = ['sidearm' => 'Sidearm', 'presto' => 'Presto', 'presto_old' => 'Presto (old)'];
+use App\Teams\TeamApiSync;
 
-// Logo is either an absolute URL or a filename under public/logos/.
-$logoSrc = function (?string $logo): ?string {
-    if ($logo === null || $logo === '') {
-        return null;
-    }
-    if (preg_match('#^https?://#i', $logo)) {
-        return $logo;
-    }
+$providers = ['sidearm' => 'Sidearm', 'presto' => 'Presto', 'presto_old' => 'Presto (old)'];
 
-    return is_file(__DIR__ . '/../../public/logos/' . $logo) ? '/logos/' . rawurlencode($logo) : null;
-};
-
-$cmsSelect = function (?string $current) use ($cmsProviders): string {
-    $options = $cmsProviders;
-    if ($current !== null && $current !== '' && !isset($options[$current])) {
-        $options[$current] = $current;
-    }
-    $html = '<select name="cms_provider"><option value=""></option>';
-    foreach ($options as $value => $label) {
-        $html .= sprintf(
-            '<option value="%s"%s>%s</option>',
-            htmlspecialchars($value, ENT_QUOTES),
-            $value === $current ? ' selected' : '',
-            htmlspecialchars($label, ENT_QUOTES)
-        );
-    }
-
-    return $html . '</select>';
+// Rows not refreshed by the latest sync are teams the API no longer lists
+// but a game/roster still uses (the sync keeps those rather than break them).
+$isStale = function (array $school) use ($lastSyncedAt): bool {
+    return $lastSyncedAt !== null && $school['synced_at'] !== $lastSyncedAt;
 };
 ?>
 <h2>Teams</h2>
-<p><em>Schools used across games and rosters (Willamette and opponents). Editing a team here updates it everywhere it's referenced.</em></p>
+<p><em>
+    Teams come from the athletics
+    <a href="<?= TeamApiSync::BASE_URL ?>/docs">Team Data API</a> and are edited in its
+    <a href="<?= TeamApiSync::BASE_URL ?>/admin">admin</a>, not here. This app keeps a local copy,
+    refreshed automatically at most hourly so scripts still work if the API is down.
+</em></p>
 
-<div class="table-scroll">
-<table class="roster-table teams-table">
+<form method="post" action="/schools/sync" class="sync-bar">
+    <button type="submit" class="button-secondary">Sync now</button>
+    <span>
+        <?php if ($lastSyncedAt !== null): ?>
+            Last synced <?= htmlspecialchars(date('l, M j g:i A', (int) strtotime($lastSyncedAt . ' UTC')), ENT_QUOTES) ?>
+        <?php else: ?>
+            Never synced
+        <?php endif; ?>
+    </span>
+</form>
+
+<?php if ($syncError !== null): ?>
+    <p class="notice notice-error">Couldn't refresh from the team API: <?= htmlspecialchars((string) $syncError, ENT_QUOTES) ?> Showing the last synced copy.</p>
+<?php elseif ($syncResult !== null): ?>
+    <p class="notice">Synced: <?= (int) $syncResult['updated'] ?> updated, <?= (int) $syncResult['inserted'] ?> added, <?= (int) $syncResult['removed'] ?> removed.</p>
+<?php endif; ?>
+
+<table class="teams-table">
     <tr>
-        <th>Full name</th><th>Short name</th><th>Mascot</th><th>Logo</th><th>Color</th><th>URL</th><th>CMS provider</th><th></th>
+        <th>Logo</th><th>Full name</th><th>Short name</th><th>Mascot</th><th>Color</th><th>URL</th><th>CMS provider</th>
     </tr>
     <?php foreach ($schools as $school): ?>
-    <?php $src = $logoSrc($school['logo']); ?>
     <tr>
-        <form method="post" action="/schools/<?= (int) $school['id'] ?>">
-            <td><input type="text" name="school" value="<?= htmlspecialchars($school['name'], ENT_QUOTES) ?>" required></td>
-            <td><input type="text" name="short_name" value="<?= htmlspecialchars((string) $school['short_name'], ENT_QUOTES) ?>"></td>
-            <td><input type="text" name="mascot" value="<?= htmlspecialchars((string) $school['mascot'], ENT_QUOTES) ?>"></td>
-            <td class="logo-cell">
-                <span class="logo-thumb" style="background: <?= htmlspecialchars((string) ($school['color'] ?? 'transparent'), ENT_QUOTES) ?>"><?php if ($src !== null): ?><img src="<?= htmlspecialchars($src, ENT_QUOTES) ?>" alt=""><?php endif; ?></span>
-                <input type="text" name="logo" value="<?= htmlspecialchars((string) $school['logo'], ENT_QUOTES) ?>">
-            </td>
-            <td>
-                <input type="text" name="color" value="<?= htmlspecialchars((string) $school['color'], ENT_QUOTES) ?>" size="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#RRGGBB">
-            </td>
-            <td><input type="text" name="url" value="<?= htmlspecialchars((string) $school['url'], ENT_QUOTES) ?>"></td>
-            <td><?= $cmsSelect($school['cms_provider']) ?></td>
-            <td><button type="submit">Save</button></td>
-        </form>
+        <td>
+            <span class="logo-thumb" style="background: <?= htmlspecialchars((string) ($school['logo_bg'] ?? $school['color'] ?? 'transparent'), ENT_QUOTES) ?>">
+                <?php if ($school['logo']): ?><img src="<?= htmlspecialchars($school['logo'], ENT_QUOTES) ?>" alt="" loading="lazy"><?php endif; ?>
+            </span>
+        </td>
+        <td>
+            <?= htmlspecialchars($school['name'], ENT_QUOTES) ?>
+            <?php if ($isStale($school)): ?><span class="badge badge-draft" title="No longer in the team API; kept because a game or roster uses it.">not in API</span><?php endif; ?>
+        </td>
+        <td><?= htmlspecialchars((string) $school['short_name'], ENT_QUOTES) ?></td>
+        <td><?= htmlspecialchars((string) $school['mascot'], ENT_QUOTES) ?></td>
+        <td class="nowrap"><?= htmlspecialchars((string) $school['color'], ENT_QUOTES) ?></td>
+        <td><?php if ($school['url']): ?><a href="<?= htmlspecialchars($school['url'], ENT_QUOTES) ?>" target="_blank" rel="noopener"><?= htmlspecialchars(preg_replace('#^https?://#', '', $school['url']), ENT_QUOTES) ?></a><?php endif; ?></td>
+        <td><?= htmlspecialchars($providers[$school['cms_provider']] ?? (string) $school['cms_provider'], ENT_QUOTES) ?></td>
     </tr>
     <?php endforeach; ?>
 </table>
-</div>
-
-<h4>Add team</h4>
-<form method="post" action="/schools">
-    <p class="stacked-fields">
-        <label>Full name <input type="text" name="school" required></label>
-        <label>Short name <input type="text" name="short_name"></label>
-        <label>Mascot <input type="text" name="mascot"></label>
-        <label>Logo <input type="text" name="logo" placeholder="file.png or URL"></label>
-        <label>Color <input type="text" name="color" size="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#RRGGBB"></label>
-        <label>URL <input type="text" name="url"></label>
-        <label>CMS provider <?= $cmsSelect(null) ?></label>
-        <button type="submit">Add</button>
-    </p>
-</form>
-
-<script>
-    // Live-update the row's logo background as its color hex is edited.
-    document.querySelectorAll('.teams-table td input[name="color"]').forEach(function (input) {
-        input.addEventListener('input', function () {
-            var hex = input.value.trim().replace(/^#?/, '#');
-            var thumb = input.closest('tr').querySelector('.logo-thumb');
-            if (/^#[0-9A-Fa-f]{6}$/.test(hex)) {
-                thumb.style.background = hex;
-            } else if (input.value.trim() === '') {
-                thumb.style.background = 'transparent';
-            }
-        });
-    });
-</script>

@@ -16,11 +16,15 @@ use App\Repository\ProgramRepository;
 use App\Repository\SchoolRepository;
 use App\Repository\ScriptTemplateRepository;
 use App\Repository\SportRepository;
+use App\Teams\TeamApiSync;
 use App\View\Renderer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 use Slim\Exception\HttpNotFoundException;
+
+/** Refresh the local team cache from the API when it's older than this (seconds). */
+const TEAM_SYNC_MAX_AGE = 3600;
 
 /**
  * Person/team form fields are deliberately not called "name"/"title"
@@ -39,20 +43,6 @@ function playerFormData(array $data): array
     return $data;
 }
 
-/**
- * Same idea for the Teams form: its full-name field is posted as `school`.
- *
- * @param array<string, mixed> $data
- * @return array<string, mixed>
- */
-function schoolFormData(array $data): array
-{
-    $data['name'] = (string) ($data['school'] ?? '');
-    unset($data['school']);
-
-    return $data;
-}
-
 return function (App $app, PDO $pdo, Renderer $view): void {
     $sports = new SportRepository($pdo);
     $divisions = new DivisionRepository($pdo);
@@ -65,6 +55,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $officials = new OfficialRepository($pdo);
     $scriptTemplates = new ScriptTemplateRepository($pdo);
     $importBatches = new ImportBatchRepository($pdo);
+    $teamSync = new TeamApiSync($pdo);
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $renderer = new TemplateRenderer();
 
@@ -82,28 +73,36 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
     // ---- Schools (teams) -------------------------------------------------
 
-    $app->get('/schools', function (Request $request, Response $response) use ($view, $schools) {
+    $app->get('/schools', function (Request $request, Response $response) use ($view, $schools, $teamSync) {
+        $syncError = $teamSync->syncIfStale(TEAM_SYNC_MAX_AGE);
+        $query = $request->getQueryParams();
+
         $html = $view->render('schools/index', [
             'title' => 'Teams',
             'schools' => $schools->all(),
+            'lastSyncedAt' => $schools->lastSyncedAt(),
+            'syncError' => $syncError ?? ($query['sync_error'] ?? null),
+            'syncResult' => isset($query['synced']) ? $query : null,
         ]);
         $response->getBody()->write($html);
 
         return $response;
     });
 
-    $app->post('/schools', function (Request $request, Response $response) use ($schools) {
-        $data = (array) $request->getParsedBody();
-        $schools->create(schoolFormData($data));
+    $app->post('/schools/sync', function (Request $request, Response $response) use ($teamSync) {
+        try {
+            $result = $teamSync->sync();
+            $params = [
+                'synced' => 1,
+                'updated' => $result['updated'],
+                'inserted' => $result['inserted'],
+                'removed' => $result['removed'],
+            ];
+        } catch (\RuntimeException $e) {
+            $params = ['sync_error' => $e->getMessage()];
+        }
 
-        return $response->withHeader('Location', '/schools')->withStatus(302);
-    });
-
-    $app->post('/schools/{id}', function (Request $request, Response $response, array $args) use ($schools) {
-        $data = (array) $request->getParsedBody();
-        $schools->update((int) $args['id'], schoolFormData($data));
-
-        return $response->withHeader('Location', '/schools')->withStatus(302);
+        return $response->withHeader('Location', '/schools?' . http_build_query($params))->withStatus(302);
     });
 
     // ---- Sports / roster ----------------------------------------------
@@ -244,12 +243,20 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response;
     });
 
-    $app->get('/games/new', function (Request $request, Response $response) use ($view, $sports, $divisions, $schools) {
+    $app->get('/games/new', function (Request $request, Response $response) use (
+        $view,
+        $sports,
+        $divisions,
+        $schools,
+        $teamSync
+    ) {
+        $syncError = $teamSync->syncIfStale(TEAM_SYNC_MAX_AGE);
         $html = $view->render('games/new', [
             'title' => 'New Game',
             'sports' => $sports->all(),
             'divisions' => $divisions->all(),
             'schools' => $schools->all(),
+            'syncError' => $syncError,
         ]);
         $response->getBody()->write($html);
 
@@ -269,14 +276,15 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $divisionId = ($data['division_id'] ?? '') !== '' ? (int) $data['division_id'] : null;
         $isNeutral = !empty($data['is_neutral_site']);
 
-        $homeSchool = ($data['home_school_id'] ?? '') !== ''
-            ? $schools->find((int) $data['home_school_id'])
-            : $schools->findOrCreateByName($data['home_school_name'] ?? '', $data['home_mascot'] ?? null);
-        $awaySchool = ($data['away_school_id'] ?? '') !== ''
-            ? $schools->find((int) $data['away_school_id'])
-            : $schools->findOrCreateByName($data['away_school_name'] ?? '', $data['away_mascot'] ?? null);
+        // Teams come only from the team API cache; a missing one is added in
+        // the API's admin, not here.
+        $homeSchool = $schools->find((int) ($data['home_school_id'] ?? 0));
+        $awaySchool = $schools->find((int) ($data['away_school_id'] ?? 0));
+        if ($homeSchool === null || $awaySchool === null) {
+            return $response->withHeader('Location', '/games/new')->withStatus(302);
+        }
 
-        $willamette = $schools->findByName('Willamette University');
+        $willamette = $schools->findBySlug(SchoolRepository::WILLAMETTE_SLUG);
         $homeIsWillamette = $willamette !== null && (int) $homeSchool['id'] === (int) $willamette['id'];
         $awayIsWillamette = $willamette !== null && (int) $awaySchool['id'] === (int) $willamette['id'];
 

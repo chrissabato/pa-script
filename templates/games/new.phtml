@@ -1,4 +1,8 @@
 <h2>New Game</h2>
+<?php if ($syncError !== null): ?>
+    <p class="notice notice-error">Couldn't refresh teams from the team API (<?= htmlspecialchars($syncError, ENT_QUOTES) ?>); showing the last synced list.</p>
+<?php endif; ?>
+<p><em>Teams come from the <a href="/schools">team API</a>. Missing one? Add it in the API's admin, then sync.</em></p>
 <form method="post" action="/games">
     <p>
         Sport:
@@ -23,28 +27,24 @@
 
     <fieldset>
         <legend>Home team</legend>
-        <p>Existing school:
-        <select name="home_school_id">
-            <option value="">— new school below —</option>
+        <p>
+        <select name="home_school_id" required>
+            <option value="">— choose a team —</option>
             <?php foreach ($schools as $school): ?>
-                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
+                <option value="<?= (int) $school['id'] ?>"<?= $school['slug'] === \App\Repository\SchoolRepository::WILLAMETTE_SLUG ? ' selected' : '' ?>><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
             <?php endforeach; ?>
         </select></p>
-        <p>Or new school name: <input type="text" name="home_school_name">
-        Mascot: <input type="text" name="home_mascot"></p>
     </fieldset>
 
     <fieldset>
         <legend>Away team</legend>
-        <p>Existing school:
-        <select name="away_school_id">
-            <option value="">— new school below —</option>
+        <p>
+        <select name="away_school_id" required>
+            <option value="">— choose a team —</option>
             <?php foreach ($schools as $school): ?>
                 <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
             <?php endforeach; ?>
         </select></p>
-        <p>Or new school name: <input type="text" name="away_school_name">
-        Mascot: <input type="text" name="away_mascot"></p>
     </fieldset>
 
     <p>

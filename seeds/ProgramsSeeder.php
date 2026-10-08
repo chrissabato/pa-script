@@ -15,7 +15,7 @@ class ProgramsSeeder extends AbstractSeed
 
     public function run(): void
     {
-        $schoolId = $this->fetchRow("select id from schools where short_name = 'Willamette'")['id'];
+        $schoolId = $this->fetchRow("select id from schools where slug = 'willamette-university'")['id'];
         $soccerId = $this->fetchRow("select id from sports where slug = 'soccer'")['id'];
         $basketballId = $this->fetchRow("select id from sports where slug = 'basketball'")['id'];
         $baseballId = $this->fetchRow("select id from sports where slug = 'baseball'")['id'];

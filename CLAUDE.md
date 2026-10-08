@@ -11,7 +11,8 @@ Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, a
 - Install deps: `composer install`
 - Config: copy `.env.example` to `.env` (gitignored) — DB credentials + `IMPORT_TOKEN`.
 - Migrations: `vendor/bin/phinx migrate -c config/phinx.php` — the config lives at `config/phinx.php`, **not** the default `phinx.yml`, so `-c` is always required (`rollback`, `status`, `create` too).
-- Seeds (idempotent, safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s SchoolsSeeder` for one).
+- Seeds (idempotent, safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s ProgramsSeeder` for one). `SchoolsSeeder` just runs the team API sync, so it needs network access.
+- Sync teams from the API: `php bin/sync-teams.php` (cron-safe; the app also auto-syncs at most hourly when `/schools` or `/games/new` loads).
 - Tests: `vendor/bin/phpunit` (suite in `tests/`, covers the rendering engine).
 - Lint a file: `php -l path/to/file.php`
 - Dev server: `php -S localhost:8000 -t public public/index.php` — the explicit router script is required, otherwise PHP's built-in server 404s extension-looking URLs before they reach Slim. On the shared dev box it already runs as the `pa-script-dev.service` systemd unit on port 8002, against the `pa-script-postgres` Docker container; check those before starting anything new.
@@ -58,6 +59,7 @@ A companion browser bookmarklet scrapes an opponent's roster off a live roster p
 
 See PLAN.md's "Data model" section for full column lists. Key tables:
 - `sports`, `divisions`, `schools`, `programs` (school×sport×division), `players`, `coaches` — persistent roster data.
+- `schools` is a read-only local cache of the athletics Team Data API (https://athletics.willamette.edu/api/teams/docs), keyed by the API's `slug` (stable; names get edited). Only `App\Teams\TeamApiSync` writes it; teams are edited in the API's admin, never in this app. Sync keeps a team the API dropped if a program still references it. Find Willamette by slug `willamette-university` (`SchoolRepository::WILLAMETTE_SLUG`), not by name — the API also has a `willamette-university-gold` alt-logo entry with the same short name.
 - `games`, `game_roster_snapshots`, `game_roster_players`, `game_roster_coaches`, `officials` — per-game data, decoupled from the persistent roster.
 - `script_templates` (sport_id, division_id nullable, site_variant, content_blocks JSONB) — the template engine.
 - `import_batches` — bookmarklet scrape staging.
@@ -65,9 +67,9 @@ See PLAN.md's "Data model" section for full column lists. Key tables:
 ## Routes
 
 All defined in `src/Routes/routes.php`:
-- `/` — dashboard; `/schools`, `/schools/{id}` (teams); `/sports`, `/sports/{sport}/roster`, `/sports/{sport}/{division}/roster`
+- `/` — dashboard (upcoming games); `/schools` (read-only teams from the API), `POST /schools/sync`; `/sports`, `/sports/{sport}/roster`, `/sports/{sport}/{division}/roster`
 - `/programs/{programId}/players[/{playerId}]`, `/programs/{programId}/coaches[/{coachId}]` — persistent-roster form posts
-- `/games`, `/games/new`, `/games/{id}`, `/games/{id}/officials`, `/games/{id}/roster/{home|away}` (+ `/players`, `/coaches`), `/games/{id}/script`, `/games/{id}/teleprompter`
+- `/games`, `/games/new`, `/games/{id}` (`POST` with `_method=DELETE` deletes), `/games/{id}/officials`, `/games/{id}/roster/{home|away}` (+ `/players`, `/coaches`), `/games/{id}/script`, `/games/{id}/teleprompter`
 - `/bookmarklet`, `/bookmarklet/scraper.js`, `/api/import/stage` (token-gated), `/import/review/{batchId}` (+ `/commit`, `/discard`)
 - Not built yet: the template editor PLAN.md describes (`/sports/{sport}/templates/{templateId}/edit`) — templates are edited via `seeds/ScriptTemplatesSeeder.php`.
 
