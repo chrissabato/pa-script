@@ -4,7 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-This repository currently contains only `PLAN.md` — no code has been scaffolded yet. There is no `composer.json`, no build/test/lint tooling, and no directory structure to speak of. Read `PLAN.md` in full before starting implementation work; it is the authoritative spec for this project and this file summarizes its key decisions. Once scaffolding begins (Build phase 1 in the plan), update this file with the real commands (`composer install`, `php -S localhost:8000`, Phinx migration commands, PHPUnit invocation, etc.) instead of leaving them as placeholders below.
+Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, all six sports, teleprompter, bookmarklet + import pipeline); Phase 6 (deploy to RHEL) is next. `PLAN.md` remains the authoritative spec; this file summarizes its key decisions. Script template *wording* in the seeders is still placeholder, not the real sheet text.
+
+## Commands
+
+- Install deps: `composer install`
+- Config: copy `.env.example` to `.env` (gitignored) — DB credentials + `IMPORT_TOKEN`.
+- Migrations: `vendor/bin/phinx migrate -c config/phinx.php` — the config lives at `config/phinx.php`, **not** the default `phinx.yml`, so `-c` is always required (`rollback`, `status`, `create` too).
+- Seeds (idempotent, safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s SchoolsSeeder` for one).
+- Tests: `vendor/bin/phpunit` (suite in `tests/`, covers the rendering engine).
+- Lint a file: `php -l path/to/file.php`
+- Dev server: `php -S localhost:8000 -t public public/index.php` — the explicit router script is required, otherwise PHP's built-in server 404s extension-looking URLs before they reach Slim. On the shared dev box it already runs as the `pa-script-dev.service` systemd unit on port 8002, against the `pa-script-postgres` Docker container; check those before starting anything new.
+
+## Code layout
+
+- `public/index.php` — Slim front controller; `public/css/app.css` (single plain-CSS stylesheet), `public/js/` (teleprompter, scraper).
+- `src/Routes/routes.php` — all routes; `src/Repository/` — one PDO repository per table; `src/Rendering/` — `TemplateRenderer`, `PlaceholderRegistry`, `GameContextBuilder`.
+- `templates/` — `.phtml` views wrapped by `templates/layout.phtml`.
+- `migrations/`, `seeds/` — Phinx.
+
+Players are always listed by jersey number (numeric compare on the digits, unnumbered last) — there is deliberately no manual player sort field. Coaches and officials keep a `sort_order`.
 
 ## What this is
 
@@ -43,11 +62,14 @@ See PLAN.md's "Data model" section for full column lists. Key tables:
 - `script_templates` (sport_id, division_id nullable, site_variant, content_blocks JSONB) — the template engine.
 - `import_batches` — bookmarklet scrape staging.
 
-## Planned routes (per PLAN.md)
+## Routes
 
-- `/` — dashboard; `/sports`, `/sports/{sport}/{division}/roster`, `/sports/{sport}/templates/{templateId}/edit`
-- `/games`, `/games/new`, `/games/{id}`, `/games/{id}/roster/{home|away}`, `/games/{id}/script`, `/games/{id}/teleprompter`
-- `/bookmarklet`, `/import/review.php?batch={id}`
+All defined in `src/Routes/routes.php`:
+- `/` — dashboard; `/schools`, `/schools/{id}` (teams); `/sports`, `/sports/{sport}/roster`, `/sports/{sport}/{division}/roster`
+- `/programs/{programId}/players[/{playerId}]`, `/programs/{programId}/coaches[/{coachId}]` — persistent-roster form posts
+- `/games`, `/games/new`, `/games/{id}`, `/games/{id}/officials`, `/games/{id}/roster/{home|away}` (+ `/players`, `/coaches`), `/games/{id}/script`, `/games/{id}/teleprompter`
+- `/bookmarklet`, `/bookmarklet/scraper.js`, `/api/import/stage` (token-gated), `/import/review/{batchId}` (+ `/commit`, `/discard`)
+- Not built yet: the template editor PLAN.md describes (`/sports/{sport}/templates/{templateId}/edit`) — templates are edited via `seeds/ScriptTemplatesSeeder.php`.
 
 ## Build order
 

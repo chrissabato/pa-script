@@ -6,7 +6,7 @@
 <?php else: ?>
 
 <h3>Coaches</h3>
-<table>
+<table class="roster-table">
     <tr><th>Name</th><th>Title</th><th></th></tr>
     <?php foreach ($coaches as $coach): ?>
     <tr>
@@ -33,10 +33,10 @@
 
 <h3>Players</h3>
 <div class="table-scroll">
-<table>
+<table class="roster-table">
     <tr>
         <th>#</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
-        <th>Starter</th><th>Batting order</th><th>Sort</th><th></th>
+        <th>Starter</th><th>Batting order</th><th></th>
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
@@ -49,7 +49,6 @@
             <td><input type="text" name="hometown" value="<?= htmlspecialchars((string) $player['hometown'], ENT_QUOTES) ?>"></td>
             <td><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
             <td><input type="number" name="batting_order" value="<?= htmlspecialchars((string) $player['batting_order'], ENT_QUOTES) ?>" size="3"></td>
-            <td><input type="number" name="sort_order" value="<?= (int) $player['sort_order'] ?>" size="3"></td>
             <td>
                 <button type="submit">Save</button>
                 <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this player?')">Delete</button>
@@ -72,7 +71,6 @@
         Hometown: <input type="text" name="hometown">
         Starter: <input type="checkbox" name="is_starter" value="1">
         Batting order: <input type="number" name="batting_order" size="3">
-        Sort: <input type="number" name="sort_order" value="0" size="3">
         <button type="submit">Add</button>
     </p>
 </form>

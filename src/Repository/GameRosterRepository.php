@@ -36,8 +36,10 @@ class GameRosterRepository
     /** @return array<int, array<string, mixed>> */
     public function playersFor(int $snapshotId): array
     {
+        // Same numeric jersey-number ordering as PlayerRepository::findByProgram.
         $stmt = $this->pdo->prepare(
-            'select * from game_roster_players where snapshot_id = :snapshot_id order by sort_order, name'
+            "select * from game_roster_players where snapshot_id = :snapshot_id "
+            . "order by nullif(regexp_replace(number, '\\D', '', 'g'), '')::int nulls last, number, name"
         );
         $stmt->execute(['snapshot_id' => $snapshotId]);
 
@@ -83,9 +85,9 @@ class GameRosterRepository
         $stmt = $this->pdo->prepare(
             'insert into game_roster_players '
             . '(snapshot_id, source_player_id, number, name, pronunciation, position, year, hometown, '
-            . 'is_starter, batting_order, sort_order) '
+            . 'is_starter, batting_order) '
             . 'select :snapshot_id, id, number, name, pronunciation, position, year, hometown, '
-            . 'is_starter, batting_order, sort_order '
+            . 'is_starter, batting_order '
             . 'from players where program_id = :program_id and is_active = true'
         );
         $stmt->execute(['snapshot_id' => $snapshotId, 'program_id' => $programId]);
@@ -105,9 +107,9 @@ class GameRosterRepository
     {
         $stmt = $this->pdo->prepare(
             'insert into game_roster_players (snapshot_id, number, name, pronunciation, position, year, '
-            . 'hometown, is_starter, batting_order, sort_order) '
+            . 'hometown, is_starter, batting_order) '
             . 'values (:snapshot_id, :number, :name, :pronunciation, :position, :year, :hometown, '
-            . ':is_starter, :batting_order, :sort_order) returning id'
+            . ':is_starter, :batting_order) returning id'
         );
         $stmt->execute(array_merge(['snapshot_id' => $snapshotId], $this->normalizePlayer($data)));
 
@@ -120,7 +122,7 @@ class GameRosterRepository
         $stmt = $this->pdo->prepare(
             'update game_roster_players set number = :number, name = :name, pronunciation = :pronunciation, '
             . 'position = :position, year = :year, hometown = :hometown, is_starter = :is_starter, '
-            . 'batting_order = :batting_order, sort_order = :sort_order, updated_at = current_timestamp '
+            . 'batting_order = :batting_order, updated_at = current_timestamp '
             . 'where id = :id'
         );
         $stmt->execute(array_merge(['id' => $id], $this->normalizePlayer($data)));
@@ -169,7 +171,6 @@ class GameRosterRepository
             'hometown' => $data['hometown'] !== '' ? $data['hometown'] : null,
             'is_starter' => PgType::boolToString(!empty($data['is_starter'])),
             'batting_order' => ($data['batting_order'] ?? '') !== '' ? (int) $data['batting_order'] : null,
-            'sort_order' => (int) ($data['sort_order'] ?? 0),
         ];
     }
 }

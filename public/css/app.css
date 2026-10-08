@@ -202,9 +202,33 @@ input[type="time"] {
    viewports instead of squeezing every input down to unreadable widths. */
 .table-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
     margin: 0.75rem 0 1.25rem;
 }
 .table-scroll table { margin: 0; }
+
+/* Browsers ignore `size` on type="number", so give the narrow fields the
+   templates mark with size="3"/"4" an explicit width instead. */
+input[size="3"] { width: 4.5rem; }
+input[size="4"] { width: 7rem; }
+
+/* Inline-edit roster tables: compact cells, inputs fill their column
+   rather than forcing it to the 11rem free-text minimum. */
+.roster-table { width: auto; max-width: 100%; }
+.roster-table th, .roster-table td { padding: 0.3rem 0.4rem; }
+.roster-table td input[type="text"]:not([size]) {
+    min-width: 0;
+    width: 9rem;
+}
+.roster-table td input[name="position"] { width: 7rem; }
+.roster-table td input[size="3"] { width: 3.75rem; }
+.roster-table td input[size="4"] { width: 6.5rem; }
+
+/* Roster editors are the one wide page — let main use more of the
+   viewport there instead of scrolling the table at desktop widths. */
+main:has(.roster-table) { max-width: 1440px; }
+.roster-table td:last-child { white-space: nowrap; }
+.roster-table td button { padding: 0.3rem 0.65rem; }
 
 td input[type="checkbox"] { transform: scale(1.05); }
 

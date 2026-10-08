@@ -20,8 +20,11 @@ class PlayerRepository
     /** @return array<int, array<string, mixed>> */
     public function findByProgram(int $programId): array
     {
+        // Jersey numbers are strings ("00", "4", "15"), so compare numerically
+        // on their digits; unnumbered players go last.
         $stmt = $this->pdo->prepare(
-            'select * from players where program_id = :program_id order by sort_order, name'
+            "select * from players where program_id = :program_id "
+            . "order by nullif(regexp_replace(number, '\\D', '', 'g'), '')::int nulls last, number, name"
         );
         $stmt->execute(['program_id' => $programId]);
 
@@ -33,9 +36,9 @@ class PlayerRepository
     {
         $stmt = $this->pdo->prepare(
             'insert into players (program_id, number, name, pronunciation, position, year, hometown, '
-            . 'is_starter, batting_order, sort_order, is_active) '
+            . 'is_starter, batting_order, is_active) '
             . 'values (:program_id, :number, :name, :pronunciation, :position, :year, :hometown, '
-            . ':is_starter, :batting_order, :sort_order, :is_active) returning id'
+            . ':is_starter, :batting_order, :is_active) returning id'
         );
         $stmt->execute(array_merge(['program_id' => $programId], $this->normalize($data)));
 
@@ -48,7 +51,7 @@ class PlayerRepository
         $stmt = $this->pdo->prepare(
             'update players set number = :number, name = :name, pronunciation = :pronunciation, '
             . 'position = :position, year = :year, hometown = :hometown, is_starter = :is_starter, '
-            . 'batting_order = :batting_order, sort_order = :sort_order, is_active = :is_active, '
+            . 'batting_order = :batting_order, is_active = :is_active, '
             . 'updated_at = current_timestamp '
             . 'where id = :id'
         );
@@ -76,7 +79,6 @@ class PlayerRepository
             'hometown' => $data['hometown'] !== '' ? $data['hometown'] : null,
             'is_starter' => PgType::boolToString(!empty($data['is_starter'])),
             'batting_order' => ($data['batting_order'] ?? '') !== '' ? (int) $data['batting_order'] : null,
-            'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_active' => PgType::boolToString(!empty($data['is_active'])),
         ];
     }
