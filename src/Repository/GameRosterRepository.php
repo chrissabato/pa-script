@@ -119,13 +119,22 @@ class GameRosterRepository
     /** @param array<string, mixed> $data */
     public function updatePlayer(int $id, array $data): void
     {
+        // The roster editor doesn't post batting_order (hidden until the
+        // baseball/softball designated-player design lands), so only touch
+        // it when a caller actually sends it.
+        $params = array_merge(['id' => $id], $this->normalizePlayer($data));
+        $battingOrderSet = 'batting_order = :batting_order, ';
+        if (!array_key_exists('batting_order', $data)) {
+            unset($params['batting_order']);
+            $battingOrderSet = '';
+        }
         $stmt = $this->pdo->prepare(
             'update game_roster_players set number = :number, name = :name, pronunciation = :pronunciation, '
             . 'position = :position, year = :year, hometown = :hometown, is_starter = :is_starter, '
-            . 'batting_order = :batting_order, updated_at = current_timestamp '
+            . $battingOrderSet . 'updated_at = current_timestamp '
             . 'where id = :id'
         );
-        $stmt->execute(array_merge(['id' => $id], $this->normalizePlayer($data)));
+        $stmt->execute($params);
     }
 
     public function deletePlayer(int $id): void
