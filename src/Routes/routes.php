@@ -22,6 +22,23 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
 use Slim\Exception\HttpNotFoundException;
 
+/**
+ * Person/team form fields are deliberately not called "name"/"title"
+ * (player, coach, staff_role, official, school) so password managers
+ * like LastPass don't treat them as identity fields. This maps a posted
+ * player row back to the `name` key the repositories expect.
+ *
+ * @param array<string, mixed> $data
+ * @return array<string, mixed>
+ */
+function playerFormData(array $data): array
+{
+    $data['name'] = (string) ($data['player'] ?? '');
+    unset($data['player']);
+
+    return $data;
+}
+
 return function (App $app, PDO $pdo, Renderer $view): void {
     $sports = new SportRepository($pdo);
     $divisions = new DivisionRepository($pdo);
@@ -52,7 +69,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $app->post('/schools', function (Request $request, Response $response) use ($schools) {
         $data = (array) $request->getParsedBody();
         $schools->create(
-            $data['name'],
+            $data['school'],
             ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
             ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
         );
@@ -64,7 +81,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $data = (array) $request->getParsedBody();
         $schools->update(
             (int) $args['id'],
-            $data['name'],
+            $data['school'],
             ($data['mascot'] ?? '') !== '' ? $data['mascot'] : null,
             ($data['short_name'] ?? '') !== '' ? $data['short_name'] : null
         );
@@ -152,7 +169,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     ) use ($players) {
         $programId = (int) $args['programId'];
         $data = (array) $request->getParsedBody();
-        $players->create($programId, $data);
+        $players->create($programId, playerFormData($data));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -166,7 +183,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         if (($data['_method'] ?? '') === 'DELETE') {
             $players->delete((int) $args['playerId']);
         } else {
-            $players->update((int) $args['playerId'], $data);
+            $players->update((int) $args['playerId'], playerFormData($data));
         }
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
@@ -178,7 +195,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($coaches) {
         $data = (array) $request->getParsedBody();
-        $coaches->create((int) $args['programId'], $data['name'], $data['title'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $coaches->create((int) $args['programId'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -192,7 +209,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         if (($data['_method'] ?? '') === 'DELETE') {
             $coaches->delete((int) $args['coachId']);
         } else {
-            $coaches->update((int) $args['coachId'], $data['name'], $data['title'] ?? null, (int) ($data['sort_order'] ?? 0));
+            $coaches->update((int) $args['coachId'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
         }
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
@@ -317,7 +334,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($gameRosters) {
         $data = (array) $request->getParsedBody();
-        $gameRosters->createPlayer((int) $data['snapshot_id'], $data);
+        $gameRosters->createPlayer((int) $data['snapshot_id'], playerFormData($data));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -331,7 +348,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         if (($data['_method'] ?? '') === 'DELETE') {
             $gameRosters->deletePlayer((int) $args['playerId']);
         } else {
-            $gameRosters->updatePlayer((int) $args['playerId'], $data);
+            $gameRosters->updatePlayer((int) $args['playerId'], playerFormData($data));
         }
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
@@ -343,7 +360,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($gameRosters) {
         $data = (array) $request->getParsedBody();
-        $gameRosters->createCoach((int) $data['snapshot_id'], $data['name'], $data['title'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $gameRosters->createCoach((int) $data['snapshot_id'], $data['coach'], $data['staff_role'] ?? null, (int) ($data['sort_order'] ?? 0));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -364,7 +381,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($officials) {
         $data = (array) $request->getParsedBody();
-        $officials->create((int) $args['id'], $data['name'], $data['role'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $officials->create((int) $args['id'], $data['official'], $data['role'] ?? null, (int) ($data['sort_order'] ?? 0));
 
         return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
     });
@@ -619,7 +636,8 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
             if ($program !== null) {
                 foreach ($rows as $row) {
-                    if (empty($row['include']) || trim((string) ($row['name'] ?? '')) === '') {
+                    $row = playerFormData($row);
+                    if (empty($row['include']) || trim($row['name']) === '') {
                         continue;
                     }
                     $players->create($programId, $row);
@@ -636,7 +654,8 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
             if ($snapshot !== null) {
                 foreach ($rows as $row) {
-                    if (empty($row['include']) || trim((string) ($row['name'] ?? '')) === '') {
+                    $row = playerFormData($row);
+                    if (empty($row['include']) || trim($row['name']) === '') {
                         continue;
                     }
                     $gameRosters->createPlayer((int) $snapshot['id'], $row);

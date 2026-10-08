@@ -9,8 +9,8 @@
     <?php foreach ($coaches as $coach): ?>
     <tr>
         <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches/<?= (int) $coach['id'] ?>">
-            <td><input type="text" name="name" value="<?= htmlspecialchars($coach['name'], ENT_QUOTES) ?>"></td>
-            <td><input type="text" name="title" value="<?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="coach" value="<?= htmlspecialchars($coach['name'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="staff_role" value="<?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?>"></td>
             <td><input type="number" name="sort_order" value="<?= (int) $coach['sort_order'] ?>" size="3"></td>
             <td>
                 <button type="submit">Save</button>
@@ -24,8 +24,8 @@
 <h4>Add coach</h4>
 <form method="post" action="/programs/<?= (int) $program['id'] ?>/coaches">
     <p>
-        Name: <input type="text" name="name" required>
-        Title: <input type="text" name="title">
+        Coach: <input type="text" name="coach" required>
+        Title: <input type="text" name="staff_role">
         Order: <input type="number" name="sort_order" value="0" size="3">
         <button type="submit">Add</button>
     </p>
@@ -42,7 +42,7 @@
     <tr>
         <form method="post" action="/programs/<?= (int) $program['id'] ?>/players/<?= (int) $player['id'] ?>">
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
-            <td><input type="text" name="name" value="<?= htmlspecialchars($player['name'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="player" value="<?= htmlspecialchars($player['name'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $player['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="position" value="<?= htmlspecialchars((string) $player['position'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="year" value="<?= htmlspecialchars((string) $player['year'], ENT_QUOTES) ?>" size="4"></td>
@@ -65,7 +65,7 @@
     <input type="hidden" name="is_active" value="1">
     <p>
         #: <input type="text" name="number" size="3">
-        Name: <input type="text" name="name" required>
+        Player: <input type="text" name="player" required>
         Pronunciation: <input type="text" name="pronunciation">
         Position: <input type="text" name="position">
         Year: <input type="text" name="year" size="4">

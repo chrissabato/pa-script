@@ -60,7 +60,7 @@
         <tr>
             <td><input type="checkbox" name="players[<?= (int) $i ?>][include]" value="1" checked></td>
             <td><input type="text" name="players[<?= (int) $i ?>][number]" value="<?= htmlspecialchars((string) ($player['number'] ?? ''), ENT_QUOTES) ?>" size="3"></td>
-            <td><input type="text" name="players[<?= (int) $i ?>][name]" value="<?= htmlspecialchars((string) ($player['name'] ?? ''), ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="players[<?= (int) $i ?>][player]" value="<?= htmlspecialchars((string) ($player['name'] ?? ''), ENT_QUOTES) ?>"></td>
             <td><input type="text" name="players[<?= (int) $i ?>][pronunciation]" value="<?= htmlspecialchars((string) ($player['pronunciation'] ?? ''), ENT_QUOTES) ?>"></td>
             <td><input type="text" name="players[<?= (int) $i ?>][position]" value="<?= htmlspecialchars((string) ($player['position'] ?? ''), ENT_QUOTES) ?>"></td>
             <td><input type="text" name="players[<?= (int) $i ?>][year]" value="<?= htmlspecialchars((string) ($player['year'] ?? ''), ENT_QUOTES) ?>" size="4"></td>
@@ -84,7 +84,7 @@
     <tr>
         <td><input type="checkbox" name="players[__INDEX__][include]" value="1" checked></td>
         <td><input type="text" name="players[__INDEX__][number]" size="3"></td>
-        <td><input type="text" name="players[__INDEX__][name]"></td>
+        <td><input type="text" name="players[__INDEX__][player]"></td>
         <td><input type="text" name="players[__INDEX__][pronunciation]"></td>
         <td><input type="text" name="players[__INDEX__][position]"></td>
         <td><input type="text" name="players[__INDEX__][year]" size="4"></td>
