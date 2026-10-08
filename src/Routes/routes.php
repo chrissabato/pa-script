@@ -304,6 +304,15 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response->withHeader('Location', '/games/' . $gameId)->withStatus(302);
     });
 
+    $app->post('/games/{id}', function (Request $request, Response $response, array $args) use ($games) {
+        $data = (array) $request->getParsedBody();
+        if (($data['_method'] ?? '') === 'DELETE') {
+            $games->delete((int) $args['id']);
+        }
+
+        return $response->withHeader('Location', '/games')->withStatus(302);
+    });
+
     $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games) {
         $game = $games->find((int) $args['id']);
         if ($game === null) {

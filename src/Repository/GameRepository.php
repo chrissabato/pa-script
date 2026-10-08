@@ -62,6 +62,13 @@ class GameRepository
         return $stmt->fetchAll();
     }
 
+    /** Roster snapshots and officials go with it (ON DELETE CASCADE). */
+    public function delete(int $id): void
+    {
+        $stmt = $this->pdo->prepare('delete from games where id = :id');
+        $stmt->execute(['id' => $id]);
+    }
+
     public function find(int $id): ?array
     {
         $stmt = $this->pdo->prepare(self::SELECT . ' where games.id = :id');
