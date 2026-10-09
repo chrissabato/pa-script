@@ -45,6 +45,8 @@ h1, h2, h3, h4 {
 
 h1 { font-size: 1.3rem; margin: 0; }
 h2 { font-size: 1.5rem; margin-top: 0; }
+/* A section heading after page content (the dashboard's Today / Upcoming) needs room above it. */
+main > p + h2, main > table + h2 { margin-top: 2.25rem; }
 h3 {
     font-size: 1.1rem;
     padding-top: 0.6rem;
