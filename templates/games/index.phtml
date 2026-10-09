@@ -5,7 +5,7 @@
     <?php foreach ($games as $game): ?>
     <tr>
         <td><?= htmlspecialchars($game['date'], ENT_QUOTES) ?></td>
-        <td><?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?></td>
+        <td><?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?><?php if ($game['division_name']): ?> (<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?></td>
         <td>
             <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
             vs
