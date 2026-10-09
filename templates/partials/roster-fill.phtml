@@ -1,0 +1,33 @@
+<?php
+/**
+ * "Fill in from a document" panel on a game's roster page: upload game
+ * notes or a pronunciation guide and Gemini suggests the blank fields.
+ *
+ * Expects: $game, $side, $fillEnabled.
+ */
+?>
+<section class="roster-import roster-fill">
+    <h3>Fill in from a document</h3>
+    <?php if (!$fillEnabled): ?>
+        <p class="hint">Not set up yet: add <code>GEMINI_API_KEY</code> to the server's <code>.env</code>.</p>
+    <?php else: ?>
+    <form method="post" enctype="multipart/form-data" class="roster-import-url roster-fill-form"
+          action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/fill">
+        <label>Game notes or pronunciation guide
+            <input type="file" name="document" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
+        </label>
+        <button type="submit">Find missing details</button>
+    </form>
+    <p class="hint">
+        Upload a PDF or Word (.docx) file and Gemini looks for what's blank below — pronunciations, coaches' seasons,
+        positions, years, hometowns. You review every suggestion before anything is saved, and filled-in fields are never changed.
+    </p>
+    <script>
+        document.querySelector('.roster-fill-form').addEventListener('submit', function (e) {
+            var button = e.target.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Reading the document…';
+        });
+    </script>
+    <?php endif; ?>
+</section>

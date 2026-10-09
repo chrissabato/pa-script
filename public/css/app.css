@@ -717,3 +717,8 @@ main ul { padding-left: 1.3rem; }
 /* align-self: start keeps the shorter roster at its natural height —
    stretched to the taller one's, its rows would grow to fill the space. */
 .print-team > table, .print-team > .print-empty { margin-top: 0.3em; align-self: start; }
+
+/* ---- Document fill review (games/fill-review.phtml) ------------------ */
+
+.roster-table.fill-review td.hint { color: var(--color-text-muted); font-size: 0.85rem; white-space: normal; }
+.roster-table.fill-review td input[type="text"] { width: 100%; min-width: 18rem; box-sizing: border-box; }

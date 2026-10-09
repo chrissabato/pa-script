@@ -14,6 +14,11 @@ $usesLibero = !empty($game['uses_libero']);
     <?php require __DIR__ . '/../partials/roster-import.phtml'; ?>
 <?php endif; ?>
 
+<?php if ($filled !== null): ?>
+    <p class="notice">Filled in <?= $filled ?> field<?= $filled === 1 ? '' : 's' ?> from the document.</p>
+<?php endif; ?>
+<?php require __DIR__ . '/../partials/roster-fill.phtml'; ?>
+
 <h3>Coaches</h3>
 <p class="hint">The script reads the coach titled "Head …" (or the first listed) with their pronoun and season count —
     "in her 4th season" — and names everyone else as assistants. Changes save automatically.</p>

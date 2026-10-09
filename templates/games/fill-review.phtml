@@ -1,0 +1,53 @@
+<?php
+/**
+ * Review of a document fill's suggestions (App\Fill\RosterFiller): one
+ * row per blank field Gemini found a value for, ticked by default and
+ * editable; only ticked rows are saved.
+ *
+ * Expects: $game, $side, $filename, $suggestions (null on error), $error.
+ */
+$rosterUrl = $this->base() . '/games/' . (int) $game['id'] . '/roster/' . htmlspecialchars($side, ENT_QUOTES);
+$fieldLabels = [
+    'pronunciation' => 'Pronunciation', 'position' => 'Position', 'year' => 'Year',
+    'hometown' => 'Hometown', 'pronoun' => 'Pronoun', 'seasons' => 'Seasons',
+];
+$rows = $suggestions === null ? [] : array_merge($suggestions['coaches'], $suggestions['players']);
+$hasEvidence = array_filter(array_column($rows, 'evidence')) !== [];
+?>
+<?php $gameTab = $side; require __DIR__ . '/../partials/game-nav.phtml'; ?>
+
+<h3>Fill in from <?= $filename !== '' ? htmlspecialchars($filename, ENT_QUOTES) : 'a document' ?></h3>
+
+<?php if ($error !== null): ?>
+    <p class="notice notice-error"><?= htmlspecialchars($error, ENT_QUOTES) ?></p>
+    <p><a href="<?= $rosterUrl ?>">&larr; Back to the roster</a></p>
+<?php elseif ($rows === []): ?>
+    <p class="notice">The document didn't have any of this roster's missing details.</p>
+    <p><a href="<?= $rosterUrl ?>">&larr; Back to the roster</a></p>
+<?php else: ?>
+    <p class="hint">
+        Gemini found these for fields that are blank on the roster. Check each against the document — untick anything wrong,
+        or correct the value — then save. Only ticked rows are saved.
+    </p>
+    <form method="post" action="<?= $rosterUrl ?>/fill/apply">
+        <div class="table-scroll">
+        <table class="roster-table fill-review">
+            <tr><th class="cell-center">Save</th><th>Person</th><th>Field</th><th>Value</th><?php if ($hasEvidence): ?><th>From the document</th><?php endif; ?></tr>
+            <?php foreach ($rows as $row): ?>
+                <?php $key = $row['kind'] . ':' . (int) $row['id'] . ':' . $row['field']; ?>
+                <tr>
+                    <td class="cell-center"><input type="checkbox" name="apply[]" value="<?= htmlspecialchars($key, ENT_QUOTES) ?>" checked></td>
+                    <td><?= htmlspecialchars($row['label'], ENT_QUOTES) ?><?= $row['kind'] === 'coach' ? ' <em>(coach)</em>' : '' ?></td>
+                    <td><?= $fieldLabels[$row['field']] ?></td>
+                    <td><input type="text" name="value[<?= htmlspecialchars($key, ENT_QUOTES) ?>]" value="<?= htmlspecialchars((string) $row['value'], ENT_QUOTES) ?>"></td>
+                    <?php if ($hasEvidence): ?><td class="hint"><?= htmlspecialchars($row['evidence'], ENT_QUOTES) ?></td><?php endif; ?>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+        </div>
+        <p>
+            <button type="submit">Save ticked (<?= count($rows) ?>)</button>
+            <a href="<?= $rosterUrl ?>" class="button button-secondary">Cancel</a>
+        </p>
+    </form>
+<?php endif; ?>

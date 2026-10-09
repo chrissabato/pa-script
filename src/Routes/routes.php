@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 use App\Auth\PasswordGate;
 use App\Database\PgType;
+use App\Fill\DocumentFillException;
+use App\Fill\GeminiClient;
+use App\Fill\RosterFiller;
 use App\Rendering\GameContextBuilder;
 use App\Rendering\ScriptChecks;
 use App\Rendering\Spoken;
@@ -356,6 +359,8 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
             'coaches' => $snapshot !== null ? $gameRosters->coachesFor((int) $snapshot['id']) : [],
             'program' => $program,
             'rosterImport' => $program !== null ? $rosterImportUrl($program, (string) $game['date']) : null,
+            'fillEnabled' => ($_ENV['GEMINI_API_KEY'] ?? '') !== '',
+            'filled' => isset($request->getQueryParams()['filled']) ? (int) $request->getQueryParams()['filled'] : null,
         ]);
         $response->getBody()->write($html);
 
@@ -421,6 +426,111 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         }
 
         return rowSaved($request, $response, $request->getHeaderLine('Referer'));
+    });
+
+    // ---- Fill in from a document (Gemini; see App\Fill\RosterFiller) -------
+    // Upload → Gemini suggests values for blank fields → a review page →
+    // only the ticked suggestions are written, and never over a value.
+
+    $rosterSide = function (Request $request, array $args) use ($games, $gameRosters): array {
+        $game = $games->find((int) $args['id']);
+        $side = $args['side'];
+        $snapshot = $game !== null && in_array($side, ['home', 'away'], true)
+            ? $gameRosters->findSnapshot((int) $game['id'], $side)
+            : null;
+        if ($snapshot === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return [$game, $side, $snapshot];
+    };
+
+    $app->post('/games/{id}/roster/{side}/fill', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $gameRosters, $rosterSide) {
+        list($game, $side, $snapshot) = $rosterSide($request, $args);
+        $players = $gameRosters->playersFor((int) $snapshot['id']);
+        $coaches = $gameRosters->coachesFor((int) $snapshot['id']);
+        $suggestions = null;
+        $error = null;
+        $filename = '';
+
+        try {
+            $apiKey = (string) ($_ENV['GEMINI_API_KEY'] ?? '');
+            if ($apiKey === '') {
+                throw new DocumentFillException('Document fill isn\'t set up: GEMINI_API_KEY is missing from the server\'s .env.');
+            }
+            $file = $request->getUploadedFiles()['document'] ?? null;
+            if ($file === null || $file->getError() === UPLOAD_ERR_NO_FILE) {
+                throw new DocumentFillException('Choose a PDF or Word document to upload.');
+            }
+            if (in_array($file->getError(), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+                || $file->getSize() > RosterFiller::MAX_BYTES) {
+                throw new DocumentFillException('That file is too large to upload (the server allows '
+                    . ini_get('upload_max_filesize') . '; Gemini up to ' . (RosterFiller::MAX_BYTES >> 20) . ' MB).');
+            }
+            if ($file->getError() !== UPLOAD_ERR_OK) {
+                throw new DocumentFillException('The upload failed (error ' . $file->getError() . '). Try again.');
+            }
+            $filename = (string) $file->getClientFilename();
+
+            set_time_limit(180); // a bigger GEMINI_MODEL can take minutes
+            $filler = new RosterFiller(GeminiClient::fromEnv($_ENV));
+            $suggestions = $filler->suggest(
+                $filename,
+                (string) $file->getStream(),
+                (string) ($game[$side . '_school_name'] ?? ucfirst($side) . ' team'),
+                $players,
+                $coaches
+            );
+        } catch (DocumentFillException $e) {
+            $error = $e->getMessage();
+        }
+
+        $response->getBody()->write($view->render('games/fill-review', [
+            'title' => 'Fill in from ' . ($filename !== '' ? $filename : 'a document'),
+            'game' => $game,
+            'side' => $side,
+            'filename' => $filename,
+            'suggestions' => $suggestions,
+            'error' => $error,
+        ]));
+
+        return $response;
+    });
+
+    $app->post('/games/{id}/roster/{side}/fill/apply', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($gameRosters, $rosterSide) {
+        list($game, $side, $snapshot) = $rosterSide($request, $args);
+        $data = (array) $request->getParsedBody();
+        $values = (array) ($data['value'] ?? []);
+        $filled = 0;
+        foreach ((array) ($data['apply'] ?? []) as $key) {
+            // key = "player:12:pronunciation" / "coach:3:seasons"
+            $parts = explode(':', (string) $key);
+            if (count($parts) !== 3 || !isset($values[$key])) {
+                continue;
+            }
+            list($kind, $id, $field) = $parts;
+            $fields = $kind === 'player' ? RosterFiller::PLAYER_FIELDS : RosterFiller::COACH_FIELDS;
+            $value = in_array($field, $fields, true) ? RosterFiller::clean($field, (string) $values[$key]) : null;
+            if ($value === null || !in_array($kind, ['player', 'coach'], true)) {
+                continue;
+            }
+            $changed = $kind === 'player'
+                ? $gameRosters->fillPlayerField((int) $snapshot['id'], (int) $id, $field, (string) $value)
+                : $gameRosters->fillCoachField((int) $snapshot['id'], (int) $id, $field, $value);
+            $filled += $changed ? 1 : 0;
+        }
+
+        return $response
+            ->withHeader('Location', Url::to('/games/' . (int) $game['id'] . '/roster/' . $side . '?filled=' . $filled))
+            ->withStatus(302);
     });
 
     // Script/teleprompter name display (Name / Pronunciation / both);

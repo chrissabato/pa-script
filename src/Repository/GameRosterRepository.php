@@ -255,6 +255,54 @@ class GameRosterRepository
         ]);
     }
 
+    /**
+     * Sets one blank field on a player, from an approved document-fill
+     * suggestion (App\Fill\RosterFiller). Scoped to the snapshot so a form
+     * can't reach another game's roster, and a no-op when the field already
+     * has a value — fills never overwrite.
+     *
+     * @return bool whether a row changed
+     */
+    public function fillPlayerField(int $snapshotId, int $playerId, string $field, string $value): bool
+    {
+        if (!in_array($field, ['pronunciation', 'position', 'year', 'hometown'], true)) {
+            throw new \InvalidArgumentException('Unknown player field ' . $field);
+        }
+
+        return $this->fillField('game_roster_players', $field, $snapshotId, $playerId, $value);
+    }
+
+    /**
+     * Coach counterpart of fillPlayerField().
+     *
+     * @param string|int $value
+     */
+    public function fillCoachField(int $snapshotId, int $coachId, string $field, $value): bool
+    {
+        if (!in_array($field, ['pronunciation', 'pronoun', 'seasons'], true)) {
+            throw new \InvalidArgumentException('Unknown coach field ' . $field);
+        }
+
+        return $this->fillField('game_roster_coaches', $field, $snapshotId, $coachId, $value);
+    }
+
+    /** @param string|int $value */
+    private function fillField(string $table, string $field, int $snapshotId, int $id, $value): bool
+    {
+        // $table and $field come from the whitelists above.
+        $blank = $field === 'seasons' ? "{$field} is null" : "({$field} is null or {$field} = '')";
+        $stmt = $this->pdo->prepare(
+            "update {$table} set {$field} = :value, updated_at = current_timestamp "
+            . "where id = :id and snapshot_id = :snapshot_id and {$blank}"
+        );
+        $stmt->bindValue('value', $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        $stmt->bindValue('id', $id, PDO::PARAM_INT);
+        $stmt->bindValue('snapshot_id', $snapshotId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
     /** Empties one side's player list, before an import replaces it. */
     public function deletePlayersFor(int $snapshotId): void
     {
