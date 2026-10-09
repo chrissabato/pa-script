@@ -153,7 +153,11 @@ class TeamApiSync
         // Trailing slash matters: without it the API redirects first.
         $body = @file_get_contents($this->baseUrl . '/', false, $context);
         if ($body === false) {
-            throw new RuntimeException('Could not reach the team API at ' . $this->baseUrl . '/.');
+            $error = error_get_last();
+            throw new RuntimeException(
+                'Could not reach the team API at ' . $this->baseUrl . '/'
+                . ($error !== null ? ': ' . preg_replace('/^file_get_contents\([^)]*\): /', '', $error['message']) : '.')
+            );
         }
 
         $status = 0;
