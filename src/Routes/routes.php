@@ -22,6 +22,7 @@ use App\Roster\RosterPageFetcher;
 use App\Roster\RosterUrlGuesser;
 use App\Teams\TeamApiSync;
 use App\View\Renderer;
+use App\View\Url;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\App;
@@ -141,7 +142,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             $params = ['sync_error' => $e->getMessage()];
         }
 
-        return $response->withHeader('Location', '/schools?' . http_build_query($params))->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/schools?' . http_build_query($params))->withStatus(302);
     });
 
     // ---- Games ----------------------------------------------------------
@@ -194,7 +195,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $homeSchool = $schools->find((int) ($data['home_school_id'] ?? 0));
         $awaySchool = $schools->find((int) ($data['away_school_id'] ?? 0));
         if ($homeSchool === null || $awaySchool === null) {
-            return $response->withHeader('Location', '/games/new')->withStatus(302);
+            return $response->withHeader('Location', Url::base() . '/games/new')->withStatus(302);
         }
 
         $willamette = $schools->findBySlug(SchoolRepository::WILLAMETTE_SLUG);
@@ -223,7 +224,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $gameRosters->createSnapshot($gameId, (int) $homeProgram['id'], 'home');
         $gameRosters->createSnapshot($gameId, (int) $awayProgram['id'], 'away');
 
-        return $response->withHeader('Location', '/games/' . $gameId)->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games/' . $gameId)->withStatus(302);
     });
 
     $app->post('/games/{id}', function (Request $request, Response $response, array $args) use ($games) {
@@ -232,7 +233,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             $games->delete((int) $args['id']);
         }
 
-        return $response->withHeader('Location', '/games')->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games')->withStatus(302);
     });
 
     $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games, $gameRosters, $officials) {
@@ -362,7 +363,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
         $page = ($data['return_to'] ?? '') === 'teleprompter' ? 'teleprompter' : 'script';
 
-        return $response->withHeader('Location', '/games/' . (int) $game['id'] . '/' . $page)->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'] . '/' . $page)->withStatus(302);
     });
 
     $app->post('/games/{id}/details', function (
@@ -383,7 +384,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'special_announcement' => $announcement !== '' ? $announcement : null,
         ]);
 
-        return $response->withHeader('Location', '/games/' . (int) $game['id'])->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'])->withStatus(302);
     });
 
     $app->post('/games/{id}/officials', function (
@@ -394,7 +395,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $data = (array) $request->getParsedBody();
         $officials->create((int) $args['id'], trim((string) $data['official']), trim((string) ($data['role'] ?? '')), (int) ($data['sort_order'] ?? 0));
 
-        return $response->withHeader('Location', '/games/' . (int) $args['id'] . '#officials')->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games/' . (int) $args['id'] . '#officials')->withStatus(302);
     });
 
     $app->post('/games/{id}/officials/{officialId}', function (
@@ -415,7 +416,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             );
         }
 
-        return rowSaved($request, $response, '/games/' . (int) $args['id'] . '#officials');
+        return rowSaved($request, $response, Url::base() . '/games/' . (int) $args['id'] . '#officials');
     });
 
     // Printable rosters, teams side by side (like the source sheets' Roster
@@ -616,7 +617,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         ]);
 
         return $response
-            ->withHeader('Location', '/import/review/' . $batchId . ($preset !== [] ? '?' . http_build_query($preset) : ''))
+            ->withHeader('Location', Url::base() . '/import/review/' . $batchId . ($preset !== [] ? '?' . http_build_query($preset) : ''))
             ->withStatus(302);
     });
 
@@ -633,7 +634,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $app->get('/bookmarklet', function (Request $request, Response $response) use ($view) {
         $token = $_ENV['IMPORT_TOKEN'] ?? '';
         $uri = $request->getUri();
-        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority();
+        $baseUrl = $uri->getScheme() . '://' . $uri->getAuthority() . Url::base();
 
         $bookmarkletHref = "javascript:(function(){var s=document.createElement('script');"
             . "s.src=" . json_encode($baseUrl . '/bookmarklet/scraper.js?t=' . urlencode($token) . '&_=', JSON_UNESCAPED_SLASHES)
@@ -666,7 +667,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         $uri = $request->getUri();
-        $stageUrl = $uri->getScheme() . '://' . $uri->getAuthority() . '/api/import/stage';
+        $stageUrl = $uri->getScheme() . '://' . $uri->getAuthority() . Url::to('/api/import/stage');
 
         $core = file_get_contents(__DIR__ . '/../../public/js/scraper-core.js');
 
@@ -764,7 +765,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         ]);
 
         $uri = $request->getUri();
-        $reviewUrl = $uri->getScheme() . '://' . $uri->getAuthority() . '/import/review/' . $batchId;
+        $reviewUrl = $uri->getScheme() . '://' . $uri->getAuthority() . Url::to('/import/review/' . $batchId);
 
         $response->getBody()->write(json_encode(['ok' => true, 'batchId' => $batchId, 'reviewUrl' => $reviewUrl]));
 
@@ -813,7 +814,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         $side = in_array($data['side'] ?? '', ['home', 'away'], true) ? $data['side'] : null;
         $snapshot = $gameId > 0 && $side !== null ? $gameRosters->findSnapshot($gameId, $side) : null;
         if ($snapshot === null) {
-            return $response->withHeader('Location', '/import/review/' . (int) $batch['id'])->withStatus(302);
+            return $response->withHeader('Location', Url::base() . '/import/review/' . (int) $batch['id'])->withStatus(302);
         }
         $snapshotId = (int) $snapshot['id'];
 
@@ -849,7 +850,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
         $importBatches->updateStatus((int) $batch['id'], 'reviewed');
 
-        return $response->withHeader('Location', '/games/' . $gameId . '/roster/' . $side)->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/games/' . $gameId . '/roster/' . $side)->withStatus(302);
     });
 
     $app->post('/import/review/{batchId}/discard', function (
@@ -864,6 +865,6 @@ return function (App $app, PDO $pdo, Renderer $view): void {
 
         $importBatches->updateStatus((int) $batch['id'], 'discarded');
 
-        return $response->withHeader('Location', '/bookmarklet')->withStatus(302);
+        return $response->withHeader('Location', Url::base() . '/bookmarklet')->withStatus(302);
     });
 };

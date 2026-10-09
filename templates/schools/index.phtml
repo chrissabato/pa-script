@@ -17,7 +17,7 @@ $isStale = function (array $school) use ($lastSyncedAt): bool {
     refreshed automatically at most hourly so scripts still work if the API is down.
 </em></p>
 
-<form method="post" action="/schools/sync" class="sync-bar">
+<form method="post" action="<?= $this->base() ?>/schools/sync" class="sync-bar">
     <button type="submit" class="button-secondary">Sync now</button>
     <span>
         <?php if ($lastSyncedAt !== null): ?>

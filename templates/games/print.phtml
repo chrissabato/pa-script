@@ -10,10 +10,10 @@ $h = function ($value): string {
     return htmlspecialchars((string) $value, ENT_QUOTES);
 };
 $usesLibero = !empty($game['uses_libero']);
-$printUrl = '/games/' . (int) $game['id'] . '/print';
+$printUrl = $this->base() . '/games/' . (int) $game['id'] . '/print';
 ?>
 <div class="print-toolbar">
-    <a href="/games/<?= (int) $game['id'] ?>">&larr; Back to game</a>
+    <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>">&larr; Back to game</a>
     <span class="print-toolbar-filter">
         <a href="<?= $printUrl ?>"<?= !$startersOnly ? ' class="is-active"' : '' ?>>All players</a>
         <a href="<?= $printUrl ?>?starters=1"<?= $startersOnly ? ' class="is-active"' : '' ?>>Starters only</a>

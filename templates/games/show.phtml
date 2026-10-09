@@ -7,7 +7,7 @@
         $count = $rosterCounts[$side];
         $isEmpty = $count['players'] === 0 && $count['coaches'] === 0;
     ?>
-    <a class="roster-status-card<?= $isEmpty ? ' is-empty' : '' ?>" href="/games/<?= (int) $game['id'] ?>/roster/<?= $side ?>">
+    <a class="roster-status-card<?= $isEmpty ? ' is-empty' : '' ?>" href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= $side ?>">
         <span class="roster-status-side"><?= ucfirst($side) ?></span>
         <strong><?= htmlspecialchars((string) $game[$side . '_school_name'], ENT_QUOTES) ?></strong>
         <?php if ($isEmpty): ?>
@@ -24,7 +24,7 @@
 </div>
 
 <h3>Script details</h3>
-<form method="post" action="/games/<?= (int) $game['id'] ?>/details" class="game-details">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/details" class="game-details">
     <p class="stacked-fields">
         <label>Time
             <input type="time" name="time_of_day" value="<?= htmlspecialchars(substr((string) $game['time_of_day'], 0, 5), ENT_QUOTES) ?>">
@@ -53,7 +53,7 @@
     <tr><th>Name</th><th>Role</th><th>Order</th><th></th></tr>
     <?php foreach ($officials as $official): ?>
     <tr>
-        <form method="post" action="/games/<?= (int) $game['id'] ?>/officials/<?= (int) $official['id'] ?>" id="official-<?= (int) $official['id'] ?>" data-autosave>
+        <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/officials/<?= (int) $official['id'] ?>" id="official-<?= (int) $official['id'] ?>" data-autosave>
             <td><input type="text" name="official" value="<?= htmlspecialchars($official['name'], ENT_QUOTES) ?>" required></td>
             <td><input type="text" name="role" value="<?= htmlspecialchars((string) $official['role'], ENT_QUOTES) ?>"></td>
             <td><input type="number" name="sort_order" value="<?= (int) $official['sort_order'] ?>" size="3"></td>
@@ -70,7 +70,7 @@
 <?php endif; ?>
 
 <h4>Add official</h4>
-<form method="post" action="/games/<?= (int) $game['id'] ?>/officials">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/officials">
     <p class="stacked-fields">
         <label>Official <input type="text" name="official" required></label>
         <label>Role <input type="text" name="role" placeholder="e.g. Referee"></label>

@@ -9,9 +9,9 @@
  */
 $rosterUrl = (string) ($rosterImport['url'] ?? '');
 ?>
-<section class="roster-import" data-program-id="<?= (int) $program['id'] ?>">
+<section class="roster-import" data-fetch-url="<?= $this->base() ?>/roster/fetch" data-program-id="<?= (int) $program['id'] ?>">
     <h3>Import from roster page</h3>
-    <form method="post" action="/programs/<?= (int) $program['id'] ?>/roster-url" class="roster-import-url">
+    <form method="post" action="<?= $this->base() ?>/programs/<?= (int) $program['id'] ?>/roster-url" class="roster-import-url">
         <label>Roster URL
             <input type="url" name="roster_url" value="<?= htmlspecialchars($rosterUrl, ENT_QUOTES) ?>"
                    placeholder="https://…/sports/…/roster">
@@ -35,14 +35,14 @@ $rosterUrl = (string) ($rosterImport['url'] ?? '');
     <details class="roster-import-paste">
         <summary>Can't fetch it? Paste the page HTML instead</summary>
         <p class="hint">
-            Open the roster page, then either use the <a href="/bookmarklet">bookmarklet</a>, or View Source
+            Open the roster page, then either use the <a href="<?= $this->base() ?>/bookmarklet">bookmarklet</a>, or View Source
             (Ctrl/Cmd+U), select all, copy, and paste it here.
         </p>
         <textarea rows="6" placeholder="Paste the roster page's HTML"></textarea>
         <p><button type="button" class="roster-import-parse button-secondary">Import pasted HTML</button></p>
     </details>
 
-    <form method="post" action="/import/stage" class="roster-import-stage" hidden>
+    <form method="post" action="<?= $this->base() ?>/import/stage" class="roster-import-stage" hidden>
         <input type="hidden" name="scrape">
         <input type="hidden" name="game_id" value="<?= (int) $game['id'] ?>">
         <input type="hidden" name="side" value="<?= htmlspecialchars($side, ENT_QUOTES) ?>">

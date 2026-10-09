@@ -1,5 +1,5 @@
 <h2>Upcoming games</h2>
-<p><a href="/games/new" class="button">+ New game</a> &nbsp; <a href="/games">All games</a></p>
+<p><a href="<?= $this->base() ?>/games/new" class="button">+ New game</a> &nbsp; <a href="<?= $this->base() ?>/games">All games</a></p>
 
 <?php if ($games === []): ?>
     <p><em>No upcoming games scheduled.</em></p>
@@ -23,9 +23,9 @@
         <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
         <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
         <td class="nowrap">
-            <a href="/games/<?= (int) $game['id'] ?>">Open</a> ·
-            <a href="/games/<?= (int) $game['id'] ?>/script">Script</a> ·
-            <a href="/games/<?= (int) $game['id'] ?>/teleprompter">Teleprompter</a>
+            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>">Open</a> ·
+            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/script">Script</a> ·
+            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/teleprompter">Teleprompter</a>
         </td>
     </tr>
     <?php endforeach; ?>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Rendering;
 
+use App\View\Url;
+
 /**
  * Gaps in a game's data that make its script read wrong or incomplete —
  * shown above the script so they're fixed before air, not discovered
@@ -18,7 +20,7 @@ class ScriptChecks
      */
     public static function forGame(array $game, array $context): array
     {
-        $gameUrl = '/games/' . (int) $game['id'];
+        $gameUrl = Url::to('/games/' . (int) $game['id']);
         $checks = [];
 
         foreach (['away', 'home'] as $side) {

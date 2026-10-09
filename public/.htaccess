@@ -1,0 +1,8 @@
+# Apache front controller: real files (css/js) are served directly,
+# everything else goes to Slim. Works at a domain root or in a subfolder
+# (athletics.willamette.edu/pa) — the app detects its base path.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

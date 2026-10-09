@@ -22,7 +22,7 @@ $usesLibero = !empty($game['uses_libero']);
     <tr><th>Name</th><th>Pronunciation</th><th>Title</th><th>Pronoun</th><th>Seasons</th><th>Order</th><th></th></tr>
     <?php foreach ($coaches as $coach): ?>
     <tr>
-        <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches/<?= (int) $coach['id'] ?>" id="coach-<?= (int) $coach['id'] ?>" data-autosave>
+        <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches/<?= (int) $coach['id'] ?>" id="coach-<?= (int) $coach['id'] ?>" data-autosave>
             <td><input type="text" name="coach" value="<?= htmlspecialchars($coach['name'], ENT_QUOTES) ?>" required></td>
             <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $coach['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="staff_role" value="<?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?>"></td>
@@ -47,7 +47,7 @@ $usesLibero = !empty($game['uses_libero']);
 </div>
 
 <h4>Add coach</h4>
-<form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches">
     <input type="hidden" name="snapshot_id" value="<?= (int) $snapshot['id'] ?>">
     <p class="stacked-fields">
         <label>Coach <input type="text" name="coach" required></label>
@@ -68,7 +68,7 @@ $usesLibero = !empty($game['uses_libero']);
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
-        <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>" id="player-<?= (int) $player['id'] ?>" data-autosave>
+        <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>" id="player-<?= (int) $player['id'] ?>" data-autosave>
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
             <td class="cell-center"><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
             <td class="cell-center"><input type="checkbox" name="is_captain" value="1" <?= $player['is_captain'] ? 'checked' : '' ?>></td>
@@ -92,7 +92,7 @@ $usesLibero = !empty($game['uses_libero']);
 </div>
 
 <h4>Add player</h4>
-<form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players">
     <input type="hidden" name="snapshot_id" value="<?= (int) $snapshot['id'] ?>">
     <p class="stacked-fields">
         <label># <input type="text" name="number" size="3"></label>

@@ -28,7 +28,7 @@
     }
 
     function serverFetch(url, programId) {
-        return fetch('/roster/fetch', {
+        return fetch(panel.dataset.fetchUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: url, programId: programId || null })

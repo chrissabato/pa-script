@@ -30,7 +30,13 @@ class Renderer
     {
         $file = dirname(__DIR__, 2) . '/public' . $path;
 
-        return is_file($file) ? $path . '?v=' . filemtime($file) : $path;
+        return Url::to($path) . (is_file($file) ? '?v=' . filemtime($file) : '');
+    }
+
+    /** The app's URL prefix, HTML-escaped: templates write href="<?= $this->base() ?>/games". */
+    public function base(): string
+    {
+        return htmlspecialchars(Url::base(), ENT_QUOTES);
     }
 
     private function renderTemplate(string $template, array $data): string

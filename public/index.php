@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Database\Connection;
 use App\View\Renderer;
+use App\View\Url;
 use Slim\Factory\AppFactory;
 
 // When run under `php -S ... public/index.php` (local dev — see
@@ -25,10 +26,14 @@ $dotenv->load();
 // Game dates/times are local to Willamette (Salem, OR); "today" must be too.
 date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? 'America/Los_Angeles');
 
+// Served from a subfolder in production (athletics.willamette.edu/pa).
+Url::setBase(Url::detect($_ENV, $_SERVER));
+
 $app = AppFactory::create();
+$app->setBasePath(Url::base());
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
-$app->addErrorMiddleware((bool) ($_ENV['APP_DEBUG'] ?? false), true, true);
+$app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
 
 $view = new Renderer(__DIR__ . '/../templates');
 $pdo = Connection::fromEnv();

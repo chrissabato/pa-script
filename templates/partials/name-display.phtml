@@ -5,7 +5,7 @@
  * change (and works as a plain form without JS).
  */
 ?>
-<form method="post" action="/games/<?= (int) $game['id'] ?>/name-display" class="name-display">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/name-display" class="name-display">
     <input type="hidden" name="return_to" value="<?= htmlspecialchars($nameDisplayReturnTo, ENT_QUOTES) ?>">
     <label>Names
         <select name="name_display" onchange="this.form.submit()">

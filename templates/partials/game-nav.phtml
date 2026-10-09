@@ -5,7 +5,7 @@
  * 'away' or 'script'. The teleprompter is full-screen, so it's a launch
  * button here rather than a tab.
  */
-$gameUrl = '/games/' . (int) $game['id'];
+$gameUrl = \App\View\Url::to('/games/' . (int) $game['id']);
 $teamLabel = function (string $side) use ($game): string {
     $short = trim((string) ($game[$side . '_short_name'] ?? ''));
 
@@ -19,7 +19,7 @@ $gameTabs = [
 ];
 ?>
 <div class="game-header">
-    <p class="game-header-crumb"><a href="/games">&larr; All games</a></p>
+    <p class="game-header-crumb"><a href="<?= $this->base() ?>/games">&larr; All games</a></p>
     <h2>
         <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
         <span class="game-header-vs">vs</span>

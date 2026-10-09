@@ -23,11 +23,11 @@ $presetGameId = (int) ($preset['game_id'] ?? 0);
     <p><em>This batch has already been <?= htmlspecialchars($batch['status'], ENT_QUOTES) ?> — committing again will add another copy of whatever rows you submit below.</em></p>
 <?php endif; ?>
 
-<form method="post" action="/import/review/<?= (int) $batch['id'] ?>/commit">
+<form method="post" action="<?= $this->base() ?>/import/review/<?= (int) $batch['id'] ?>/commit">
 
     <h3>Add to game</h3>
     <?php if ($games === []): ?>
-        <p class="notice notice-error">There are no games to import into — <a href="/games/new">create the game</a> first.</p>
+        <p class="notice notice-error">There are no games to import into — <a href="<?= $this->base() ?>/games/new">create the game</a> first.</p>
     <?php endif; ?>
     <p>
         Game:
@@ -97,7 +97,7 @@ $presetGameId = (int) ($preset['game_id'] ?? 0);
     <p><button type="submit">Commit selected rows</button></p>
 </form>
 
-<form method="post" action="/import/review/<?= (int) $batch['id'] ?>/discard" onsubmit="return confirm('Discard this batch? This cannot be undone.')">
+<form method="post" action="<?= $this->base() ?>/import/review/<?= (int) $batch['id'] ?>/discard" onsubmit="return confirm('Discard this batch? This cannot be undone.')">
     <button type="submit" class="button-danger">Discard batch</button>
 </form>
 

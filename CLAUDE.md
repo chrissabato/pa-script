@@ -20,7 +20,7 @@ Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, a
 
 ## Code layout
 
-- `public/index.php` — Slim front controller; `public/css/app.css` (single plain-CSS stylesheet), `public/js/` (teleprompter, `scraper-core.js` roster parser, `roster-import.js`).
+- `public/index.php` — Slim front controller (+ `public/.htaccess` for Apache). Production serves the app from a subfolder (athletics.willamette.edu/pa), so never write a bare root-relative URL: templates use `<?= $this->base() ?>/games` / `$this->asset()`, PHP uses `App\View\Url::to()`, JS takes URLs from `data-*` attributes or form actions. The base path is `APP_BASE_PATH`, else detected from `SCRIPT_NAME`; `public/css/app.css` (single plain-CSS stylesheet), `public/js/` (teleprompter, `scraper-core.js` roster parser, `roster-import.js`).
 - `src/Roster/` — `RosterUrlGuesser` (suggests a program's roster URL from the school's site + CMS provider), `RosterPageFetcher` (server-side fetch, public hosts only).
 - `src/Routes/routes.php` — all routes; `src/Repository/` — one PDO repository per table; `src/Rendering/` — `TemplateRenderer`, `PlaceholderRegistry`, `GameContextBuilder`.
 - `templates/` — `.phtml` views wrapped by `templates/layout.phtml`.

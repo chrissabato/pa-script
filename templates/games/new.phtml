@@ -2,8 +2,8 @@
 <?php if ($syncError !== null): ?>
     <p class="notice notice-error">Couldn't refresh teams from the team API (<?= htmlspecialchars($syncError, ENT_QUOTES) ?>); showing the last synced list.</p>
 <?php endif; ?>
-<p><em>Teams come from the <a href="/schools">team API</a>. Missing one? Add it in the API's admin, then sync.</em></p>
-<form method="post" action="/games">
+<p><em>Teams come from the <a href="<?= $this->base() ?>/schools">team API</a>. Missing one? Add it in the API's admin, then sync.</em></p>
+<form method="post" action="<?= $this->base() ?>/games">
     <p>
         Sport:
         <select name="sport_id" required>

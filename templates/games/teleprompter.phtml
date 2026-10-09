@@ -48,7 +48,7 @@
             <input type="range" id="tp-fontsize" min="16" max="120" value="48">
         </label>
         <?php $nameDisplayReturnTo = 'teleprompter'; require __DIR__ . '/../partials/name-display.phtml'; ?>
-        <a href="/games/<?= (int) $game['id'] ?>/script">Exit</a>
+        <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/script">Exit</a>
     </div>
 
     <div class="teleprompter-viewport" id="tp-viewport">
