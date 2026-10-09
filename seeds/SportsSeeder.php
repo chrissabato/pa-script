@@ -1,9 +1,13 @@
 <?php
 
+use App\Database\UpsertsBySlug;
 use Phinx\Seed\AbstractSeed;
 
+/** Safe to re-run: rows are matched by slug and updated in place. */
 class SportsSeeder extends AbstractSeed
 {
+    use UpsertsBySlug;
+
     public function run(): void
     {
         $data = [
@@ -15,6 +19,6 @@ class SportsSeeder extends AbstractSeed
             ['name' => 'Lacrosse', 'slug' => 'lacrosse', 'uses_batting_order' => false, 'uses_libero' => false],
         ];
 
-        $this->table('sports')->insert($data)->saveData();
+        $this->upsertBySlug('sports', $data);
     }
 }
