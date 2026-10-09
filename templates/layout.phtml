@@ -9,11 +9,18 @@
 <body class="<?= htmlspecialchars($bodyClass ?? '', ENT_QUOTES) ?>">
     <header class="site-header">
         <h1>Willamette Athletics — PA Script</h1>
+        <?php if (empty($hideNav)): ?>
         <nav>
             <a href="<?= $this->base() ?>/">Dashboard</a>
             <a href="<?= $this->base() ?>/games">Games</a>
             <a href="<?= $this->base() ?>/schools">Teams</a>
+            <?php if (!empty($_ENV['APP_PASSWORD'])): ?>
+            <form method="post" action="<?= $this->base() ?>/logout" class="logout-form">
+                <button type="submit" class="link-button">Log out</button>
+            </form>
+            <?php endif; ?>
         </nav>
+        <?php endif; ?>
     </header>
     <main>
         <?= $content ?>
@@ -21,8 +28,9 @@
     <script>
         // None of these forms hold credentials or personal info, but fields
         // named "name"/"title" trip password-manager and browser autofill
-        // icons. Opt every field out once, here, instead of per template.
-        document.querySelectorAll('input, textarea, select').forEach(function (el) {
+        // icons. Opt every field out once, here, instead of per template —
+        // except the login password, which a password manager may keep.
+        document.querySelectorAll('input:not([type=password]), textarea, select').forEach(function (el) {
             el.setAttribute('data-lpignore', 'true');
             el.setAttribute('autocomplete', 'off');
         });

@@ -1,0 +1,11 @@
+<form method="post" action="<?= $this->base() ?>/login" class="login-form">
+    <h2>Log in</h2>
+    <?php if ($failed): ?>
+        <p class="error">That password isn't right.</p>
+    <?php endif; ?>
+    <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES) ?>">
+    <label>Password
+        <input type="password" name="password" autocomplete="current-password" required autofocus>
+    </label>
+    <button type="submit">Log in</button>
+</form>

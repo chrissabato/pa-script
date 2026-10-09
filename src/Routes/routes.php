@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Auth\PasswordGate;
 use App\Database\PgType;
 use App\Rendering\GameContextBuilder;
 use App\Rendering\ScriptChecks;
@@ -62,7 +63,7 @@ function rowSaved(Request $request, Response $response, string $location): Respo
     return $response->withHeader('Location', $location)->withStatus(302);
 }
 
-return function (App $app, PDO $pdo, Renderer $view): void {
+return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
     $sports = new SportRepository($pdo);
     $divisions = new DivisionRepository($pdo);
     $schools = new SchoolRepository($pdo);
@@ -98,6 +99,44 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'isGuess' => true,
         ];
     };
+
+    // ---- Login (one shared password; see App\Auth\PasswordGate) ----------
+
+    $app->get('/login', function (Request $request, Response $response) use ($view, $gate) {
+        $next = PasswordGate::safeNext((string) ($request->getQueryParams()['next'] ?? '/'));
+        if (!$gate->enabled() || $gate->isLoggedIn($request)) {
+            return $response->withHeader('Location', Url::to($next))->withStatus(302);
+        }
+        $response->getBody()->write($view->render('login', [
+            'title' => 'Log in — PA Script',
+            'next' => $next,
+            'failed' => false,
+            'hideNav' => true,
+        ]));
+
+        return $response;
+    });
+
+    $app->post('/login', function (Request $request, Response $response) use ($view, $gate) {
+        $data = (array) $request->getParsedBody();
+        $next = PasswordGate::safeNext((string) ($data['next'] ?? '/'));
+        if ($gate->check((string) ($data['password'] ?? ''))) {
+            return $gate->logIn($request, $response)->withHeader('Location', Url::to($next))->withStatus(302);
+        }
+        sleep(1); // slow down password guessing
+        $response->getBody()->write($view->render('login', [
+            'title' => 'Log in — PA Script',
+            'next' => $next,
+            'failed' => true,
+            'hideNav' => true,
+        ]));
+
+        return $response->withStatus(401);
+    });
+
+    $app->post('/logout', function (Request $request, Response $response) use ($gate) {
+        return $gate->logOut($request, $response)->withHeader('Location', Url::to('/login'))->withStatus(302);
+    });
 
     // ---- Dashboard -------------------------------------------------------
 
