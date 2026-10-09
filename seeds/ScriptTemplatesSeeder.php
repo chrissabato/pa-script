@@ -224,8 +224,8 @@ class ScriptTemplatesSeeder extends AbstractSeed
                     self::t("\nThe officials for "), self::todayOrTonight(),
                     self::t(' game are '), self::p('officials.joinedList'), self::t(".\n"),
                 ]),
-                self::t("\nAnd now the playing of the National Anthem.\n\n"),
-                self::t('Willamette University, the Northwest Conference, and the NCAA promote good sportsmanship '
+                self::when('meta.hasAnthem', [self::t("\nAnd now the playing of the National Anthem.\n")]),
+                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
                     . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
                     . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
                     . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
@@ -273,7 +273,8 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
                 self::t(' and your '),
                 self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t(".\n\nAnd now for the playing of the National Anthem.\n\n"),
+                self::t(".\n\n"),
+                self::when('meta.hasAnthem', [self::t("And now for the playing of the National Anthem.\n\n")]),
                 self::t("Before the match gets underway, let's meet the teams.\n\n"),
                 self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
                 self::when('away.reserves', [
@@ -338,7 +339,9 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
                 self::t(' and the '),
                 self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t(". And now for the playing of the National Anthem.\n\n"),
+                self::t('.'),
+                self::when('meta.hasAnthem', [self::t(' And now for the playing of the National Anthem.')]),
+                self::t("\n\n"),
                 self::t("Before the game gets underway, let's meet the starting lineups.\n\n"),
                 self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
                 self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
@@ -698,9 +701,11 @@ class ScriptTemplatesSeeder extends AbstractSeed
     private function anthemPsaBlocks(): array
     {
         return [
-            ['type' => 'text', 'content' => 'Please rise and remove your caps for the singing of our national anthem'],
-            ['type' => 'placeholder', 'key' => 'meta.anthemNote'],
-            ['type' => 'text', 'content' => ".\n\n"],
+            self::when('meta.hasAnthem', [
+                self::t('Please rise and remove your caps for the singing of our national anthem'),
+                self::p('meta.anthemNote'),
+                self::t(".\n\n"),
+            ]),
             [
                 'type' => 'text',
                 'content' => "In the spirit of good sportsmanship, we ask that all fans support the student-athletes "

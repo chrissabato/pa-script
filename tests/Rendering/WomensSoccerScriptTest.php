@@ -210,4 +210,13 @@ class WomensSoccerScriptTest extends TestCase
         self::assertStringContainsString("number 1, Siera Edwards\n", $plain);
         self::assertStringContainsString("Willamette's head coach is Lisa Ljubicic in her 4th season", $plain);
     }
+
+    public function testNoAnthemDropsTheAnthemLine(): void
+    {
+        $script = $this->render(['has_anthem' => false]);
+
+        self::assertStringNotContainsString('National Anthem', $script);
+        self::assertStringContainsString("\n\nWillamette University, the Northwest Conference", $script);
+        self::assertStringNotContainsString("\n\n\n", $script);
+    }
 }

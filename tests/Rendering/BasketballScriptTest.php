@@ -62,11 +62,11 @@ class BasketballScriptTest extends TestCase
         return ['id' => $id, 'name' => $name, 'pronunciation' => null, 'title' => $title, 'pronoun' => $pronoun, 'seasons' => $seasons, 'sort_order' => $id];
     }
 
-    private function render(string $divisionLabel): string
+    private function render(string $divisionLabel, bool $hasAnthem = true): string
     {
         $game = [
             'id' => 1, 'sport_slug' => 'basketball', 'time_of_day' => '19:00:00', 'is_conference' => true,
-            'venue' => null, 'special_announcement' => null,
+            'venue' => null, 'special_announcement' => null, 'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
             'away_school_name' => 'Pacific University', 'away_short_name' => 'Pacific', 'away_mascot' => 'Boxers',
         ];
@@ -145,6 +145,14 @@ class BasketballScriptTest extends TestCase
         self::assertSame(
             str_replace("Women's Basketball", "Men's Basketball", $this->render("Women's")),
             $this->render("Men's")
+        );
+    }
+
+    public function testNoAnthemDropsTheAnthemLine(): void
+    {
+        self::assertStringContainsString(
+            "and the Willamette University Bearcats.\n\nBefore the game gets underway,",
+            $this->render("Women's", false)
         );
     }
 }

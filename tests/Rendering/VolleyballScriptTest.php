@@ -61,11 +61,11 @@ class VolleyballScriptTest extends TestCase
         return ['id' => $id, 'name' => $name, 'pronunciation' => null, 'title' => $title, 'pronoun' => $pronoun, 'seasons' => $seasons, 'sort_order' => $id];
     }
 
-    private function render(array $homePlayers, array $awayPlayers = [], array $officials = []): string
+    private function render(array $homePlayers, array $awayPlayers = [], array $officials = [], bool $hasAnthem = true): string
     {
         $game = [
             'id' => 1, 'sport_slug' => 'volleyball', 'time_of_day' => '11:00:00', 'is_conference' => true,
-            'venue' => null, 'special_announcement' => null,
+            'venue' => null, 'special_announcement' => null, 'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
             'away_school_name' => 'Lewis & Clark College', 'away_short_name' => 'Lewis & Clark', 'away_mascot' => 'River Otters',
         ];
@@ -179,6 +179,14 @@ class VolleyballScriptTest extends TestCase
         self::assertStringContainsString(
             "number 3, LIE-luh WERE-slee\nAt libero, a junior from Waipahu, Hawaii, number 1, DREAM TAH-keh-moh-toh\n",
             $script
+        );
+    }
+
+    public function testNoAnthemDropsTheAnthemLine(): void
+    {
+        self::assertStringContainsString(
+            "your Willamette University Bearcats.\n\nBefore the match gets underway, let's meet the teams.\n\n",
+            $this->render([], [], [], false)
         );
     }
 }

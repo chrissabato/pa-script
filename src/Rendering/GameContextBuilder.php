@@ -69,6 +69,8 @@ class GameContextBuilder
                 'partOfDay' => $partOfDay ?? 'afternoon',
                 'isEvening' => $partOfDay === 'evening',
                 'isConference' => (bool) ($game['is_conference'] ?? false),
+                // Games predating the has_anthem column (or test fixtures) have one.
+                'hasAnthem' => (bool) ($game['has_anthem'] ?? true),
                 'specialAnnouncement' => trim((string) ($game['special_announcement'] ?? '')),
             ],
         ];

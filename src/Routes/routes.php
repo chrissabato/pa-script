@@ -399,6 +399,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'time_of_day' => ($data['time_of_day'] ?? '') !== '' ? $data['time_of_day'] : null,
             'venue' => trim((string) ($data['venue'] ?? '')) !== '' ? trim((string) $data['venue']) : null,
             'is_conference' => PgType::boolToString(!empty($data['is_conference'])),
+            'has_anthem' => PgType::boolToString(empty($data['no_anthem'])),
             'special_announcement' => $announcement !== '' ? $announcement : null,
         ]);
 
