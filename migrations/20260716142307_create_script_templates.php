@@ -13,7 +13,7 @@ final class CreateScriptTemplates extends AbstractMigration
             ->addColumn('division_id', 'integer', ['null' => true])
             ->addColumn('site_variant', 'string', ['limit' => 20, 'default' => 'home'])
             ->addColumn('name', 'string', ['limit' => 150])
-            ->addColumn('content_blocks', 'jsonb')
+            ->addColumn('content_blocks', 'json')
             ->addColumn('version', 'integer', ['default' => 1])
             ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
             ->addColumn('updated_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])

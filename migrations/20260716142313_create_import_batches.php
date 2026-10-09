@@ -10,7 +10,7 @@ final class CreateImportBatches extends AbstractMigration
         $table = $this->table('import_batches');
         $table
             ->addColumn('source_url', 'string', ['limit' => 500, 'null' => true])
-            ->addColumn('raw_payload', 'jsonb')
+            ->addColumn('raw_payload', 'json')
             ->addColumn('status', 'string', ['limit' => 20, 'default' => 'pending'])
             ->addColumn('created_at', 'timestamp', ['default' => 'CURRENT_TIMESTAMP'])
             ->create();
