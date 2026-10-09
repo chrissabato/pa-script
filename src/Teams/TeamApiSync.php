@@ -212,7 +212,8 @@ class TeamApiSync
             'color' => $text($team['colors']['primary'] ?? null),
             'logo_bg' => $text($team['colors']['logo_bg'] ?? null),
             'url' => $url,
-            'cms_provider' => $text($team['stats']['provider'] ?? null),
+            // website_provider (was stats.provider before the API moved it).
+            'cms_provider' => $text($team['website_provider'] ?? null) ?? $text($team['stats']['provider'] ?? null),
             'api_updated_at' => $updatedAt !== null ? gmdate('Y-m-d H:i:s', (int) strtotime($updatedAt)) : null,
         ];
     }
