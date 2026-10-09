@@ -1,7 +1,7 @@
-// Row forms marked data-autosave (roster players/coaches, officials) save
-// themselves: checkboxes and selects on change, text fields when you leave
-// them, Enter in a field right away — no Save button, no page reload. The
-// row's status cell shows Saving… / Saved / Not saved. Delete buttons still
+// Forms marked data-autosave (roster players/coaches, officials, a game's
+// script details) save themselves: checkboxes and selects on change, text
+// fields when you leave them, Enter in a field right away — no Save button,
+// no page reload. The form's status cell shows Saving… / Saved / Not saved. Delete buttons still
 // submit normally (confirm + reload).
 //
 // Rows are <tr><form>…</form><td>…</tr>, so the parser hoists each form out

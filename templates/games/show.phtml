@@ -24,7 +24,7 @@
 </div>
 
 <h3>Script details</h3>
-<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/details" class="game-details">
+<form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/details" class="game-details" id="game-details" data-autosave>
     <p class="stacked-fields">
         <label>Time
             <input type="time" name="time_of_day" value="<?= htmlspecialchars(substr((string) $game['time_of_day'], 0, 5), ENT_QUOTES) ?>">
@@ -40,8 +40,11 @@
             <textarea name="special_announcement" rows="2"><?= htmlspecialchars((string) $game['special_announcement'], ENT_QUOTES) ?></textarea>
         </label>
     </p>
-    <p><button type="submit">Save details</button></p>
-    <p class="hint">The time sets "Good morning / afternoon / evening" and "today's" vs. "tonight's".</p>
+    <p class="hint">
+        <button type="submit" class="autosave-default" tabindex="-1">Save</button>
+        Changes save automatically. The time sets "Good morning / afternoon / evening" and "today's" vs. "tonight's".
+        <span class="autosave-status" data-autosave-status="game-details"></span>
+    </p>
 </form>
 
 <h3 id="officials">Officials</h3>
