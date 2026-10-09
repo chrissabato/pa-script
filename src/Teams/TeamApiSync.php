@@ -67,14 +67,14 @@ class TeamApiSync
         $findBySlug = $this->pdo->prepare('select id from schools where slug = :slug');
         $findByName = $this->pdo->prepare('select id from schools where slug is null and name = :name');
         $update = $this->pdo->prepare(
-            'update schools set slug = :slug, name = :name, short_name = :short_name, mascot = :mascot, '
+            'update schools set slug = :slug, name = :name, variant = :variant, short_name = :short_name, mascot = :mascot, '
             . 'logo = :logo, color = :color, logo_bg = :logo_bg, url = :url, cms_provider = :cms_provider, '
             . 'api_updated_at = :api_updated_at, synced_at = :synced_at, updated_at = current_timestamp '
             . 'where id = :id'
         );
         $insert = $this->pdo->prepare(
-            'insert into schools (slug, name, short_name, mascot, logo, color, logo_bg, url, cms_provider, '
-            . 'api_updated_at, synced_at) values (:slug, :name, :short_name, :mascot, :logo, :color, :logo_bg, '
+            'insert into schools (slug, name, variant, short_name, mascot, logo, color, logo_bg, url, cms_provider, '
+            . 'api_updated_at, synced_at) values (:slug, :name, :variant, :short_name, :mascot, :logo, :color, :logo_bg, '
             . ':url, :cms_provider, :api_updated_at, :synced_at)'
         );
 
@@ -206,6 +206,7 @@ class TeamApiSync
         return [
             'slug' => $slug,
             'name' => $name,
+            'variant' => $text($team['variant'] ?? null),
             'short_name' => $text($team['short_name'] ?? null),
             'mascot' => $text($team['mascot'] ?? null),
             'logo' => $text($team['logo']['url'] ?? null),

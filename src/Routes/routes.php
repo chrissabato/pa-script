@@ -192,6 +192,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     $app->post('/games', function (Request $request, Response $response) use (
         $games,
         $schools,
+        $divisions,
         $programs,
         $gameRosters,
         $sports
@@ -209,6 +210,11 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         if ($homeSchool === null || $awaySchool === null) {
             return $response->withHeader('Location', Url::base() . '/games/new')->withStatus(302);
         }
+
+        // Men's/women's entries of one school: use the one for this division.
+        $division = $divisionId !== null ? $divisions->find($divisionId) : null;
+        $homeSchool = $schools->forDivision($homeSchool, $division);
+        $awaySchool = $schools->forDivision($awaySchool, $division);
 
         $willamette = $schools->findBySlug(SchoolRepository::WILLAMETTE_SLUG);
         $homeIsWillamette = $willamette !== null && (int) $homeSchool['id'] === (int) $willamette['id'];

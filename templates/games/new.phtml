@@ -34,7 +34,7 @@
         <select name="home_school_id" required>
             <option value="">— choose a team —</option>
             <?php foreach ($schools as $school): ?>
-                <option value="<?= (int) $school['id'] ?>"<?= $school['slug'] === \App\Repository\SchoolRepository::WILLAMETTE_SLUG ? ' selected' : '' ?>><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
+                <option value="<?= (int) $school['id'] ?>"<?= $school['slug'] === \App\Repository\SchoolRepository::WILLAMETTE_SLUG ? ' selected' : '' ?>><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
             <?php endforeach; ?>
         </select></p>
     </fieldset>
@@ -45,7 +45,7 @@
         <select name="away_school_id" required>
             <option value="">— choose a team —</option>
             <?php foreach ($schools as $school): ?>
-                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars($school['name'], ENT_QUOTES) ?></option>
+                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
             <?php endforeach; ?>
         </select></p>
     </fieldset>

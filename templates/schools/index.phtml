@@ -46,7 +46,7 @@ $isStale = function (array $school) use ($lastSyncedAt): bool {
             </span>
         </td>
         <td>
-            <?= htmlspecialchars($school['name'], ENT_QUOTES) ?>
+            <?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?>
             <?php if ($isStale($school)): ?><span class="badge badge-draft" title="No longer in the team API; kept because a game or roster uses it.">not in API</span><?php endif; ?>
         </td>
         <td><?= htmlspecialchars((string) $school['short_name'], ENT_QUOTES) ?></td>

@@ -24,6 +24,15 @@ class DivisionRepository
         return $stmt->fetchAll();
     }
 
+    public function find(int $id): ?array
+    {
+        $stmt = $this->pdo->prepare('select * from divisions where id = :id');
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : $row;
+    }
+
     public function findBySlug(string $slug): ?array
     {
         $stmt = $this->pdo->prepare('select * from divisions where slug = :slug');
