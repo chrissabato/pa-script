@@ -532,6 +532,33 @@ main ul { padding-left: 1.3rem; }
 
 /* Name display selector (Script tab + teleprompter bar) */
 .name-display { display: flex; justify-content: flex-end; margin: 0 0 0.8rem; }
+
+/* Script tab: Customize button beside the name selector; customized-script notice */
+.script-toolbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.script-toolbar .name-display { margin-left: auto; }
+.script-custom-notice {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    padding: 0.6rem 0.9rem;
+    border: 1px solid #b9d3f0;
+    border-left: 4px solid #2f6db5;
+    border-radius: var(--radius);
+    background: #eef5fd;
+}
+.script-custom-notice span { flex: 1 1 18rem; }
+.script-custom-notice form { margin: 0; }
+.customize-script textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font: inherit;
+    font-size: 1.05rem;
+    line-height: 1.7;
+    padding: 1rem 1.25rem;
+}
+.customize-script-actions { display: flex; gap: 0.6rem; align-items: center; }
 .name-display label { font-weight: 600; }
 .teleprompter-controls .name-display { margin: 0; }
 .teleprompter-controls .name-display select { background: #222; color: #fff; border: 1px solid #444; }

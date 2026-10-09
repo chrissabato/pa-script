@@ -1,10 +1,27 @@
 <?php $gameTab = 'script'; require __DIR__ . '/../partials/game-nav.phtml'; ?>
+<?php $scriptUrl = $this->base() . '/games/' . (int) $game['id'] . '/script'; ?>
+
+<?php if ($isCustomized): ?>
+    <div class="script-custom-notice">
+        <span><strong>Customized script.</strong> Changes to rosters, officials or game details won't show up here until you reset it.</span>
+        <a href="<?= $scriptUrl ?>/customize" class="button button-secondary">Edit</a>
+        <form method="post" action="<?= $scriptUrl ?>/reset">
+            <button type="submit" class="button-danger" onclick="return confirm('Discard your edits and go back to the generated script?')">Reset</button>
+        </form>
+    </div>
+<?php endif; ?>
 
 <?php if ($missingTemplateReason !== null): ?>
     <p><em><?= htmlspecialchars($missingTemplateReason, ENT_QUOTES) ?></em></p>
+    <p><a href="<?= $scriptUrl ?>/customize" class="button button-secondary">Write a custom script</a></p>
 <?php else: ?>
-    <?php $nameDisplayReturnTo = 'script'; require __DIR__ . '/../partials/name-display.phtml'; ?>
-    <?php if ($scriptChecks !== []): ?>
+    <div class="script-toolbar">
+        <?php if (!$isCustomized): ?>
+            <a href="<?= $scriptUrl ?>/customize" class="button button-secondary">Customize script</a>
+            <?php $nameDisplayReturnTo = 'script'; require __DIR__ . '/../partials/name-display.phtml'; ?>
+        <?php endif; ?>
+    </div>
+    <?php if ($scriptChecks !== [] && !$isCustomized): ?>
     <div class="script-checks">
         <strong>Before you read this:</strong>
         <ul>

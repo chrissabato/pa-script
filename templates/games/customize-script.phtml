@@ -1,0 +1,21 @@
+<?php $gameTab = 'script'; require __DIR__ . '/../partials/game-nav.phtml'; ?>
+<?php $scriptUrl = $this->base() . '/games/' . (int) $game['id'] . '/script'; ?>
+
+<h3>Customize script</h3>
+<p class="hint">
+    <?= $isCustomized ? 'Editing your customized script.' : 'This is the generated script — edit it however you like.' ?>
+    Once saved, the Script tab and teleprompter show your version, and changes to rosters, officials or
+    game details no longer flow into it. Reset goes back to the generated script.
+</p>
+
+<form method="post" action="<?= $scriptUrl ?>/customize" class="customize-script">
+    <textarea name="custom_script" rows="30" spellcheck="true"><?= htmlspecialchars($scriptText, ENT_QUOTES) ?></textarea>
+    <p class="customize-script-actions">
+        <button type="submit">Save</button>
+        <a href="<?= $scriptUrl ?>" class="button button-secondary">Cancel</a>
+        <?php if ($isCustomized): ?>
+            <button type="submit" formaction="<?= $scriptUrl ?>/reset" class="button-danger"
+                onclick="return confirm('Discard your edits and go back to the generated script?')">Reset</button>
+        <?php endif; ?>
+    </p>
+</form>

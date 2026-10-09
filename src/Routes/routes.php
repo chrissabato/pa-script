@@ -532,13 +532,15 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         [$renderedScript, $missingTemplateReason, $scriptChecks] = $resolveScript($game);
+        $isCustomized = $game['custom_script'] !== null;
 
         $html = $view->render('games/script', [
             'scriptChecks' => $scriptChecks,
             'title' => 'Script — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,
-            'renderedScript' => $renderedScript,
-            'missingTemplateReason' => $missingTemplateReason,
+            'renderedScript' => $isCustomized ? $game['custom_script'] : $renderedScript,
+            'missingTemplateReason' => $isCustomized ? null : $missingTemplateReason,
+            'isCustomized' => $isCustomized,
         ]);
         $response->getBody()->write($html);
 
@@ -556,17 +558,76 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
 
         [$renderedScript, $missingTemplateReason] = $resolveScript($game);
+        $isCustomized = $game['custom_script'] !== null;
 
         $html = $view->render('games/teleprompter', [
             'title' => 'Teleprompter — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'bodyClass' => 'teleprompter-page',
             'game' => $game,
-            'renderedScript' => $renderedScript,
-            'missingTemplateReason' => $missingTemplateReason,
+            'renderedScript' => $isCustomized ? $game['custom_script'] : $renderedScript,
+            'missingTemplateReason' => $isCustomized ? null : $missingTemplateReason,
+            'isCustomized' => $isCustomized,
         ]);
         $response->getBody()->write($html);
 
         return $response;
+    });
+
+    // Customize: edit a copy of the script (the saved copy if there is one,
+    // else the generated script). Once saved it replaces the generated
+    // script on the Script tab and teleprompter until reset.
+    $app->get('/games/{id}/script/customize', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $games, $resolveScript) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        [$renderedScript] = $resolveScript($game);
+
+        $html = $view->render('games/customize-script', [
+            'title' => 'Customize script — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
+            'game' => $game,
+            'scriptText' => $game['custom_script'] !== null ? $game['custom_script'] : (string) $renderedScript,
+            'isCustomized' => $game['custom_script'] !== null,
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    $app->post('/games/{id}/script/customize', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($games) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $data = (array) $request->getParsedBody();
+        // Browsers submit textarea line breaks as CRLF.
+        $text = str_replace("\r\n", "\n", (string) ($data['custom_script'] ?? ''));
+        $games->updateCustomScript((int) $game['id'], trim($text) !== '' ? $text : null);
+
+        return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'] . '/script')->withStatus(302);
+    });
+
+    $app->post('/games/{id}/script/reset', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($games) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $games->updateCustomScript((int) $game['id'], null);
+
+        return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'] . '/script')->withStatus(302);
     });
 
     // ---- Roster URL fetch ------------------------------------------------

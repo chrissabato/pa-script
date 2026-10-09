@@ -27,6 +27,8 @@
     }
     .teleprompter-controls button:hover, .teleprompter-controls a:hover { background: #333; }
 
+    .teleprompter-custom { color: #f0c36d; font-size: 0.9rem; }
+
     .teleprompter-viewport { flex: 1; overflow-y: auto; scroll-behavior: auto; }
     .teleprompter-text {
         margin: 0;
@@ -47,7 +49,11 @@
         <label>Font size
             <input type="range" id="tp-fontsize" min="16" max="120" value="48">
         </label>
-        <?php $nameDisplayReturnTo = 'teleprompter'; require __DIR__ . '/../partials/name-display.phtml'; ?>
+        <?php if ($isCustomized): ?>
+            <span class="teleprompter-custom">Customized script</span>
+        <?php else: ?>
+            <?php $nameDisplayReturnTo = 'teleprompter'; require __DIR__ . '/../partials/name-display.phtml'; ?>
+        <?php endif; ?>
         <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/script">Exit</a>
     </div>
 

@@ -101,6 +101,15 @@ SQL;
         return (int) $stmt->fetchColumn();
     }
 
+    /** The hand-edited script shown instead of the generated one; null resets it. */
+    public function updateCustomScript(int $id, ?string $customScript): void
+    {
+        $stmt = $this->pdo->prepare(
+            'update games set custom_script = :custom_script, updated_at = current_timestamp where id = :id'
+        );
+        $stmt->execute(['id' => $id, 'custom_script' => $customScript]);
+    }
+
     /** 'name', 'pronunciation' or 'both' — see App\Rendering\Spoken::name(). */
     public function updateNameDisplay(int $id, string $nameDisplay): void
     {
