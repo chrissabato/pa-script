@@ -106,6 +106,58 @@ class GameRosterRepository
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Fills a new game side from the team's latest roster this academic year
+     * (August–July around `$date`): the same program's most recent other game
+     * whose roster has players or coaches. Captains carry over; starters,
+     * libero and batting order are per game, so they start cleared.
+     *
+     * @return int|null the source game's id, or null when nothing was copied
+     */
+    public function copyFromLatestThisYear(int $snapshotId, int $programId, int $gameId, string $date): ?int
+    {
+        list($from, $to) = self::academicYear($date);
+        $stmt = $this->pdo->prepare(
+            'select s.id, s.game_id from game_roster_snapshots s join games g on g.id = s.game_id '
+            . 'where s.program_id = :program_id and s.game_id <> :game_id and g.date between :from and :to '
+            . 'and (exists (select 1 from game_roster_players p where p.snapshot_id = s.id) '
+            . 'or exists (select 1 from game_roster_coaches c where c.snapshot_id = s.id)) '
+            . 'order by g.date desc, g.time_of_day desc nulls last, g.id desc limit 1'
+        );
+        $stmt->execute(['program_id' => $programId, 'game_id' => $gameId, 'from' => $from, 'to' => $to]);
+        $source = $stmt->fetch();
+        if ($source === false) {
+            return null;
+        }
+
+        $params = ['to_id' => $snapshotId, 'from_id' => (int) $source['id']];
+        $this->pdo->prepare(
+            'insert into game_roster_players (snapshot_id, number, name, pronunciation, position, year, hometown, '
+            . 'is_captain) select :to_id, number, name, pronunciation, position, year, hometown, is_captain '
+            . 'from game_roster_players where snapshot_id = :from_id'
+        )->execute($params);
+        $this->pdo->prepare(
+            'insert into game_roster_coaches (snapshot_id, name, pronunciation, title, pronoun, seasons, sort_order) '
+            . 'select :to_id, name, pronunciation, title, pronoun, seasons, sort_order '
+            . 'from game_roster_coaches where snapshot_id = :from_id'
+        )->execute($params);
+
+        return (int) $source['game_id'];
+    }
+
+    /**
+     * The academic year (August 1 – July 31) a Y-m-d date falls in.
+     *
+     * @return array{0: string, 1: string} first and last day, Y-m-d
+     */
+    public static function academicYear(string $date): array
+    {
+        $year = (int) substr($date, 0, 4);
+        $startYear = (int) substr($date, 5, 2) >= 8 ? $year : $year - 1;
+
+        return [$startYear . '-08-01', ($startYear + 1) . '-07-31'];
+    }
+
     /** @param array<string, mixed> $data */
     public function createPlayer(int $snapshotId, array $data): int
     {
@@ -148,11 +200,18 @@ class GameRosterRepository
         $stmt->execute(['id' => $id]);
     }
 
-    public function createCoach(int $snapshotId, string $name, ?string $pronunciation, ?string $title, int $sortOrder): int
-    {
+    public function createCoach(
+        int $snapshotId,
+        string $name,
+        ?string $pronunciation,
+        ?string $title,
+        int $sortOrder,
+        ?string $pronoun = null,
+        ?int $seasons = null
+    ): int {
         $stmt = $this->pdo->prepare(
-            'insert into game_roster_coaches (snapshot_id, name, pronunciation, title, sort_order) '
-            . 'values (:snapshot_id, :name, :pronunciation, :title, :sort_order) returning id'
+            'insert into game_roster_coaches (snapshot_id, name, pronunciation, title, sort_order, pronoun, seasons) '
+            . 'values (:snapshot_id, :name, :pronunciation, :title, :sort_order, :pronoun, :seasons) returning id'
         );
         $stmt->execute([
             'snapshot_id' => $snapshotId,
@@ -160,6 +219,8 @@ class GameRosterRepository
             'pronunciation' => $pronunciation !== '' ? $pronunciation : null,
             'title' => $title !== '' ? $title : null,
             'sort_order' => $sortOrder,
+            'pronoun' => $pronoun !== '' ? $pronoun : null,
+            'seasons' => $seasons,
         ]);
 
         return (int) $stmt->fetchColumn();
@@ -192,6 +253,20 @@ class GameRosterRepository
             'seasons' => $seasons,
             'sort_order' => $sortOrder,
         ]);
+    }
+
+    /** Empties one side's player list, before an import replaces it. */
+    public function deletePlayersFor(int $snapshotId): void
+    {
+        $stmt = $this->pdo->prepare('delete from game_roster_players where snapshot_id = :snapshot_id');
+        $stmt->execute(['snapshot_id' => $snapshotId]);
+    }
+
+    /** Empties one side's coaching staff, before an import replaces it. */
+    public function deleteCoachesFor(int $snapshotId): void
+    {
+        $stmt = $this->pdo->prepare('delete from game_roster_coaches where snapshot_id = :snapshot_id');
+        $stmt->execute(['snapshot_id' => $snapshotId]);
     }
 
     public function deleteCoach(int $id): void

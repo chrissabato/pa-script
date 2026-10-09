@@ -239,8 +239,12 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'is_conference' => PgType::boolToString(!empty($data['is_conference'])),
         ]);
 
-        $gameRosters->createSnapshot($gameId, (int) $homeProgram['id'], 'home');
-        $gameRosters->createSnapshot($gameId, (int) $awayProgram['id'], 'away');
+        // Each side starts from that team's latest roster this academic year,
+        // if it already played one; otherwise it starts empty.
+        foreach (['home' => $homeProgram, 'away' => $awayProgram] as $side => $program) {
+            $snapshotId = $gameRosters->createSnapshot($gameId, (int) $program['id'], $side);
+            $gameRosters->copyFromLatestThisYear($snapshotId, (int) $program['id'], $gameId, (string) $data['date']);
+        }
 
         return $response->withHeader('Location', Url::base() . '/games/' . $gameId)->withStatus(302);
     });
@@ -899,34 +903,84 @@ JS;
             return $response->withHeader('Location', Url::base() . '/import/review/' . (int) $batch['id'])->withStatus(302);
         }
         $snapshotId = (int) $snapshot['id'];
+        $replace = !empty($data['replace']);
+        $nameKey = function ($name): string {
+            return strtolower(trim((string) $name));
+        };
 
+        $players = [];
         foreach (is_array($data['players'] ?? null) ? $data['players'] : [] as $row) {
             $row = playerFormData($row);
-            if (empty($row['include']) || trim($row['name']) === '') {
-                continue;
+            if (!empty($row['include']) && trim($row['name']) !== '') {
+                $players[] = $row;
+            }
+        }
+        $coaches = [];
+        foreach (is_array($data['coaches'] ?? null) ? $data['coaches'] : [] as $row) {
+            if (!empty($row['include']) && trim((string) ($row['coach'] ?? '')) !== '') {
+                $coaches[] = $row;
+            }
+        }
+
+        // Replacing (the default) clears the side's players and/or coaches —
+        // only the lists this import actually brings — so a fetch onto a
+        // roster copied from an earlier game doesn't double it. What a scrape
+        // can't know (captain, a hand-typed pronunciation, a coach's pronoun
+        // and seasons) carries over from the old row with the same name.
+        $oldPlayers = [];
+        if ($replace && $players !== []) {
+            foreach ($gameRosters->playersFor($snapshotId) as $old) {
+                $oldPlayers[$nameKey($old['name'])] = $old;
+            }
+            $gameRosters->deletePlayersFor($snapshotId);
+        }
+        $oldCoaches = [];
+        if ($replace && $coaches !== []) {
+            foreach ($gameRosters->coachesFor($snapshotId) as $old) {
+                $oldCoaches[$nameKey($old['name'])] = $old;
+            }
+            $gameRosters->deleteCoachesFor($snapshotId);
+        }
+
+        foreach ($players as $row) {
+            $old = $oldPlayers[$nameKey($row['name'])] ?? null;
+            if ($old !== null) {
+                if (trim((string) ($row['pronunciation'] ?? '')) === '') {
+                    $row['pronunciation'] = (string) $old['pronunciation'];
+                }
+                if ($old['is_captain']) {
+                    $row['is_captain'] = '1';
+                }
             }
             $gameRosters->createPlayer($snapshotId, $row);
         }
 
-        // Coaches already on this side's roster (matched by name) are
-        // skipped, so re-importing the same page doesn't double the staff.
+        // Without replacing, coaches already on this side's roster (matched
+        // by name) are skipped, so re-importing doesn't double the staff.
         $haveCoach = [];
         foreach ($gameRosters->coachesFor($snapshotId) as $coach) {
-            $haveCoach[strtolower(trim($coach['name']))] = true;
+            $haveCoach[$nameKey($coach['name'])] = true;
         }
-        foreach (is_array($data['coaches'] ?? null) ? $data['coaches'] : [] as $row) {
-            $name = trim((string) ($row['coach'] ?? ''));
-            $key = strtolower($name);
-            if (empty($row['include']) || $name === '' || isset($haveCoach[$key])) {
+        foreach ($coaches as $row) {
+            $name = trim((string) $row['coach']);
+            $key = $nameKey($name);
+            if (isset($haveCoach[$key])) {
                 continue;
             }
             $haveCoach[$key] = true;
+            $old = $oldCoaches[$key] ?? null;
+            $pronunciation = trim((string) ($row['pronunciation'] ?? ''));
+            if ($pronunciation === '' && $old !== null) {
+                $pronunciation = (string) $old['pronunciation'];
+            }
             $gameRosters->createCoach(
                 $snapshotId,
                 $name,
-                trim((string) ($row['pronunciation'] ?? '')),
+                $pronunciation,
                 trim((string) ($row['staff_role'] ?? '')),
-                (int) ($row['sort_order'] ?? 0)
+                (int) ($row['sort_order'] ?? 0),
+                $old !== null ? $old['pronoun'] : null,
+                $old !== null && $old['seasons'] !== null ? (int) $old['seasons'] : null
             );
         }
 

@@ -20,7 +20,7 @@ $presetGameId = (int) ($preset['game_id'] ?? 0);
 <?php endif; ?>
 
 <?php if ($batch['status'] !== 'pending'): ?>
-    <p><em>This batch has already been <?= htmlspecialchars($batch['status'], ENT_QUOTES) ?> — committing again will add another copy of whatever rows you submit below.</em></p>
+    <p><em>This batch has already been <?= htmlspecialchars($batch['status'], ENT_QUOTES) ?> — committing again replaces that side's roster again (or, with Replace unticked, adds another copy of the players below).</em></p>
 <?php endif; ?>
 
 <form method="post" action="<?= $this->base() ?>/import/review/<?= (int) $batch['id'] ?>/commit">
@@ -45,12 +45,17 @@ $presetGameId = (int) ($preset['game_id'] ?? 0);
         <label><input type="radio" name="side" value="away" <?= $presetSide === 'away' ? 'checked' : '' ?>> Away</label>
         <label><input type="radio" name="side" value="home" <?= $presetSide === 'home' ? 'checked' : '' ?>> Home</label>
     </p>
+    <p>
+        <label><input type="checkbox" name="replace" value="1" checked> Replace the roster already on that side</label><br>
+        <span class="hint">Clears its players (and its coaches, if any are included below) first. Captains, pronunciations,
+            and coaches' pronouns and seasons carry over to anyone with the same name.</span>
+    </p>
 
     <h3>Scraped coaches</h3>
     <?php if ($coaches === []): ?>
         <p><em>No coaching staff found on that page.</em></p>
     <?php else: ?>
-        <p><em>Coaches already on that side's roster (same name) are skipped. Staff whose title doesn't say
+        <p><em>When not replacing, coaches already on that side's roster (same name) are skipped. Staff whose title doesn't say
             "coach" start unchecked.</em></p>
     <?php endif; ?>
     <div class="table-scroll">
