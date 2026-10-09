@@ -7,17 +7,15 @@ use Phinx\Seed\AbstractSeed;
  * site_variant): three for Soccer (Women's/home, Men's/home, neutral), two
  * for Basketball (Women's/home, Men's/home), and one each for Baseball,
  * Softball, Volleyball, and Lacrosse (all single-division/home-only per
- * PLAN.md's Phase 3 notes). Idempotent: safe to re-run as later phases add
- * more sports' rows to this file.
+ * PLAN.md's Phase 3 notes). Safe to re-run: this file is the source of
+ * truth for template content, so existing rows are updated in place.
  *
- * NOTE: the block content below is structurally representative of what was
- * read from the source Google Sheets during planning (welcome line, coach
- * line, starting lineup, officials, anthem cue, sportsmanship PSA) but is
- * NOT a verbatim transcription of the real sheet text — that text lives only
- * in the original sheets. Swap in the real wording via the template editor
- * (or a follow-up seed) before relying on this for an actual broadcast, and
- * diff the rendered output against a real sheet per PLAN.md's verification
- * approach.
+ * Wording status: Women's and Men's Soccer (home) and Volleyball are
+ * transcribed from their real sheets' Script-tab formulas (verified by
+ * tests/Rendering/WomensSoccerScriptTest.php and VolleyballScriptTest.php;
+ * the two soccer sheets differ only in "Women's"/"Men's"). Every other
+ * template is still placeholder wording with the right structure — port
+ * each from its sheet the same way before relying on it for a broadcast.
  */
 class ScriptTemplatesSeeder extends AbstractSeed
 {
@@ -46,7 +44,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => $womensId,
                 'site_variant' => 'home',
                 'name' => "Soccer — Women's — Home",
-                'content_blocks' => json_encode($this->homeBlocks('women')),
+                'content_blocks' => json_encode($this->soccerHomeBlocks("Women's")),
                 'version' => 1,
             ],
             [
@@ -54,7 +52,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => $mensId,
                 'site_variant' => 'home',
                 'name' => "Soccer — Men's — Home",
-                'content_blocks' => json_encode($this->homeBlocks('men')),
+                'content_blocks' => json_encode($this->soccerHomeBlocks("Men's")),
                 'version' => 1,
             ],
             [
@@ -102,7 +100,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => null,
                 'site_variant' => 'home',
                 'name' => 'Volleyball — Home',
-                'content_blocks' => json_encode($this->volleyballHomeBlocks()),
+                'content_blocks' => json_encode($this->volleyballBlocks()),
                 'version' => 1,
             ],
             [
@@ -115,7 +113,8 @@ class ScriptTemplatesSeeder extends AbstractSeed
             ],
         ];
 
-        $data = array_values(array_filter($wanted, function (array $row): bool {
+        $data = [];
+        foreach ($wanted as $row) {
             $divisionClause = $row['division_id'] === null ? 'is null' : '= ' . (int) $row['division_id'];
             $existing = $this->fetchRow(sprintf(
                 "select id from script_templates where sport_id = %d and division_id %s and site_variant = '%s'",
@@ -124,37 +123,238 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 $row['site_variant']
             ));
 
-            return $existing === false;
-        }));
+            if ($existing === false) {
+                $data[] = $row;
+                continue;
+            }
+            $this->getAdapter()->getConnection()
+                ->prepare(
+                    'update script_templates set name = :name, content_blocks = :content_blocks, '
+                    . 'updated_at = current_timestamp where id = :id'
+                )
+                ->execute(['name' => $row['name'], 'content_blocks' => $row['content_blocks'], 'id' => $existing['id']]);
+        }
 
         if ($data !== []) {
             $this->table('script_templates')->insert($data)->saveData();
         }
     }
 
+    // ---- Block helpers (keep transcribed templates readable) -------------
+
+    /** @return array<string, mixed> */
+    private static function t(string $text): array
+    {
+        return ['type' => 'text', 'content' => $text];
+    }
+
+    /** @return array<string, mixed> */
+    private static function p(string $key): array
+    {
+        return ['type' => 'placeholder', 'key' => $key];
+    }
+
     /**
+     * @param array<int, array<string, mixed>> $then
+     * @param array<int, array<string, mixed>> $else
+     * @return array<string, mixed>
+     */
+    private static function when(string $key, array $then, array $else = []): array
+    {
+        return ['type' => 'when', 'key' => $key, 'then' => $then, 'else' => $else];
+    }
+
+    /**
+     * The game's venue, or the sport's usual home facility when none is set.
+     *
+     * @return array<string, mixed>
+     */
+    private static function venueOr(string $defaultVenue): array
+    {
+        return self::when('meta.venue', [self::p('meta.venue')], [self::t($defaultVenue)]);
+    }
+
+    /** @return array<string, mixed> */
+    private static function todayOrTonight(): array
+    {
+        return self::when('meta.isEvening', [self::t("tonight's")], [self::t("today's")]);
+    }
+
+    // ---- Soccer (real sheet wording) ---------------------------------------
+
+    /**
+     * Transcribed from the "PA Script - Women's Soccer" sheet's Script tab:
+     * welcome, visitors' starters + head coach, home starters + head coach,
+     * officials, anthem, sportsmanship statement. Wording fixes vs. the
+     * sheet: its typos ("Prfanity", "enviroment", missing "a") and a
+     * stray double space are corrected, coach lines end with a period, and
+     * the officials use a proper "A, B, and C" list.
+     *
      * @return array<int, array<string, mixed>>
      */
-    private function homeBlocks(string $gender): array
+    private function soccerHomeBlocks(string $divisionLabel): array
     {
-        $teamAdjective = $gender === 'women' ? "Women's" : "Men's";
+        $venue = self::venueOr('Sparks Field');
 
         return array_merge(
             [
-                ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
-                ['type' => 'placeholder', 'key' => 'meta.venue'],
-                ['type' => 'text', 'content' => " for today's Willamette {$teamAdjective} Soccer match, as your "],
-                ['type' => 'placeholder', 'key' => 'home.mascot'],
-                ['type' => 'text', 'content' => ' take on the '],
-                ['type' => 'placeholder', 'key' => 'away.mascot'],
-                ['type' => 'text', 'content' => ' from '],
-                ['type' => 'placeholder', 'key' => 'away.schoolName'],
-                ['type' => 'text', 'content' => ".\n\n"],
+                self::t('Good '), self::p('meta.partOfDay'),
+                self::t(" and welcome to Willamette University's "), $venue,
+                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
+                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
+                self::t(" {$divisionLabel} Soccer game between the "),
+                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
+                self::t(' and the '),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::t(". Before the game gets underway, let's meet the starters.\n\n"),
+                self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
+                self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
             ],
-            $this->coachAndLineupBlocks(),
-            $this->officialsAnthemPsaBlocks()
+            $this->starterLines('away'),
+            $this->headCoachLine('away'),
+            [
+                self::t("\nAnd now, the starting lineup for the "),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'), self::t("\n"),
+            ],
+            $this->starterLines('home'),
+            $this->headCoachLine('home'),
+            [
+                self::when('officials', [
+                    self::t("\nThe officials for "), self::todayOrTonight(),
+                    self::t(' game are '), self::p('officials.joinedList'), self::t(".\n"),
+                ]),
+                self::t("\nAnd now the playing of the National Anthem.\n\n"),
+                self::t('Willamette University, the Northwest Conference, and the NCAA promote good sportsmanship '
+                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
+                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
+                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
+                    . 'not be tolerated and are grounds for removal from '),
+                $venue,
+                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ]
         );
     }
+
+    // ---- Volleyball (real sheet wording) -----------------------------------
+
+    /**
+     * Transcribed from the "PA Script - Volleyball" sheet (Setup!J1:J6 and
+     * the Filters tab): welcome + anthem, then each team's reserves
+     * ("Number 4, name") before its starters, visitors first, with the
+     * walk-out music cue before Willamette's introduction. Officials are
+     * read by role ("referees A and B, and linesmen C and D"). Fixes vs. the
+     * sheet: typos ("Prfanity", "Conr Fieldhouse", "lets", "enviroment")
+     * and a missing comma before "number".
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function volleyballBlocks(): array
+    {
+        $venue = self::venueOr('Cone Field House');
+        $reserves = function (string $side): array {
+            return [[
+                'type' => 'loop',
+                'over' => $side . '.reserves',
+                'template' => [
+                    self::when('item.number', [self::t('Number '), self::p('item.number'), self::t(', ')]),
+                    self::p('item.spokenName'), self::t("\n"),
+                ],
+            ]];
+        };
+
+        return array_merge(
+            [
+                self::t('Good '), self::p('meta.partOfDay'),
+                self::t(" and welcome to Willamette University's "), $venue,
+                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
+                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
+                self::t(' Volleyball match between the '),
+                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
+                self::t(' and your '),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::t(".\n\nAnd now for the playing of the National Anthem.\n\n"),
+                self::t("Before the match gets underway, let's meet the teams.\n\n"),
+                self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
+                self::when('away.reserves', [
+                    self::t('First, the reserves for the visitors from '), self::p('away.shortName'), self::t("\n"),
+                ]),
+            ],
+            $reserves('away'),
+            [self::t("\nAnd now the starters for the "), self::p('away.mascot'), self::t("\n")],
+            $this->starterLines('away'),
+            $this->headCoachLine('away'),
+            [
+                self::t("\n[start Joker and the Thief]\nNow let's meet your "),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::when('home.reserves', [self::t(". First the reserves\n")], [self::t(".\n")]),
+            ],
+            $reserves('home'),
+            [self::t("\nNow the starters for the "), self::p('home.mascot'), self::t(".\n")],
+            $this->starterLines('home'),
+            $this->headCoachLine('home'),
+            [
+                self::when('officials', [
+                    self::t("\nThe officials for "), self::todayOrTonight(),
+                    self::t(' game are '), self::p('officials.spokenList'), self::t(".\n"),
+                ]),
+                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
+                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
+                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
+                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
+                    . 'not be tolerated and are grounds for removal from '),
+                $venue,
+                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ]
+        );
+    }
+
+    // ---- Shared lineup lines ---------------------------------------------
+
+    /**
+     * "A captain, at goalie, a senior from Portland, Oregon, number 1,
+     * SEE-era ED-werds" — one line per starter.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function starterLines(string $side): array
+    {
+        return [[
+            'type' => 'loop',
+            'over' => $side . '.starters',
+            'template' => [
+                self::when('item.is_captain', [self::t('A captain, at ')], [self::t('At ')]),
+                self::p('item.spokenPosition'),
+                self::when('item.spokenYear', [self::t(', a '), self::p('item.spokenYear')]),
+                self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
+                self::when('item.number', [self::t(', number '), self::p('item.number')]),
+                self::t(', '), self::p('item.spokenName'), self::t("\n"),
+            ],
+        ]];
+    }
+
+    /**
+     * "Lewis & Clark's head coach is Jim Tursi in his 17th season and is
+     * assisted by Fraser Morrison, Rebecca McCullough, and Bill Irwin."
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function headCoachLine(string $side): array
+    {
+        return [self::when($side . '.headCoach', [
+            self::p($side . '.shortName'), self::t("'s head coach is "), self::p($side . '.headCoach.spokenName'),
+            self::when($side . '.headCoach.seasonsOrdinal', [
+                self::t(' in '),
+                self::when($side . '.headCoach.pronoun', [self::p($side . '.headCoach.pronoun')], [self::t('their')]),
+                self::t(' '), self::p($side . '.headCoach.seasonsOrdinal'), self::t(' season'),
+            ]),
+            self::when($side . '.assistantCoaches', [
+                self::t(' and is assisted by '), self::p($side . '.assistantCoaches'),
+            ]),
+            self::t(".\n"),
+        ])];
+    }
+
+    // ---- Placeholder templates (not yet ported from their sheets) ----------
 
     /**
      * @return array<int, array<string, mixed>>
@@ -203,25 +403,6 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 ['type' => 'text', 'content' => ".\n\n"],
             ],
             $this->coachAndLineupBlocks(true),
-            $this->officialsAnthemPsaBlocks()
-        );
-    }
-
-    /**
-     * Volleyball/Lacrosse are single-division (only one team fielded per
-     * school) per PLAN.md's Phase 3 notes, and follow Basketball's exact
-     * per-player starters+reserves pattern — only the welcome framing and
-     * (for Volleyball) an inline walk-out music cue differ.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function volleyballHomeBlocks(): array
-    {
-        return array_merge(
-            $this->singleDivisionWelcomeBlocks('Volleyball', 'match'),
-            $this->coachAndLineupBlocks(true, [
-                ['type' => 'text', 'content' => "[start Joker and the Thief]\n\n"],
-            ]),
             $this->officialsAnthemPsaBlocks()
         );
     }

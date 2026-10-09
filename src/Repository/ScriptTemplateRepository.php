@@ -32,26 +32,19 @@ class ScriptTemplateRepository
      */
     public function findForGame(int $sportId, ?int $divisionId, bool $isNeutralSite): ?array
     {
-        if ($isNeutralSite) {
-            $stmt = $this->pdo->prepare(
-                "select * from script_templates where sport_id = :sport_id and site_variant = 'neutral' "
-                . 'and division_id is null'
-            );
-            $stmt->execute(['sport_id' => $sportId]);
-        } elseif ($divisionId === null) {
-            $stmt = $this->pdo->prepare(
-                "select * from script_templates where sport_id = :sport_id and site_variant = 'home' "
-                . 'and division_id is null'
-            );
-            $stmt->execute(['sport_id' => $sportId]);
-        } else {
-            $stmt = $this->pdo->prepare(
-                "select * from script_templates where sport_id = :sport_id and site_variant = 'home' "
-                . 'and division_id = :division_id'
-            );
-            $stmt->execute(['sport_id' => $sportId, 'division_id' => $divisionId]);
-        }
-
+        // A template with a division (Women's Soccer) wins for that
+        // division; one without (Volleyball, neutral-site Soccer) covers
+        // every division of the sport, including games created with one.
+        $stmt = $this->pdo->prepare(
+            'select * from script_templates where sport_id = :sport_id and site_variant = :site_variant '
+            . 'and (division_id = :division_id or division_id is null) '
+            . 'order by division_id is null limit 1'
+        );
+        $stmt->execute([
+            'sport_id' => $sportId,
+            'site_variant' => $isNeutralSite ? 'neutral' : 'home',
+            'division_id' => $divisionId,
+        ]);
         $row = $stmt->fetch();
 
         return $row === false ? null : $row;

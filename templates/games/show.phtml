@@ -23,12 +23,60 @@
     <?php endforeach; ?>
 </div>
 
-<h3>Officials</h3>
+<h3>Script details</h3>
+<form method="post" action="/games/<?= (int) $game['id'] ?>/details" class="game-details">
+    <p class="stacked-fields">
+        <label>Time
+            <input type="time" name="time_of_day" value="<?= htmlspecialchars(substr((string) $game['time_of_day'], 0, 5), ENT_QUOTES) ?>">
+        </label>
+        <label>Venue
+            <input type="text" name="venue" value="<?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?>" placeholder="Sport's usual field if blank">
+        </label>
+        <label class="inline-check"><input type="checkbox" name="is_conference" value="1" <?= $game['is_conference'] ? 'checked' : '' ?>> Conference game</label>
+    </p>
+    <p class="stacked-fields">
+        <label class="wide">Special announcement <span class="hint">(read after the welcome, before the visitors' starters)</span>
+            <textarea name="special_announcement" rows="2"><?= htmlspecialchars((string) $game['special_announcement'], ENT_QUOTES) ?></textarea>
+        </label>
+    </p>
+    <p><button type="submit">Save details</button></p>
+    <p class="hint">The time sets "Good morning / afternoon / evening" and "today's" vs. "tonight's".</p>
+</form>
+
+<h3 id="officials">Officials</h3>
+<?php if ($officials === []): ?>
+    <p class="hint">No officials yet — the script skips the officials line until you add them.</p>
+<?php else: ?>
+<p class="hint">Read in this order: "The officials for today's game are A, B, and C." Changes save automatically.</p>
+<div class="table-scroll">
+<table class="roster-table">
+    <tr><th>Name</th><th>Role</th><th>Order</th><th></th></tr>
+    <?php foreach ($officials as $official): ?>
+    <tr>
+        <form method="post" action="/games/<?= (int) $game['id'] ?>/officials/<?= (int) $official['id'] ?>" id="official-<?= (int) $official['id'] ?>" data-autosave>
+            <td><input type="text" name="official" value="<?= htmlspecialchars($official['name'], ENT_QUOTES) ?>" required></td>
+            <td><input type="text" name="role" value="<?= htmlspecialchars((string) $official['role'], ENT_QUOTES) ?>"></td>
+            <td><input type="number" name="sort_order" value="<?= (int) $official['sort_order'] ?>" size="3"></td>
+            <td>
+                <button type="submit" class="autosave-default" tabindex="-1">Save</button>
+                <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this official?')">Delete</button>
+                <span class="autosave-status" data-autosave-status="official-<?= (int) $official['id'] ?>"></span>
+            </td>
+        </form>
+    </tr>
+    <?php endforeach; ?>
+</table>
+</div>
+<?php endif; ?>
+
+<h4>Add official</h4>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/officials">
-    <p>
-        Official: <input type="text" name="official" required>
-        Role: <input type="text" name="role">
-        Sort: <input type="number" name="sort_order" value="0" size="3">
-        <button type="submit">Add official</button>
+    <p class="stacked-fields">
+        <label>Official <input type="text" name="official" required></label>
+        <label>Role <input type="text" name="role" placeholder="e.g. Referee"></label>
+        <label>Order <input type="number" name="sort_order" value="<?= count($officials) ?>" size="3"></label>
+        <button type="submit">Add</button>
     </p>
 </form>
+
+<script src="<?= htmlspecialchars($this->asset('/js/autosave.js'), ENT_QUOTES) ?>"></script>

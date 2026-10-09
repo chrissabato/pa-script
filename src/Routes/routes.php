@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Database\PgType;
 use App\Rendering\GameContextBuilder;
+use App\Rendering\ScriptChecks;
+use App\Rendering\Spoken;
 use App\Rendering\TemplateRenderer;
 use App\Repository\DivisionRepository;
 use App\Repository\GameRepository;
@@ -43,6 +45,20 @@ function playerFormData(array $data): array
     unset($data['player']);
 
     return $data;
+}
+
+/**
+ * Where a row edit goes next: autosaving rows (public/js/autosave.js, sent
+ * with X-Requested-With: fetch) just need a 204; a plain form post (no JS,
+ * or a Delete) redirects as before.
+ */
+function rowSaved(Request $request, Response $response, string $location): Response
+{
+    if ($request->getHeaderLine('X-Requested-With') === 'fetch') {
+        return $response->withStatus(204);
+    }
+
+    return $response->withHeader('Location', $location)->withStatus(302);
 }
 
 return function (App $app, PDO $pdo, Renderer $view): void {
@@ -201,6 +217,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'anthem_note' => ($data['anthem_note'] ?? '') !== '' ? $data['anthem_note'] : null,
             'notes' => ($data['notes'] ?? '') !== '' ? $data['notes'] : null,
             'status' => 'draft',
+            'is_conference' => PgType::boolToString(!empty($data['is_conference'])),
         ]);
 
         $gameRosters->createSnapshot($gameId, (int) $homeProgram['id'], 'home');
@@ -218,7 +235,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response->withHeader('Location', '/games')->withStatus(302);
     });
 
-    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games, $gameRosters) {
+    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games, $gameRosters, $officials) {
         $game = $games->find((int) $args['id']);
         if ($game === null) {
             throw new HttpNotFoundException($request);
@@ -228,6 +245,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             'title' => 'Game — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,
             'rosterCounts' => $gameRosters->countsForGame((int) $game['id']),
+            'officials' => $officials->findByGame((int) $game['id']),
         ]);
         $response->getBody()->write($html);
 
@@ -288,7 +306,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             $gameRosters->updatePlayer((int) $args['playerId'], playerFormData($data));
         }
 
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
+        return rowSaved($request, $response, $request->getHeaderLine('Referer'));
     });
 
     $app->post('/games/{id}/roster/{side}/coaches', function (
@@ -307,9 +325,65 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         Response $response,
         array $args
     ) use ($gameRosters) {
-        $gameRosters->deleteCoach((int) $args['coachId']);
+        $data = (array) $request->getParsedBody();
+        if (($data['_method'] ?? '') === 'DELETE') {
+            $gameRosters->deleteCoach((int) $args['coachId']);
+        } else {
+            $seasons = trim((string) ($data['seasons'] ?? ''));
+            $gameRosters->updateCoach(
+                (int) $args['coachId'],
+                trim((string) ($data['coach'] ?? '')),
+                trim((string) ($data['pronunciation'] ?? '')),
+                trim((string) ($data['staff_role'] ?? '')),
+                trim((string) ($data['pronoun'] ?? '')),
+                ctype_digit($seasons) ? (int) $seasons : null,
+                (int) ($data['sort_order'] ?? 0)
+            );
+        }
 
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
+        return rowSaved($request, $response, $request->getHeaderLine('Referer'));
+    });
+
+    // Script/teleprompter name display (Name / Pronunciation / both);
+    // returns to whichever of the two pages it was changed on.
+    $app->post('/games/{id}/name-display', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($games) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $data = (array) $request->getParsedBody();
+        $display = (string) ($data['name_display'] ?? '');
+        if (isset(Spoken::NAME_DISPLAYS[$display])) {
+            $games->updateNameDisplay((int) $game['id'], $display);
+        }
+        $page = ($data['return_to'] ?? '') === 'teleprompter' ? 'teleprompter' : 'script';
+
+        return $response->withHeader('Location', '/games/' . (int) $game['id'] . '/' . $page)->withStatus(302);
+    });
+
+    $app->post('/games/{id}/details', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($games) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $data = (array) $request->getParsedBody();
+        $announcement = trim((string) ($data['special_announcement'] ?? ''));
+        $games->updateDetails((int) $game['id'], [
+            'time_of_day' => ($data['time_of_day'] ?? '') !== '' ? $data['time_of_day'] : null,
+            'venue' => trim((string) ($data['venue'] ?? '')) !== '' ? trim((string) $data['venue']) : null,
+            'is_conference' => PgType::boolToString(!empty($data['is_conference'])),
+            'special_announcement' => $announcement !== '' ? $announcement : null,
+        ]);
+
+        return $response->withHeader('Location', '/games/' . (int) $game['id'])->withStatus(302);
     });
 
     $app->post('/games/{id}/officials', function (
@@ -318,9 +392,92 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         array $args
     ) use ($officials) {
         $data = (array) $request->getParsedBody();
-        $officials->create((int) $args['id'], $data['official'], $data['role'] ?? null, (int) ($data['sort_order'] ?? 0));
+        $officials->create((int) $args['id'], trim((string) $data['official']), trim((string) ($data['role'] ?? '')), (int) ($data['sort_order'] ?? 0));
 
-        return $response->withHeader('Location', $request->getHeaderLine('Referer'))->withStatus(302);
+        return $response->withHeader('Location', '/games/' . (int) $args['id'] . '#officials')->withStatus(302);
+    });
+
+    $app->post('/games/{id}/officials/{officialId}', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($officials) {
+        $data = (array) $request->getParsedBody();
+        if (($data['_method'] ?? '') === 'DELETE') {
+            $officials->delete((int) $args['officialId'], (int) $args['id']);
+        } else {
+            $officials->update(
+                (int) $args['officialId'],
+                (int) $args['id'],
+                trim((string) ($data['official'] ?? '')),
+                trim((string) ($data['role'] ?? '')),
+                (int) ($data['sort_order'] ?? 0)
+            );
+        }
+
+        return rowSaved($request, $response, '/games/' . (int) $args['id'] . '#officials');
+    });
+
+    // Printable rosters, teams side by side (like the source sheets' Roster
+    // tab). ?starters=1 prints just the starters.
+    $app->get('/games/{id}/print', function (
+        Request $request,
+        Response $response,
+        array $args
+    ) use ($view, $games, $contextBuilder) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        $startersOnly = !empty($request->getQueryParams()['starters']);
+        $context = $contextBuilder->build($game);
+        $teams = [];
+        // Away on the left, home on the right, as on the sheet.
+        foreach (['away', 'home'] as $side) {
+            $sideContext = $context[$side];
+            $players = array_merge($sideContext['starters'], $sideContext['reserves'], $sideContext['battingOrder']);
+            // Jersey order, as on the roster page (starters are flagged, not grouped).
+            usort($players, function (array $a, array $b): int {
+                $na = preg_replace('/\D/', '', (string) $a['number']);
+                $nb = preg_replace('/\D/', '', (string) $b['number']);
+                if ($na === '' || $nb === '') {
+                    return ($na === '') <=> ($nb === '') ?: strcmp((string) $a['name'], (string) $b['name']);
+                }
+
+                return (int) $na <=> (int) $nb ?: strcmp((string) $a['name'], (string) $b['name']);
+            });
+            if ($startersOnly) {
+                $players = array_values(array_filter($players, function (array $p): bool {
+                    return (bool) $p['is_starter'] || $p['batting_order'] !== null;
+                }));
+            }
+            $teams[$side] = [
+                'side' => $side,
+                'schoolName' => $sideContext['schoolName'],
+                'mascot' => $sideContext['mascot'],
+                // From the team API (schools cache): logo URL, and the
+                // team-colour background it's designed to sit on.
+                'logo' => $game[$side . '_logo'] ?? null,
+                'logoBg' => $game[$side . '_logo_bg'] ?? null,
+                'headCoach' => $sideContext['headCoach'],
+                'assistants' => array_values(array_filter($sideContext['coaches'], function (array $c) use ($sideContext): bool {
+                    return $sideContext['headCoach'] === null || (int) $c['id'] !== (int) $sideContext['headCoach']['id'];
+                })),
+                'players' => $players,
+            ];
+        }
+
+        $html = $view->render('games/print', [
+            'title' => 'Rosters — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
+            'bodyClass' => 'print-page',
+            'game' => $game,
+            'teams' => $teams,
+            'startersOnly' => $startersOnly,
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
     });
 
     // Shared by /script and /teleprompter — both just render the same
@@ -333,13 +490,13 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         );
 
         if ($template === null) {
-            return [null, 'No script template found for this sport/division/site combination yet.'];
+            return [null, 'No script template found for this sport/division/site combination yet.', []];
         }
 
         $blocks = json_decode($template['content_blocks'], true);
         $context = $contextBuilder->build($game);
 
-        return [$renderer->render($blocks, $context), null];
+        return [$renderer->render($blocks, $context), null, ScriptChecks::forGame($game, $context)];
     };
 
     $app->get('/games/{id}/script', function (
@@ -352,9 +509,10 @@ return function (App $app, PDO $pdo, Renderer $view): void {
             throw new HttpNotFoundException($request);
         }
 
-        [$renderedScript, $missingTemplateReason] = $resolveScript($game);
+        [$renderedScript, $missingTemplateReason, $scriptChecks] = $resolveScript($game);
 
         $html = $view->render('games/script', [
+            'scriptChecks' => $scriptChecks,
             'title' => 'Script — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,
             'renderedScript' => $renderedScript,

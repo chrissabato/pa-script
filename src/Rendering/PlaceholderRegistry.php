@@ -25,6 +25,12 @@ class PlaceholderRegistry
 
                 return self::joinWithAnd($names);
             },
+            // "referees Ana Ortiz and Ben Cole, and linesmen Cy Dunn and Di
+            // Ell" — officials grouped by role in list order; plain names
+            // when no roles are set.
+            'officials.spokenList' => function (array $context): string {
+                return self::officialsByRole($context['officials'] ?? []);
+            },
             'home.coaches.joinedList' => function (array $context): string {
                 return self::joinCoaches($context['home']['coaches'] ?? []);
             },
@@ -80,9 +86,11 @@ class PlaceholderRegistry
     }
 
     /**
+     * "A", "A and B", "A, B, and C" — blanks dropped.
+     *
      * @param string[] $names
      */
-    private static function joinWithAnd(array $names): string
+    public static function joinWithAnd(array $names): string
     {
         $names = array_values(array_filter($names, function ($name): bool {
             return $name !== null && $name !== '';
@@ -102,6 +110,31 @@ class PlaceholderRegistry
         $last = array_pop($names);
 
         return implode(', ', $names) . ', and ' . $last;
+    }
+
+    /** @param array<int, array<string, mixed>> $officials */
+    private static function officialsByRole(array $officials): string
+    {
+        $groups = [];
+        foreach ($officials as $official) {
+            $role = strtolower(trim((string) ($official['role'] ?? '')));
+            $groups[$role][] = (string) $official['name'];
+        }
+        if (array_keys($groups) === ['']) {
+            return self::joinWithAnd($groups['']);
+        }
+
+        $parts = [];
+        foreach ($groups as $role => $names) {
+            $label = $role;
+            if ($role !== '' && count($names) > 1) {
+                $label = preg_match('/man$/', $role) ? substr($role, 0, -3) . 'men'
+                    : (preg_match('/s$/', $role) ? $role : $role . 's');
+            }
+            $parts[] = trim($label . ' ' . self::joinWithAnd($names));
+        }
+
+        return count($parts) === 2 ? $parts[0] . ', and ' . $parts[1] : self::joinWithAnd($parts);
     }
 
     private static function battingOrderLabel(int $order): string

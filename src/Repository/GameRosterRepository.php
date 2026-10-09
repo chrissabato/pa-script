@@ -111,9 +111,9 @@ class GameRosterRepository
     {
         $stmt = $this->pdo->prepare(
             'insert into game_roster_players (snapshot_id, number, name, pronunciation, position, year, '
-            . 'hometown, is_starter, batting_order) '
+            . 'hometown, is_starter, is_captain, is_libero, batting_order) '
             . 'values (:snapshot_id, :number, :name, :pronunciation, :position, :year, :hometown, '
-            . ':is_starter, :batting_order) returning id'
+            . ':is_starter, :is_captain, :is_libero, :batting_order) returning id'
         );
         $stmt->execute(array_merge(['snapshot_id' => $snapshotId], $this->normalizePlayer($data)));
 
@@ -135,6 +135,7 @@ class GameRosterRepository
         $stmt = $this->pdo->prepare(
             'update game_roster_players set number = :number, name = :name, pronunciation = :pronunciation, '
             . 'position = :position, year = :year, hometown = :hometown, is_starter = :is_starter, '
+            . 'is_captain = :is_captain, is_libero = :is_libero, '
             . $battingOrderSet . 'updated_at = current_timestamp '
             . 'where id = :id'
         );
@@ -164,6 +165,35 @@ class GameRosterRepository
         return (int) $stmt->fetchColumn();
     }
 
+    /**
+     * Edits a coach row from the roster page. `pronoun` (his/her/their) and
+     * `seasons` feed the head-coach line ("in her 4th season").
+     */
+    public function updateCoach(
+        int $id,
+        string $name,
+        ?string $pronunciation,
+        ?string $title,
+        ?string $pronoun,
+        ?int $seasons,
+        int $sortOrder
+    ): void {
+        $stmt = $this->pdo->prepare(
+            'update game_roster_coaches set name = :name, pronunciation = :pronunciation, title = :title, '
+            . 'pronoun = :pronoun, seasons = :seasons, sort_order = :sort_order, updated_at = current_timestamp '
+            . 'where id = :id'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'name' => $name,
+            'pronunciation' => $pronunciation !== '' ? $pronunciation : null,
+            'title' => $title !== '' ? $title : null,
+            'pronoun' => $pronoun !== '' ? $pronoun : null,
+            'seasons' => $seasons,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
     public function deleteCoach(int $id): void
     {
         $stmt = $this->pdo->prepare('delete from game_roster_coaches where id = :id');
@@ -184,6 +214,8 @@ class GameRosterRepository
             'year' => $data['year'] !== '' ? $data['year'] : null,
             'hometown' => $data['hometown'] !== '' ? $data['hometown'] : null,
             'is_starter' => PgType::boolToString(!empty($data['is_starter'])),
+            'is_captain' => PgType::boolToString(!empty($data['is_captain'])),
+            'is_libero' => PgType::boolToString(!empty($data['is_libero'])),
             'batting_order' => ($data['batting_order'] ?? '') !== '' ? (int) $data['batting_order'] : null,
         ];
     }

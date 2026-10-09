@@ -465,9 +465,11 @@ main ul { padding-left: 1.3rem; }
 .game-tabs a:not(.button):hover { color: var(--color-text); text-decoration: none; border-bottom-color: var(--color-border); }
 .game-tabs a.is-active { color: var(--color-primary); border-bottom-color: var(--color-primary); }
 .game-tabs .game-tabs-launch { margin: 0 0 0.4rem auto; padding: 0.35rem 0.8rem; }
+.game-tabs .game-tabs-launch-next { margin: 0 0 0.4rem 0.4rem; padding: 0.35rem 0.8rem; }
 @media (max-width: 640px) {
     .game-tabs a:not(.button) { padding: 0.45rem 0.6rem; }
     .game-tabs .game-tabs-launch { margin: 0.3rem 0 0.4rem; }
+    .game-tabs .game-tabs-launch-next { margin: 0.3rem 0 0.4rem 0.4rem; }
 }
 /* The tab strip already draws a rule — drop the h3's own top border. */
 .game-header + h3 { margin-top: 0; padding-top: 0; border-top: 0; }
@@ -490,3 +492,171 @@ main ul { padding-left: 1.3rem; }
 .roster-status-side { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--color-text-muted); }
 .roster-status-counts { color: var(--color-text-muted); }
 .roster-status-card.is-empty .roster-status-counts { color: var(--color-danger-dark); font-weight: 600; }
+
+/* Overview "Script details" form */
+.game-details .wide { flex: 1 1 100%; }
+.game-details textarea { width: 100%; box-sizing: border-box; font: inherit; }
+.game-details .inline-check { flex-direction: row; align-items: center; align-self: flex-end; padding-bottom: 0.15rem; font-size: 0.92rem; color: var(--color-text); }
+.game-details .hint, .roster-table + .hint, h3 + .hint { color: var(--color-text-muted); font-size: 0.85rem; font-weight: 400; }
+
+/* Script tab: data gaps to fix before reading */
+.script-checks {
+    margin-bottom: 1rem;
+    padding: 0.7rem 1rem;
+    border: 1px solid #f3d9a4;
+    border-left: 4px solid #d08a00;
+    border-radius: var(--radius);
+    background: #fff8eb;
+}
+.script-checks ul { margin: 0.3rem 0 0; padding-left: 1.2rem; }
+.script-checks li { margin: 0.15rem 0; }
+
+/* Autosaving rows (public/js/autosave.js): the hidden default button keeps
+   Enter-to-submit saving instead of hitting the row's Delete button. */
+.autosave-default {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    border: 0;
+}
+.autosave-status { display: inline-block; min-width: 4.5rem; margin-left: 0.4rem; font-size: 0.8rem; font-weight: 600; }
+.autosave-status.is-saving { color: var(--color-text-muted); }
+.autosave-status.is-saved { color: #3c8a46; }
+.autosave-status.is-error { color: var(--color-danger); }
+
+/* Name display selector (Script tab + teleprompter bar) */
+.name-display { display: flex; justify-content: flex-end; margin: 0 0 0.8rem; }
+.name-display label { font-weight: 600; }
+.teleprompter-controls .name-display { margin: 0; }
+.teleprompter-controls .name-display select { background: #222; color: #fff; border: 1px solid #444; }
+
+/* ---- Printable rosters (games/print.phtml) ------------------------------
+   Portrait, two teams side by side. Screen shows it as a sheet with a
+   toolbar; print drops the site chrome and the toolbar. */
+
+@page { size: letter portrait; margin: 0.4in; }
+
+.print-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; margin-bottom: 1rem; }
+.print-toolbar button { margin-left: auto; }
+.print-toolbar-filter { display: inline-flex; border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; }
+.print-toolbar-filter a { padding: 0.35rem 0.8rem; color: var(--color-text-muted); font-weight: 600; }
+.print-toolbar-filter a.is-active { background: var(--color-primary); color: #fff; }
+
+.print-sheet {
+    max-width: 8.5in;
+    margin: 0 auto;
+    padding: 0.4in;
+    background: #fff;
+    color: #000;
+    box-shadow: var(--shadow-sm);
+    font-size: 8.5pt;
+    line-height: 1.25;
+}
+.print-title { margin: 0 0 0.6em; text-align: center; font-size: 9pt; color: #333; }
+.print-teams { display: grid; grid-template-columns: 1fr 1fr; gap: 0.18in; align-items: start; }
+.print-team header { text-align: center; border-bottom: 1.5pt solid #000; padding-bottom: 0.3em; margin-bottom: 0.3em; }
+.print-team h2 { margin: 0; font-size: 11pt; letter-spacing: 0.02em; }
+.print-team header p { margin: 0.15em 0; }
+.print-mascot { font-weight: 700; font-size: 9pt; }
+.print-label { font-weight: 700; text-transform: uppercase; font-size: 7pt; color: #444; margin-right: 0.3em; }
+.print-sheet { --row: 25pt; }
+/* Everything in a roster row scales off --row, which games/print.phtml
+   shrinks when the larger roster wouldn't fit on one page. */
+.print-roster { width: 100%; table-layout: fixed; border-collapse: collapse; box-shadow: none; border: 0; background: none; font-size: min(9pt, calc(var(--row) * 0.36)); }
+/* Column widths in points: half of a portrait letter page is ~270pt. */
+.print-roster .col-num { width: 26pt; }
+.print-roster .col-star { width: 12pt; }
+.print-roster .col-pos { width: 38pt; }
+.print-roster .col-yr { width: 20pt; }
+.print-roster .col-home { width: 78pt; }
+.print-roster th { padding: 2pt 2pt; font-size: 6.5pt; text-transform: uppercase; color: #333; background: none; border: 0; border-bottom: 1pt solid #000; text-align: left; }
+/* Every row the same height: two lines (name + pronunciation), nothing wraps. */
+/* Each player is a tbody of two lines — name/pos/yr/hometown, then the
+   pronunciation across those four columns — totalling --row, so every
+   player is the same height. Number and markers span both lines. */
+.print-roster tbody td {
+    padding: 0 2pt;
+    border: 0;
+    text-align: left;
+    font-size: inherit;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.print-roster tr.print-line1 { height: calc(var(--row) * 0.56); }
+.print-roster tr.print-line1 td { vertical-align: bottom; }
+.print-roster tr.print-line2 { height: calc(var(--row) * 0.44); }
+.print-roster tr.print-line2 td { vertical-align: top; }
+.print-roster tbody.print-player > tr:last-child > td,
+.print-roster tbody.print-player td[rowspan] { border-bottom: 0.5pt solid #bbb; }
+/* The number fills the player's full height. */
+.print-roster td.print-num {
+    padding: 0 2pt 0 0;
+    font-size: calc(var(--row) * 0.76);
+    line-height: 1;
+    font-weight: 800;
+    text-align: right;
+    vertical-align: middle !important;
+    letter-spacing: -0.5pt;
+    text-overflow: clip;
+}
+.print-roster th.print-num { text-align: right; padding-right: 2pt; }
+.print-roster td.print-star { padding: 0; text-align: center; vertical-align: middle !important; white-space: normal; line-height: 1.1; font-size: min(8pt, calc(var(--row) * 0.32)); }
+.print-roster td.print-star span { display: block; margin: 0 auto; }
+.print-roster td.print-star .print-badge { margin: 0.5pt auto; padding: 0; width: 8pt; font-size: min(6pt, calc(var(--row) * 0.24)); line-height: 1.2; }
+.print-roster td.print-name { font-size: min(8.5pt, calc(var(--row) * 0.34)); }
+.print-roster td.print-cell { font-size: min(8pt, calc(var(--row) * 0.32)); }
+.print-roster tbody.is-starter .print-name { font-weight: 700; }
+.print-pron { font-size: 0.94em; font-style: italic; color: #333; }
+.print-roster td.print-pron { font-size: min(8pt, calc(var(--row) * 0.32)); }
+.print-badge { display: inline-block; margin-left: 0.25em; padding: 0 0.25em; border: 0.75pt solid #000; border-radius: 2px; font-size: 6.5pt; font-weight: 700; line-height: 1.3; }
+.print-empty { font-style: italic; color: #555; }
+.print-legend { margin: 0.6em 0 0; font-size: 7pt; color: #555; text-align: center; }
+
+@media print {
+    body.print-page { background: #fff; }
+    body.print-page .site-header, .print-toolbar { display: none; }
+    body.print-page main { max-width: none; margin: 0; padding: 0; }
+    .print-sheet { max-width: none; padding: 0; box-shadow: none; }
+    .print-roster thead { display: table-header-group; }
+    .print-roster tbody.print-player { break-inside: avoid; }
+}
+
+/* Printed roster: alternate rows light gray. Browsers drop background
+   colors when printing unless told to keep them. */
+.print-roster tbody td { background: #fff; }
+.print-roster tbody.print-player:nth-of-type(even) td { background: #e9e9e9; }
+.print-roster { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+/* Printed roster team logo: drawn on the API's team-colour tile (logos
+   like Willamette's gold mark are made for a coloured background). */
+.print-team header { display: flex; align-items: center; gap: 6pt; text-align: center; }
+.print-team-heading { flex: 1; min-width: 0; }
+.print-logo {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 46pt;
+    height: 46pt;
+    padding: 3pt;
+    box-sizing: border-box;
+    border-radius: 5pt;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.print-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* Line the two teams up: each team is a header row + a roster row sharing
+   the page grid's rows (subgrid), so both headers take the taller one's
+   height — however many coaches wrap — and both tables start level. */
+.print-teams { grid-template-rows: auto auto; }
+.print-team { display: grid; grid-row: span 2; grid-template-rows: subgrid; row-gap: 0; align-content: start; }
+.print-team > header { align-self: stretch; margin-bottom: 0; }
+/* align-self: start keeps the shorter roster at its natural height —
+   stretched to the taller one's, its rows would grow to fill the space. */
+.print-team > table, .print-team > .print-empty { margin-top: 0.3em; align-self: start; }

@@ -43,6 +43,27 @@ class OfficialRepository
         return (int) $stmt->fetchColumn();
     }
 
+    public function update(int $id, int $gameId, string $name, ?string $role, int $sortOrder): void
+    {
+        $stmt = $this->pdo->prepare(
+            'update officials set name = :name, role = :role, sort_order = :sort_order, updated_at = current_timestamp '
+            . 'where id = :id and game_id = :game_id'
+        );
+        $stmt->execute([
+            'id' => $id,
+            'game_id' => $gameId,
+            'name' => $name,
+            'role' => $role !== '' ? $role : null,
+            'sort_order' => $sortOrder,
+        ]);
+    }
+
+    public function delete(int $id, int $gameId): void
+    {
+        $stmt = $this->pdo->prepare('delete from officials where id = :id and game_id = :game_id');
+        $stmt->execute(['id' => $id, 'game_id' => $gameId]);
+    }
+
     public function deleteByGame(int $gameId): void
     {
         $stmt = $this->pdo->prepare('delete from officials where game_id = :game_id');

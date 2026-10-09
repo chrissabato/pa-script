@@ -3,5 +3,16 @@
 <?php if ($missingTemplateReason !== null): ?>
     <p><em><?= htmlspecialchars($missingTemplateReason, ENT_QUOTES) ?></em></p>
 <?php else: ?>
+    <?php $nameDisplayReturnTo = 'script'; require __DIR__ . '/../partials/name-display.phtml'; ?>
+    <?php if ($scriptChecks !== []): ?>
+    <div class="script-checks">
+        <strong>Before you read this:</strong>
+        <ul>
+            <?php foreach ($scriptChecks as [$message, $href]): ?>
+                <li><?= htmlspecialchars($message, ENT_QUOTES) ?> <a href="<?= htmlspecialchars($href, ENT_QUOTES) ?>">Fix</a></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
     <pre class="script-text"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
 <?php endif; ?>

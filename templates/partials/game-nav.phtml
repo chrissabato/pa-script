@@ -36,6 +36,7 @@ $gameTabs = [
         <?php foreach ($gameTabs as $key => [$label, $href]): ?>
             <a href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"<?= $key === $gameTab ? ' class="is-active" aria-current="page"' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></a>
         <?php endforeach; ?>
-        <a href="<?= htmlspecialchars($gameUrl . '/teleprompter', ENT_QUOTES) ?>" class="game-tabs-launch button">Teleprompter &rarr;</a>
+        <a href="<?= htmlspecialchars($gameUrl . '/print', ENT_QUOTES) ?>" class="game-tabs-launch button button-secondary">Print rosters</a>
+        <a href="<?= htmlspecialchars($gameUrl . '/teleprompter', ENT_QUOTES) ?>" class="game-tabs-launch-next button">Teleprompter &rarr;</a>
     </nav>
 </div>

@@ -4,14 +4,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, all six sports, teleprompter, bookmarklet + import pipeline); Phase 6 (deploy to RHEL) is next. `PLAN.md` remains the authoritative spec; this file summarizes its key decisions. Script template *wording* in the seeders is still placeholder, not the real sheet text.
+Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, all six sports, teleprompter, bookmarklet + import pipeline); Phase 6 (deploy to RHEL) is next. `PLAN.md` remains the authoritative spec; this file summarizes its key decisions. Script template wording: **Women's/Men's Soccer (home) and Volleyball are transcribed from their real sheets** (pinned by `tests/Rendering/WomensSoccerScriptTest.php` and `VolleyballScriptTest.php`); neutral-site Soccer, Basketball, Baseball, Softball and Lacrosse are still placeholder wording — port each from its sheet the same way. Templates without a division apply to every division of the sport (`ScriptTemplateRepository::findForGame`). The Script tab lists data gaps above the script (`App\Rendering\ScriptChecks`).
 
 ## Commands
 
 - Install deps: `composer install`
 - Config: copy `.env.example` to `.env` (gitignored) — DB credentials + `IMPORT_TOKEN`.
 - Migrations: `vendor/bin/phinx migrate -c config/phinx.php` — the config lives at `config/phinx.php`, **not** the default `phinx.yml`, so `-c` is always required (`rollback`, `status`, `create` too).
-- Seeds (idempotent, safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s SportsSeeder` for one). `SchoolsSeeder` just runs the team API sync, so it needs network access.
+- Seeds (safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s ScriptTemplatesSeeder` for one). `ScriptTemplatesSeeder` is the source of truth for template content and **updates existing rows**, so re-run it after editing templates. `SchoolsSeeder` just runs the team API sync, so it needs network access.
 - Sync teams from the API: `php bin/sync-teams.php` (cron-safe; the app also auto-syncs at most hourly when `/schools` or `/games/new` loads).
 - Tests: `vendor/bin/phpunit` (suite in `tests/`, covers the rendering engine and roster-URL guessing).
 - Roster scraper: `php tests/scraper/run.php [fixture ...] [--json]` replays `tests/fixtures/roster-pages/*.html` through `public/js/scraper-core.js` in headless Chrome (dev box only).
@@ -25,6 +25,8 @@ Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, a
 - `src/Routes/routes.php` — all routes; `src/Repository/` — one PDO repository per table; `src/Rendering/` — `TemplateRenderer`, `PlaceholderRegistry`, `GameContextBuilder`.
 - `templates/` — `.phtml` views wrapped by `templates/layout.phtml`.
 - `migrations/`, `seeds/` — Phinx.
+
+Sport-specific roster options are flags on `sports` (`uses_batting_order`, `uses_libero` — Volleyball's per-game Libero checkbox, read "At libero" and last), not sport-name checks in code.
 
 Players are always listed by jersey number (numeric compare on the digits, unnumbered last) — there is deliberately no manual player sort field. Coaches and officials keep a `sort_order`.
 
@@ -50,7 +52,10 @@ A companion browser bookmarklet scrapes an opponent's roster off a live roster p
 - **Sports are gender-agnostic base entities** (Soccer, Basketball, Baseball, Softball, Volleyball, Lacrosse). "Men's"/"Women's" is a `division` — a small extensible lookup attached to a sport's teams/templates, not a separate top-level sport. Adding a division (co-ed, JV, ...) must never require restructuring the sport list.
 - **One flexible template engine, not one template per sport.** Sport-specific differences (batting order vs. simple starters, role-specific officials phrasing, neutral-site framing, per-division pronouns) are expressed as **data/config** via block-based script templates, never as code forks or new schema.
 - **Script templates vary along two independent axes**: `division_id` (whose pronouns/phrasing) and `site_variant` (`home` vs. `neutral`). E.g. soccer is 3 `script_templates` rows: (Soccer, Women's, home), (Soccer, Men's, home), (Soccer, null, neutral).
-- **Template blocks** are JSON: `{type: text, content}` | `{type: placeholder, key}` | `{type: loop, over: starters|reserves|battingOrder|officials, template: [...]}`. The `loop` block generalizes every sport's per-player lineup pattern, including baseball/softball's batting-order variant.
+- **Template blocks** are JSON: `{type: text, content}` | `{type: placeholder, key}` | `{type: loop, over: starters|reserves|battingOrder|officials, template: [...]}` | `{type: when, key, equals?, then, else?}`. The `loop` block generalizes every sport's per-player lineup pattern, including baseball/softball's batting-order variant; `when` covers the sheets' `if(...)` wording switches (captain, conference, today's/tonight's, optional coach-line parts). 0 counts as set in `when` (jersey number 0).
+- **Spoken forms** (`App\Rendering\Spoken`) replace the sheets' Apps Script `FORMATPOS`/`FORMATCLASS`/`FORMATSTATE`: per-sport position words, class years ("Fy." → "first year"), state abbreviations, and names per the game's `name_display` (`name` / `pronunciation` — guide, else name; the default / `both` — "Name (GUIDE)"), chosen on the Script tab or teleprompter bar via `POST /games/{id}/name-display`. `GameContextBuilder` adds them to each player (`spokenPosition`, `spokenYear`, `spokenHometown`, `spokenName`) and derives `headCoach` (first title *starting* with "Head") and `assistantCoaches`. `GameContextBuilder::assemble()` is pure, for template tests without a DB.
+- **Short forms** (`App\Rendering\Abbreviate`, for tight layouts like the printed roster): `year()` → "Fy."/"So."/"Jr."/"Sr."/"Gr." from any spelling, `hometown()` → AP-style state ("Portland, Ore."; AP's spelled-out states and countries untouched). Both normalize through `Spoken` first.
+- **Source sheets**: the Script tab is all formulas over the Setup/Home/Away tabs — download the sheet as .xlsx (Drive connector) and read the formulas, not the Drive text view, which only samples rows.
 - **Placeholder resolvers are a static PHP registry** (key → resolver function against a render context), not a DB table — only promote to DB-editable if a future template editor genuinely needs runtime-added placeholders.
 - **The app owns its data; nothing syncs live from Google Sheets.** Rosters/coaches are edited in-app and differ every game.
 - **Rosters exist only per game** (supersedes PLAN.md's persistent-roster design, removed 2026-10-08 because the two kinds of roster confused users). Each game side gets an empty roster (`game_roster_snapshots` + `game_roster_players`/`game_roster_coaches`) filled by a roster-URL fetch, the bookmarklet, or by hand. There are no standing `players`/`coaches` tables. A `program` (school × sport × division) is internal only: games point at one per side, and it remembers that team's `roster_url` for the next game. Don't reintroduce a user-facing standing roster.
@@ -70,7 +75,7 @@ See PLAN.md's "Data model" section for full column lists. Key tables:
 
 All defined in `src/Routes/routes.php`:
 - `/` — dashboard (upcoming games); `/schools` (read-only teams from the API), `POST /schools/sync`
-- `/games`, `/games/new`, `/games/{id}` (`POST` with `_method=DELETE` deletes), `/games/{id}/officials`, `/games/{id}/roster/{home|away}` (+ `/players`, `/coaches`), `/games/{id}/script`, `/games/{id}/teleprompter`
+- `/games`, `/games/new`, `/games/{id}` (`POST` with `_method=DELETE` deletes), `POST /games/{id}/details` (time, venue, conference, special announcement), `/games/{id}/officials`, `/games/{id}/roster/{home|away}` (+ `/players`, `/coaches`), `/games/{id}/script`, `/games/{id}/teleprompter`, `/games/{id}/print` (portrait, teams side by side; `?starters=1`)
 - `/bookmarklet`, `/bookmarklet/scraper.js`, `/api/import/stage` (token-gated), `/import/review/{batchId}` (+ `/commit`, `/discard`; `?game_id=&side=` preselects)
 - Roster URL import (panel on each game roster page): `POST /programs/{programId}/roster-url`, `POST /roster/fetch` (server fetches the page, browser parses players + coaches with `scraper-core.js`, following a separate coaches page when the roster page has none), `POST /import/stage` (in-app staging → review). Bot-blocked sites fall back to the bookmarklet or pasted HTML — keep those fallbacks even though production is expected to be allowlisted by Presto.
 - Not built yet: the template editor PLAN.md describes (`/sports/{sport}/templates/{templateId}/edit`) — templates are edited via `seeds/ScriptTemplatesSeeder.php`.

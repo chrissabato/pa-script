@@ -1,5 +1,6 @@
 <?php
 $teamName = $game[$side . '_school_name'] ?? null;
+$usesLibero = !empty($game['uses_libero']);
 ?>
 <?php $gameTab = $side; require __DIR__ . '/../partials/game-nav.phtml'; ?>
 
@@ -14,21 +15,36 @@ $teamName = $game[$side . '_school_name'] ?? null;
 <?php endif; ?>
 
 <h3>Coaches</h3>
+<p class="hint">The script reads the coach titled "Head …" (or the first listed) with their pronoun and season count —
+    "in her 4th season" — and names everyone else as assistants. Changes save automatically.</p>
+<div class="table-scroll">
 <table class="roster-table">
-    <tr><th>Name</th><th>Pronunciation</th><th>Title</th><th></th></tr>
+    <tr><th>Name</th><th>Pronunciation</th><th>Title</th><th>Pronoun</th><th>Seasons</th><th>Order</th><th></th></tr>
     <?php foreach ($coaches as $coach): ?>
     <tr>
-        <td><?= htmlspecialchars($coach['name'], ENT_QUOTES) ?></td>
-        <td><?= htmlspecialchars((string) $coach['pronunciation'], ENT_QUOTES) ?></td>
-        <td><?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?></td>
-        <td>
-            <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches/<?= (int) $coach['id'] ?>" style="display:inline">
-                <button type="submit" class="button-danger" onclick="return confirm('Delete this coach?')">Delete</button>
-            </form>
-        </td>
+        <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches/<?= (int) $coach['id'] ?>" id="coach-<?= (int) $coach['id'] ?>" data-autosave>
+            <td><input type="text" name="coach" value="<?= htmlspecialchars($coach['name'], ENT_QUOTES) ?>" required></td>
+            <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $coach['pronunciation'], ENT_QUOTES) ?>"></td>
+            <td><input type="text" name="staff_role" value="<?= htmlspecialchars((string) $coach['title'], ENT_QUOTES) ?>"></td>
+            <td>
+                <select name="pronoun">
+                    <?php foreach (['' => '—', 'her' => 'her', 'his' => 'his', 'their' => 'their'] as $value => $label): ?>
+                        <option value="<?= $value ?>" <?= (string) $coach['pronoun'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td><input type="number" name="seasons" min="1" value="<?= $coach['seasons'] !== null ? (int) $coach['seasons'] : '' ?>" size="3"></td>
+            <td><input type="number" name="sort_order" value="<?= (int) $coach['sort_order'] ?>" size="3"></td>
+            <td>
+                <button type="submit" class="autosave-default" tabindex="-1">Save</button>
+                <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this coach?')">Delete</button>
+                <span class="autosave-status" data-autosave-status="coach-<?= (int) $coach['id'] ?>"></span>
+            </td>
+        </form>
     </tr>
     <?php endforeach; ?>
 </table>
+</div>
 
 <h4>Add coach</h4>
 <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/coaches">
@@ -42,25 +58,32 @@ $teamName = $game[$side . '_school_name'] ?? null;
 </form>
 
 <h3>Players</h3>
+<p class="hint">Changes save automatically — tick Starter or Captain<?= $usesLibero ? ' or Libero' : '' ?>, or edit a field and move on.<?php if ($usesLibero): ?>
+    The libero is introduced as "At libero, …" and read last.<?php endif; ?></p>
 <div class="table-scroll">
 <table class="roster-table">
     <tr>
-        <th>#</th><th class="cell-center">Starter</th><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
+        <th>#</th><th class="cell-center">Starter</th><th class="cell-center">Captain</th><?php if ($usesLibero): ?><th class="cell-center">Libero</th><?php endif; ?><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
         <th></th>
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
-        <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>">
+        <form method="post" action="/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>" id="player-<?= (int) $player['id'] ?>" data-autosave>
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
             <td class="cell-center"><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
+            <td class="cell-center"><input type="checkbox" name="is_captain" value="1" <?= $player['is_captain'] ? 'checked' : '' ?>></td>
+            <?php if ($usesLibero): ?>
+            <td class="cell-center"><input type="checkbox" name="is_libero" value="1" <?= $player['is_libero'] ? 'checked' : '' ?>></td>
+            <?php endif; ?>
             <td><input type="text" name="player" value="<?= htmlspecialchars($player['name'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="pronunciation" value="<?= htmlspecialchars((string) $player['pronunciation'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="position" value="<?= htmlspecialchars((string) $player['position'], ENT_QUOTES) ?>"></td>
             <td><input type="text" name="year" value="<?= htmlspecialchars((string) $player['year'], ENT_QUOTES) ?>" size="4"></td>
             <td><input type="text" name="hometown" value="<?= htmlspecialchars((string) $player['hometown'], ENT_QUOTES) ?>"></td>
             <td>
-                <button type="submit">Save</button>
+                <button type="submit" class="autosave-default" tabindex="-1">Save</button>
                 <button type="submit" name="_method" value="DELETE" onclick="return confirm('Delete this player?')">Delete</button>
+                <span class="autosave-status" data-autosave-status="player-<?= (int) $player['id'] ?>"></span>
             </td>
         </form>
     </tr>
@@ -83,3 +106,5 @@ $teamName = $game[$side . '_school_name'] ?? null;
 </form>
 
 <?php endif; ?>
+
+<script src="<?= htmlspecialchars($this->asset('/js/autosave.js'), ENT_QUOTES) ?>"></script>

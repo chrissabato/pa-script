@@ -161,4 +161,25 @@ class TemplateRendererTest extends TestCase
 
         self::assertSame('', $this->renderer->render($blocks, ['home' => []]));
     }
+
+    public function testWhenBlockPicksBranchByTruthinessOrEquality(): void
+    {
+        $blocks = [
+            ['type' => 'when', 'key' => 'item.is_captain', 'then' => [['type' => 'text', 'content' => 'A captain, at ']],
+                'else' => [['type' => 'text', 'content' => 'At ']]],
+            ['type' => 'when', 'key' => 'item.number', 'then' => [['type' => 'text', 'content' => '#']]],
+            ['type' => 'when', 'key' => 'meta.partOfDay', 'equals' => 'evening',
+                'then' => [['type' => 'text', 'content' => " tonight"]], 'else' => [['type' => 'text', 'content' => ' today']]],
+        ];
+
+        self::assertSame('A captain, at # today', $this->renderer->render($blocks, [
+            'item' => ['is_captain' => true, 'number' => 0],
+            'meta' => ['partOfDay' => 'morning'],
+        ]));
+        // false/missing take the else branch; jersey number 0 still counts as set.
+        self::assertSame('At  tonight', $this->renderer->render($blocks, [
+            'item' => ['is_captain' => false],
+            'meta' => ['partOfDay' => 'evening'],
+        ]));
+    }
 }

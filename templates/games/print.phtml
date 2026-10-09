@@ -1,0 +1,151 @@
+<?php
+/**
+ * Printable rosters, teams side by side (away left, home right — the
+ * source sheets' Roster tab). Screen view adds a toolbar; print hides it
+ * and the site chrome, landscape, repeating column headers across pages.
+ */
+use App\Rendering\Abbreviate;
+
+$h = function ($value): string {
+    return htmlspecialchars((string) $value, ENT_QUOTES);
+};
+$usesLibero = !empty($game['uses_libero']);
+$printUrl = '/games/' . (int) $game['id'] . '/print';
+?>
+<div class="print-toolbar">
+    <a href="/games/<?= (int) $game['id'] ?>">&larr; Back to game</a>
+    <span class="print-toolbar-filter">
+        <a href="<?= $printUrl ?>"<?= !$startersOnly ? ' class="is-active"' : '' ?>>All players</a>
+        <a href="<?= $printUrl ?>?starters=1"<?= $startersOnly ? ' class="is-active"' : '' ?>>Starters only</a>
+    </span>
+    <button type="button" onclick="window.print()">Print</button>
+</div>
+
+<div class="print-sheet">
+    <p class="print-title">
+        <?= $h($game['sport_name']) ?><?php if ($game['division_name']): ?> (<?= $h($game['division_name']) ?>)<?php endif; ?>
+        &middot; <?= $h(date('l, F j, Y', strtotime($game['date']))) ?>
+        <?php if ($game['time_of_day']): ?>&middot; <?= $h(date('g:i A', strtotime($game['time_of_day']))) ?><?php endif; ?>
+        <?php if ($game['venue']): ?>&middot; <?= $h($game['venue']) ?><?php endif; ?>
+        <?php if ($startersOnly): ?>&middot; <strong>Starters</strong><?php endif; ?>
+    </p>
+
+    <div class="print-teams">
+        <?php foreach ($teams as $team): ?>
+        <section class="print-team">
+            <header>
+                <?php if ($team['logo']): ?>
+                    <span class="print-logo"<?= preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) $team['logoBg']) ? ' style="background:' . $h($team['logoBg']) . '"' : '' ?>>
+                        <img src="<?= $h($team['logo']) ?>" alt="">
+                    </span>
+                <?php endif; ?>
+                <div class="print-team-heading">
+                <h2><?= $h(strtoupper($team['schoolName'])) ?></h2>
+                <p class="print-mascot"><?= $h(strtoupper($team['mascot'])) ?></p>
+                <?php if ($team['headCoach'] !== null): ?>
+                    <p><span class="print-label">Head Coach</span> <?= $h($team['headCoach']['name']) ?>
+                        <?php if ($team['headCoach']['pronunciation']): ?><span class="print-pron">(<?= $h($team['headCoach']['pronunciation']) ?>)</span><?php endif; ?>
+                        <?php if ($team['headCoach']['seasonsOrdinal'] !== ''): ?><span class="print-pron">· <?= $h($team['headCoach']['seasonsOrdinal']) ?> season</span><?php endif; ?>
+                    </p>
+                <?php endif; ?>
+                <?php if ($team['assistants'] !== []): ?>
+                    <p><span class="print-label">Assistants</span>
+                        <?= $h(implode(', ', array_map(function (array $c): string {
+                            return $c['name'] . ($c['pronunciation'] ? ' (' . $c['pronunciation'] . ')' : '');
+                        }, $team['assistants']))) ?>
+                    </p>
+                <?php endif; ?>
+                </div>
+            </header>
+
+            <?php if ($team['players'] === []): ?>
+                <p class="print-empty"><?= $startersOnly ? 'No starters marked.' : 'No players on this roster yet.' ?></p>
+            <?php else: ?>
+            <table class="print-roster">
+                <colgroup>
+                    <col class="col-num"><col class="col-star"><col class="col-name"><col class="col-pos"><col class="col-yr"><col class="col-home">
+                </colgroup>
+                <thead>
+                    <tr><th class="print-num">#</th><th class="print-star" title="Starter"></th><th>Name</th><th>Pos</th><th>Yr</th><th>Hometown</th></tr>
+                </thead>
+                <?php foreach ($team['players'] as $p): ?>
+                    <?php $starter = (bool) $p['is_starter'] || $p['batting_order'] !== null; ?>
+                <?php /* One tbody per player: line 1 is name/pos/yr/hometown, line 2 the
+                         pronunciation across all four, so long guides aren't cut short. */ ?>
+                <tbody class="print-player<?= $starter ? ' is-starter' : '' ?>">
+                    <tr class="print-line1">
+                        <td class="print-num" rowspan="2"><?= $h($p['number']) ?></td>
+                        <td class="print-star" rowspan="2">
+                            <?php if ($starter): ?><span title="Starter">&#9733;</span><?php endif; ?>
+                            <?php if (!empty($p['is_captain'])): ?><span class="print-badge" title="Captain">C</span><?php endif; ?>
+                            <?php if ($usesLibero && !empty($p['is_libero'])): ?><span class="print-badge" title="Libero">L</span><?php endif; ?>
+                        </td>
+                        <td class="print-name"><?= $h($p['name']) ?></td>
+                        <td class="print-cell"><?= $h($p['position']) ?></td>
+                        <td class="print-cell"><?= $h(Abbreviate::year($p['year'])) ?></td>
+                        <td class="print-cell"><?= $h(Abbreviate::hometown($p['hometown'])) ?></td>
+                    </tr>
+                    <tr class="print-line2">
+                        <td class="print-pron" colspan="4"><?= $p['pronunciation'] ? $h($p['pronunciation']) : '&nbsp;' ?></td>
+                    </tr>
+                </tbody>
+                <?php endforeach; ?>
+            </table>
+            <?php endif; ?>
+        </section>
+        <?php endforeach; ?>
+    </div>
+    <p class="print-legend">&#9733; starter &middot; C captain<?= $usesLibero ? ' &middot; L libero' : '' ?></p>
+</div>
+
+<script>
+// Fit both rosters on one page: if the sheet is taller than a printed page,
+// shrink --row (which every roster-row size scales from) just enough. The
+// on-screen sheet has the printed page's content width (8.5in less the
+// 0.4in @page margins), so its layout matches what prints.
+(function () {
+    'use strict';
+
+    var PX_PER_IN = 96;
+    var PAGE_HEIGHT = (11 - 2 * 0.4) * PX_PER_IN;   // letter portrait, @page margins
+    var SHEET_PADDING = 2 * 0.4 * PX_PER_IN;        // .print-sheet's screen padding
+    var MIN_ROW = 15 * PX_PER_IN / 72;              // 15pt: smallest still-legible row
+    var SAFETY = 6;                                 // px of slack for print rounding
+
+    var sheet = document.querySelector('.print-sheet');
+    var tables = Array.prototype.slice.call(document.querySelectorAll('.print-roster'));
+
+    function contentHeight() {
+        return sheet.getBoundingClientRect().height - SHEET_PADDING;
+    }
+
+    function fit() {
+        sheet.style.removeProperty('--row');
+        // Players per team = tbodies (one per player); the longer roster decides.
+        var players = Math.max.apply(null, tables.map(function (t) {
+            return t.tBodies.length;
+        }).concat([0]));
+        if (players === 0 || contentHeight() <= PAGE_HEIGHT - SAFETY) {
+            return;
+        }
+        // A rendered player runs a little over --row (borders, rounding), so
+        // shrink, measure, and correct — a few passes converge.
+        var row = sheet.querySelector('.print-roster tbody').getBoundingClientRect().height;
+        for (var pass = 0; pass < 4; pass++) {
+            var overflow = contentHeight() - (PAGE_HEIGHT - SAFETY);
+            if (overflow <= 0) {
+                break;
+            }
+            row = Math.max(MIN_ROW, row - overflow / players);
+            sheet.style.setProperty('--row', row + 'px');
+            if (row === MIN_ROW) {
+                break;
+            }
+        }
+    }
+
+    fit();
+    // Logos load after first layout; header heights are fixed, but refit anyway.
+    window.addEventListener('load', fit);
+})();
+</script>
