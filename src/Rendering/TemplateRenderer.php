@@ -36,6 +36,40 @@ class TemplateRenderer
     }
 
     /**
+     * The text a template reads when `key` is blank — the `else` of its
+     * `when key` block, e.g. a home template's usual venue ("Sparks Field").
+     * Null when the template has no such fallback (or it isn't plain text).
+     *
+     * @param array<int, array<string, mixed>> $blocks
+     */
+    public static function fallbackText(array $blocks, string $key): ?string
+    {
+        foreach ($blocks as $block) {
+            $type = $block['type'] ?? null;
+            if ($type === 'when' && ($block['key'] ?? null) === $key && !array_key_exists('equals', $block)) {
+                $text = '';
+                foreach ($block['else'] ?? [] as $else) {
+                    if (($else['type'] ?? null) !== 'text') {
+                        return null;
+                    }
+                    $text .= (string) ($else['content'] ?? '');
+                }
+
+                return $text !== '' ? $text : null;
+            }
+            $children = $type === 'loop'
+                ? ($block['template'] ?? [])
+                : array_merge($block['then'] ?? [], $block['else'] ?? []);
+            $found = self::fallbackText($children, $key);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * @param array<string, mixed> $block
      * @param array<string, mixed> $context
      */

@@ -182,4 +182,30 @@ class TemplateRendererTest extends TestCase
             'meta' => ['partOfDay' => 'evening'],
         ]));
     }
+
+    public function testFallbackTextFindsANestedWhenBlocksElseText(): void
+    {
+        $blocks = [
+            ['type' => 'text', 'content' => 'Welcome to '],
+            ['type' => 'when', 'key' => 'meta.isConference', 'then' => [
+                ['type' => 'when', 'key' => 'meta.venue', 'then' => [
+                    ['type' => 'placeholder', 'key' => 'meta.venue'],
+                ], 'else' => [['type' => 'text', 'content' => 'Sparks Field']]],
+            ]],
+        ];
+
+        $this->assertSame('Sparks Field', TemplateRenderer::fallbackText($blocks, 'meta.venue'));
+    }
+
+    public function testFallbackTextIsNullWithoutAFallback(): void
+    {
+        $this->assertNull(TemplateRenderer::fallbackText(
+            [['type' => 'placeholder', 'key' => 'meta.venue']],
+            'meta.venue'
+        ));
+        $this->assertNull(TemplateRenderer::fallbackText(
+            [['type' => 'when', 'key' => 'meta.venue', 'then' => [['type' => 'text', 'content' => 'x']]]],
+            'meta.venue'
+        ));
+    }
 }

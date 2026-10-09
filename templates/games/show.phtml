@@ -30,7 +30,7 @@
             <input type="time" name="time_of_day" value="<?= htmlspecialchars(substr((string) $game['time_of_day'], 0, 5), ENT_QUOTES) ?>">
         </label>
         <label>Venue
-            <input type="text" name="venue" value="<?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?>" placeholder="Sport's usual field if blank">
+            <input type="text" name="venue" value="<?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?>" placeholder="<?= $defaultVenue !== null ? htmlspecialchars($defaultVenue, ENT_QUOTES) . ' if blank' : 'No default — the script needs this' ?>">
         </label>
         <label class="inline-check"><input type="checkbox" name="is_conference" value="1" <?= $game['is_conference'] ? 'checked' : '' ?>> Conference game</label>
         <label class="inline-check"><input type="checkbox" name="no_anthem" value="1" <?= $game['has_anthem'] ? '' : 'checked' ?>> No national anthem</label>

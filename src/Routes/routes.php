@@ -258,17 +258,34 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         return $response->withHeader('Location', Url::base() . '/games')->withStatus(302);
     });
 
-    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use ($view, $games, $gameRosters, $officials) {
+    $app->get('/games/{id}', function (Request $request, Response $response, array $args) use (
+        $view,
+        $games,
+        $gameRosters,
+        $officials,
+        $scriptTemplates
+    ) {
         $game = $games->find((int) $args['id']);
         if ($game === null) {
             throw new HttpNotFoundException($request);
         }
+
+        // The venue the script reads when the field is blank, for its hint.
+        $template = $scriptTemplates->findForGame(
+            (int) $game['sport_id'],
+            $game['division_id'] !== null ? (int) $game['division_id'] : null,
+            (bool) $game['is_neutral_site']
+        );
+        $defaultVenue = $template !== null
+            ? TemplateRenderer::fallbackText((array) json_decode($template['content_blocks'], true), 'meta.venue')
+            : null;
 
         $html = $view->render('games/show', [
             'title' => 'Game — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,
             'rosterCounts' => $gameRosters->countsForGame((int) $game['id']),
             'officials' => $officials->findByGame((int) $game['id']),
+            'defaultVenue' => $defaultVenue,
         ]);
         $response->getBody()->write($html);
 
