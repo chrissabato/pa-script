@@ -1,0 +1,30 @@
+<?php
+/**
+ * Dashboard games table. Expects $dashboardGames and $showDate (false for
+ * the Today section, where every row has the same date).
+ */
+?>
+<table>
+    <tr><th></th><?php if ($showDate): ?><th>Date</th><?php endif; ?><th>Time</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th></tr>
+    <?php foreach ($dashboardGames as $game): ?>
+    <tr>
+        <td><a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>" class="button button-secondary">Open</a></td>
+        <?php if ($showDate): ?>
+        <td class="nowrap"><?= htmlspecialchars(date('l, M j', strtotime($game['date'])), ENT_QUOTES) ?></td>
+        <?php endif; ?>
+        <td class="nowrap"><?= $game['time_of_day'] ? htmlspecialchars(date('g:i A', strtotime($game['time_of_day'])), ENT_QUOTES) : '' ?></td>
+        <td>
+            <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>
+            <?php if ($game['division_name']): ?>(<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
+        </td>
+        <td>
+            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
+            vs
+            <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+            <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
+        </td>
+        <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
+        <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
+    </tr>
+    <?php endforeach; ?>
+</table>

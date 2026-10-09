@@ -102,9 +102,21 @@ return function (App $app, PDO $pdo, Renderer $view): void {
     // ---- Dashboard -------------------------------------------------------
 
     $app->get('/', function (Request $request, Response $response) use ($view, $games) {
+        $today = date('Y-m-d');
+        $todayGames = [];
+        $upcomingGames = [];
+        foreach ($games->onOrAfter($today) as $game) {
+            if ($game['date'] === $today) {
+                $todayGames[] = $game;
+            } else {
+                $upcomingGames[] = $game;
+            }
+        }
+
         $html = $view->render('home', [
             'title' => 'PA Script — Dashboard',
-            'games' => $games->onOrAfter(date('Y-m-d')),
+            'todayGames' => $todayGames,
+            'upcomingGames' => $upcomingGames,
         ]);
         $response->getBody()->write($html);
 
