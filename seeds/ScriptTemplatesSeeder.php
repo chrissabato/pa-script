@@ -330,9 +330,9 @@ class ScriptTemplatesSeeder extends AbstractSeed
      * starters + head coach, home starters + head coach, officials,
      * sportsmanship statement. The sheets differ beyond "Women's"/"Men's" —
      * only Men's has the walk-out music cue before Willamette's lineup, only
-     * Women's the closing "Willamette appreciates" line and Bearcats app
-     * plug — but both divisions get all three. Fixes vs. the
-     * sheets: typos ("enviroment", "Willamett"), a missing "a" and "the",
+     * Women's the closing "Willamette appreciates" line — but both divisions
+     * get both. The Women's sheet's Bearcats app plug is left out. Fixes vs.
+     * the sheets: typos ("enviroment"), a missing "a",
      * a stray double space, and the officials use a proper "A, B, and C" list.
      *
      * @return array<int, array<string, mixed>>
@@ -383,9 +383,6 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 $venue,
                 self::t(".\n"),
                 self::t("\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
-                self::t("\nBearcat Fans, don't forget to check in on the Willamette Bearcats app. You earn points by "
-                    . 'checking into Bearcat events and can redeem those points for various prizes. Download the app '
-                    . "now on Google Play or the Apple App Store and check in to get your points.\n"),
                 self::closingAnnouncement(),
             ]
         );

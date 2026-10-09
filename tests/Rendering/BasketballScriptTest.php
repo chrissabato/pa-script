@@ -137,7 +137,8 @@ class BasketballScriptTest extends TestCase
             "Willamette appreciates your cooperation in creating a safe and positive game environment.\n",
             $script
         );
-        self::assertStringEndsWith("Apple App Store and check in to get your points.\n", $script);
+        self::assertStringEndsWith("creating a safe and positive game environment.\n", $script);
+        self::assertStringNotContainsString('Bearcats app', $script);
         self::assertStringNotContainsString('{{', $script);
     }
 
@@ -166,7 +167,7 @@ class BasketballScriptTest extends TestCase
             . "And now for the playing of the National Anthem.\n\nBefore the game gets underway,",
             $script
         );
-        self::assertStringEndsWith("check in to get your points.\n\nDrive home safely.\n", $script);
+        self::assertStringEndsWith("positive game environment.\n\nDrive home safely.\n", $script);
 
         self::assertStringContainsString(
             "Bearcats.\n\nWelcome, Class of 1976.\n\nBefore the game gets underway,",
