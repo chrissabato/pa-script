@@ -39,7 +39,7 @@ class ProgramRepository
         join schools on schools.id = programs.school_id
         join sports on sports.id = programs.sport_id
         left join divisions on divisions.id = programs.division_id
-        SQL;
+SQL;
 
     public function find(int $id): ?array
     {

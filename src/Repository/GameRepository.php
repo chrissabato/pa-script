@@ -44,7 +44,7 @@ class GameRepository
         left join schools home_school on home_school.id = home.school_id
         left join schools away_school on away_school.id = away.school_id
         left join divisions home_division on home_division.id = home.division_id
-        SQL;
+SQL;
 
     /** @return array<int, array<string, mixed>> */
     public function upcoming(): array

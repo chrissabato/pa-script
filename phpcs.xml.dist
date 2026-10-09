@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!-- `vendor/bin/phpcs`: flags syntax/functions newer than production's PHP 7.2.
+     Dev runs a newer PHP, so `php -l` alone passes code the server can't parse. -->
+<ruleset name="pa-script">
+    <file>bin</file>
+    <file>config</file>
+    <file>migrations</file>
+    <file>public</file>
+    <file>seeds</file>
+    <file>src</file>
+    <file>templates</file>
+    <file>tests</file>
+    <arg name="extensions" value="php,phtml"/>
+    <arg value="s"/>
+    <config name="testVersion" value="7.2"/>
+    <rule ref="PHPCompatibility"/>
+</ruleset>

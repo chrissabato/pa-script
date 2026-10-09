@@ -710,7 +710,7 @@ return function (App $app, PDO $pdo, Renderer $view): void {
                   alert('Could not reach the PA Script server.');
               });
         })();
-        JS;
+JS;
 
         $js = 'var PA_SCRIPT_STAGE_URL = ' . json_encode($stageUrl, JSON_UNESCAPED_SLASHES) . ';'
             . "\n" . 'var PA_SCRIPT_IMPORT_TOKEN = ' . json_encode($provided) . ';'

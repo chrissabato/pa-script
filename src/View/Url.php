@@ -23,7 +23,11 @@ class Url
         if (isset($env['APP_BASE_PATH'])) {
             $base = (string) $env['APP_BASE_PATH'];
         } else {
-            $base = str_replace('\\', '/', dirname((string) ($server['SCRIPT_NAME'] ?? '')));
+            // Only trust SCRIPT_NAME when it names the front controller:
+            // PHP's built-in server reports the request path instead for
+            // extension-looking URLs (/bookmarklet/scraper.js).
+            $script = str_replace('\\', '/', (string) ($server['SCRIPT_NAME'] ?? ''));
+            $base = basename($script) === 'index.php' ? dirname($script) : '';
         }
 
         return rtrim($base, '/.');

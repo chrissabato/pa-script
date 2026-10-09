@@ -15,7 +15,7 @@ Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, a
 - Sync teams from the API: `php bin/sync-teams.php` (cron-safe; the app also auto-syncs at most hourly when `/schools` or `/games/new` loads).
 - Tests: `vendor/bin/phpunit` (suite in `tests/`, covers the rendering engine and roster-URL guessing).
 - Roster scraper: `php tests/scraper/run.php [fixture ...] [--json]` replays `tests/fixtures/roster-pages/*.html` through `public/js/scraper-core.js` in headless Chrome (dev box only).
-- Lint a file: `php -l path/to/file.php`
+- Lint a file: `php -l path/to/file.php` — but dev runs PHP 8.3, so also run `vendor/bin/phpcs` (PHPCompatibility, `phpcs.xml.dist`), which flags anything newer than production's PHP 7.2 (e.g. indented heredoc closing markers broke the first deploy).
 - Dev server: `php -S localhost:8000 -t public public/index.php` — the explicit router script is required, otherwise PHP's built-in server 404s extension-looking URLs before they reach Slim. On the shared dev box it already runs as the `pa-script-dev.service` systemd unit on port 8002, against the `pa-script-postgres` Docker container; check those before starting anything new.
 
 ## Code layout
