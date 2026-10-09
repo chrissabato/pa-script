@@ -395,12 +395,14 @@ return function (App $app, PDO $pdo, Renderer $view): void {
         }
         $data = (array) $request->getParsedBody();
         $announcement = trim((string) ($data['special_announcement'] ?? ''));
+        $closing = trim((string) ($data['closing_announcement'] ?? ''));
         $games->updateDetails((int) $game['id'], [
             'time_of_day' => ($data['time_of_day'] ?? '') !== '' ? $data['time_of_day'] : null,
             'venue' => trim((string) ($data['venue'] ?? '')) !== '' ? trim((string) $data['venue']) : null,
             'is_conference' => PgType::boolToString(!empty($data['is_conference'])),
             'has_anthem' => PgType::boolToString(empty($data['no_anthem'])),
             'special_announcement' => $announcement !== '' ? $announcement : null,
+            'closing_announcement' => $closing !== '' ? $closing : null,
         ]);
 
         return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'])->withStatus(302);

@@ -72,6 +72,7 @@ class GameContextBuilder
                 // Games predating the has_anthem column (or test fixtures) have one.
                 'hasAnthem' => (bool) ($game['has_anthem'] ?? true),
                 'specialAnnouncement' => trim((string) ($game['special_announcement'] ?? '')),
+                'closingAnnouncement' => trim((string) ($game['closing_announcement'] ?? '')),
             ],
         ];
     }

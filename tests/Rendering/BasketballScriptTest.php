@@ -62,11 +62,12 @@ class BasketballScriptTest extends TestCase
         return ['id' => $id, 'name' => $name, 'pronunciation' => null, 'title' => $title, 'pronoun' => $pronoun, 'seasons' => $seasons, 'sort_order' => $id];
     }
 
-    private function render(string $divisionLabel, bool $hasAnthem = true): string
+    private function render(string $divisionLabel, bool $hasAnthem = true, ?string $special = null, ?string $closing = null): string
     {
         $game = [
             'id' => 1, 'sport_slug' => 'basketball', 'time_of_day' => '19:00:00', 'is_conference' => true,
-            'venue' => null, 'special_announcement' => null, 'has_anthem' => $hasAnthem,
+            'venue' => null, 'special_announcement' => $special, 'closing_announcement' => $closing,
+            'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
             'away_school_name' => 'Pacific University', 'away_short_name' => 'Pacific', 'away_mascot' => 'Boxers',
         ];
@@ -153,6 +154,23 @@ class BasketballScriptTest extends TestCase
         self::assertStringContainsString(
             "and the Willamette University Bearcats.\n\nBefore the game gets underway,",
             $this->render("Women's", false)
+        );
+    }
+
+    public function testAnnouncementsBeforeAnthemAndAtTheEnd(): void
+    {
+        $script = $this->render("Women's", true, 'Welcome, Class of 1976.', 'Drive home safely.');
+
+        self::assertStringContainsString(
+            "and the Willamette University Bearcats.\n\nWelcome, Class of 1976.\n\n"
+            . "And now for the playing of the National Anthem.\n\nBefore the game gets underway,",
+            $script
+        );
+        self::assertStringEndsWith("check in to get your points.\n\nDrive home safely.\n", $script);
+
+        self::assertStringContainsString(
+            "Bearcats.\n\nWelcome, Class of 1976.\n\nBefore the game gets underway,",
+            $this->render("Women's", false, 'Welcome, Class of 1976.')
         );
     }
 }

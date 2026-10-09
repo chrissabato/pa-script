@@ -36,8 +36,13 @@
         <label class="inline-check"><input type="checkbox" name="no_anthem" value="1" <?= $game['has_anthem'] ? '' : 'checked' ?>> No national anthem</label>
     </p>
     <p class="stacked-fields">
-        <label class="wide">Special announcement <span class="hint">(read after the welcome, before the visitors' starters)</span>
+        <label class="wide">Special announcement <span class="hint">(read just before the national anthem)</span>
             <textarea name="special_announcement" rows="2"><?= htmlspecialchars((string) $game['special_announcement'], ENT_QUOTES) ?></textarea>
+        </label>
+    </p>
+    <p class="stacked-fields">
+        <label class="wide">Closing announcement <span class="hint">(read at the end of the script)</span>
+            <textarea name="closing_announcement" rows="2"><?= htmlspecialchars((string) $game['closing_announcement'], ENT_QUOTES) ?></textarea>
         </label>
     </p>
     <p class="hint">

@@ -113,8 +113,8 @@ SQL;
     /**
      * The script-facing details editable on a game's Overview: time (drives
      * "Good morning/afternoon/evening"), venue, conference game, whether the
-     * anthem is played, and the optional special announcement read before
-     * the visitor intro.
+     * anthem is played, and the optional special (before the anthem) and
+     * closing (end of the script) announcements.
      *
      * @param array<string, mixed> $data
      */
@@ -122,7 +122,8 @@ SQL;
     {
         $stmt = $this->pdo->prepare(
             'update games set time_of_day = :time_of_day, venue = :venue, is_conference = :is_conference, '
-            . 'has_anthem = :has_anthem, special_announcement = :special_announcement, updated_at = current_timestamp where id = :id'
+            . 'has_anthem = :has_anthem, special_announcement = :special_announcement, '
+            . 'closing_announcement = :closing_announcement, updated_at = current_timestamp where id = :id'
         );
         $stmt->execute(array_merge(['id' => $id], $data));
     }

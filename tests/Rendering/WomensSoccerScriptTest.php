@@ -170,6 +170,7 @@ class WomensSoccerScriptTest extends TestCase
             'is_conference' => false,
             'venue' => 'McCulloch Stadium',
             'special_announcement' => 'Please welcome back our 2016 conference champions.',
+            'closing_announcement' => 'Drive home safely.',
         ], [], [['name' => 'Ana Ortiz'], ['name' => 'Ben Cole'], ['name' => 'Cy Dunn']]);
 
         self::assertStringStartsWith(
@@ -178,9 +179,11 @@ class WomensSoccerScriptTest extends TestCase
             $script
         );
         self::assertStringContainsString(
-            "let's meet the starters.\n\nPlease welcome back our 2016 conference champions.\n\nFirst for the visitors",
+            "Ana Ortiz, Ben Cole, and Cy Dunn.\n\nPlease welcome back our 2016 conference champions.\n"
+            . "\nAnd now the playing of the National Anthem.\n",
             $script
         );
+        self::assertStringEndsWith("game environment.\n\nDrive home safely.\n", $script);
         self::assertStringContainsString("The officials for tonight's game are Ana Ortiz, Ben Cole, and Cy Dunn.\n", $script);
         self::assertStringContainsString('grounds for removal from McCulloch Stadium.', $script);
     }
