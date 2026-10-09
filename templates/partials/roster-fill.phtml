@@ -19,15 +19,61 @@
         <button type="submit">Find missing details</button>
     </form>
     <p class="hint">
-        Upload a PDF or Word (.docx) file and Gemini looks for what's blank below — pronunciations, coaches' seasons,
+        Drop a PDF or Word (.docx) file here, or choose one, and Gemini looks for what's blank below — pronunciations, coaches' seasons,
         positions, years, hometowns. You review every suggestion before anything is saved, and filled-in fields are never changed.
     </p>
     <script>
-        document.querySelector('.roster-fill-form').addEventListener('submit', function (e) {
-            var button = e.target.querySelector('button');
-            button.disabled = true;
-            button.textContent = 'Reading the document…';
-        });
+        (function () {
+            var panel = document.querySelector('.roster-fill');
+            var form = panel.querySelector('.roster-fill-form');
+            var input = form.querySelector('input[type=file]');
+            var button = form.querySelector('button');
+            var submitting = false;
+
+            function submit() {
+                if (submitting) {
+                    return;
+                }
+                submitting = true;
+                button.disabled = true;
+                button.textContent = 'Reading the document…';
+                form.submit();
+            }
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                if (input.files.length) {
+                    submit();
+                }
+            });
+
+            // Drop a file anywhere on the panel: it goes into the file input
+            // and uploads straight away.
+            var depth = 0;
+            panel.addEventListener('dragenter', function (e) {
+                e.preventDefault();
+                depth++;
+                panel.classList.add('is-dragover');
+            });
+            panel.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'copy';
+            });
+            panel.addEventListener('dragleave', function () {
+                if (--depth === 0) {
+                    panel.classList.remove('is-dragover');
+                }
+            });
+            panel.addEventListener('drop', function (e) {
+                e.preventDefault();
+                depth = 0;
+                panel.classList.remove('is-dragover');
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    submit();
+                }
+            });
+        })();
     </script>
     <?php endif; ?>
 </section>
