@@ -147,25 +147,29 @@ class TeamApiSync
     /** @return array<int, array<string, mixed>> */
     private function fetchTeams(): array
     {
-        $context = stream_context_create([
-            'http' => ['timeout' => 10, 'header' => "Accept: application/json\r\n", 'ignore_errors' => true],
-        ]);
-        // Trailing slash matters: without it the API redirects first.
-        $body = @file_get_contents($this->baseUrl . '/', false, $context);
-        if ($body === false) {
-            $error = error_get_last();
-            throw new RuntimeException(
-                'Could not reach the team API at ' . $this->baseUrl . '/'
-                . ($error !== null ? ': ' . preg_replace('/^file_get_contents\([^)]*\): /', '', $error['message']) : '.')
-            );
+        // curl, not file_get_contents: the production PHP has no https://
+        // stream wrapper (no openssl extension), but does have curl.
+        if (!function_exists('curl_init')) {
+            throw new RuntimeException('The server is missing the PHP curl extension, so it cannot reach the team API.');
         }
 
-        $status = 0;
-        foreach ($http_response_header ?? [] as $header) {
-            if (preg_match('#^HTTP/\S+\s+(\d{3})#', $header, $m)) {
-                $status = (int) $m[1];
-            }
+        // Trailing slash matters: without it the API redirects first.
+        $ch = curl_init($this->baseUrl . '/');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+        $body = curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if (!is_string($body)) {
+            throw new RuntimeException('Could not reach the team API at ' . $this->baseUrl . '/: ' . $error);
         }
+
         $data = json_decode($body, true);
         if ($status !== 200 || !is_array($data) || !isset($data['teams']) || !is_array($data['teams'])) {
             throw new RuntimeException('Unexpected response from the team API (HTTP ' . $status . ').');
