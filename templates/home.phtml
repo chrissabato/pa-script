@@ -5,9 +5,10 @@
     <p><em>No upcoming games scheduled.</em></p>
 <?php else: ?>
 <table>
-    <tr><th>Date</th><th>Time</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th><th></th></tr>
+    <tr><th></th><th>Date</th><th>Time</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th></tr>
     <?php foreach ($games as $game): ?>
     <tr>
+        <td><a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>" class="button button-secondary">Open</a></td>
         <td class="nowrap"><?= htmlspecialchars(date('l, M j', strtotime($game['date'])), ENT_QUOTES) ?></td>
         <td class="nowrap"><?= $game['time_of_day'] ? htmlspecialchars(date('g:i A', strtotime($game['time_of_day'])), ENT_QUOTES) : '' ?></td>
         <td>
@@ -22,11 +23,6 @@
         </td>
         <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
         <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
-        <td class="nowrap">
-            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>">Open</a> ·
-            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/script">Script</a> ·
-            <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/teleprompter">Teleprompter</a>
-        </td>
     </tr>
     <?php endforeach; ?>
 </table>
