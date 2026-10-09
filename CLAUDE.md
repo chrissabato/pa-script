@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, all six sports, teleprompter, bookmarklet + import pipeline); Phase 6 (deploy to RHEL) is next. `PLAN.md` remains the authoritative spec; this file summarizes its key decisions. Script template wording: **Women's/Men's Soccer (home) and Volleyball are transcribed from their real sheets** (pinned by `tests/Rendering/WomensSoccerScriptTest.php` and `VolleyballScriptTest.php`); neutral-site Soccer, Basketball, Baseball, Softball and Lacrosse are still placeholder wording — port each from its sheet the same way. Templates without a division apply to every division of the sport (`ScriptTemplateRepository::findForGame`). The Script tab lists data gaps above the script (`App\Rendering\ScriptChecks`).
+Build phases 1–6 of `PLAN.md` are done: the app is live at https://athletics.willamette.edu/pa (deployed 2026-10-08). Production: repo at `/www/athletics.willamette.edu/repos/pa-script`, `public/` symlinked to `htdocs/pa`, Apache + mod_php **PHP 7.2.24** (no openssl/https stream wrapper — use curl for outbound HTTP), **Postgres 9.3.25** (no jsonb, ON CONFLICT, FILTER, `ADD COLUMN IF NOT EXISTS`, …), shared `athletics` database with this app in schema `pa_script`. Update with `git pull`, `composer install --no-dev --optimize-autoloader`, `phinx migrate` (+ `seed:run -s ScriptTemplatesSeeder` after template changes). Error log: `/var/log/httpd/athletics.willamette.edu_error_ssl.log`. `PLAN.md` remains the authoritative spec; this file summarizes its key decisions. Script template wording: **Women's/Men's Soccer (home) and Volleyball are transcribed from their real sheets** (pinned by `tests/Rendering/WomensSoccerScriptTest.php` and `VolleyballScriptTest.php`); neutral-site Soccer, Basketball, Baseball, Softball and Lacrosse are still placeholder wording — port each from its sheet the same way. Templates without a division apply to every division of the sport (`ScriptTemplateRepository::findForGame`). The Script tab lists data gaps above the script (`App\Rendering\ScriptChecks`).
 
 ## Commands
 
@@ -93,10 +93,9 @@ Follow PLAN.md's phased build order: (1) scaffolding — Composer/Slim/Phinx wir
 
 ## Dev environment vs. production
 
-**The current build/dev environment is not the production RHEL server** and will have tools, PHP extensions, and versions production does not. Don't assume something works in production just because it works here — verify anything environment-sensitive (PHP extensions, CLI tools, PHP/Postgres versions, Composer packages with native extension dependencies) against the actual RHEL server, especially before Build phase 6 (deploy).
+**The current build/dev environment is not the production RHEL server** and will have tools, PHP extensions, and versions production does not. Don't assume something works in production just because it works here — verify anything environment-sensitive (PHP extensions, CLI tools, PHP/Postgres versions, Composer packages with native extension dependencies) against the actual RHEL server — see the production versions under Project status. Dev runs PHP 8.3 and Postgres 15, so run `vendor/bin/phpcs` and avoid post-9.3 SQL.
 
 ## Open items flagged in the plan (confirm before relying on assumptions here)
 
-- Exact PHP patch version and enabled extensions on the target RHEL server (roster URL fetch needs `curl`).
 - The soccer `Setup` tab's full field list beyond Home/Away team name + game time was never fully retrieved from the source sheet.
 - The meaning of the second 1/0 roster flag column (beyond the "starter" flag) is unconfirmed — needs checking in the live Sheets UI, not the plain-text export.
