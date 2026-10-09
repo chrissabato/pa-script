@@ -25,13 +25,21 @@ $gameTabs = [
         <span class="game-header-vs">vs</span>
         <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
     </h2>
-    <p class="game-header-meta">
+    <div class="game-header-meta">
         <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?><?php if ($game['division_name']): ?> (<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
         &middot; <?= htmlspecialchars(date('l, M j, Y', strtotime($game['date'])), ENT_QUOTES) ?>
         <?php if ($game['venue']): ?>&middot; <?= htmlspecialchars($game['venue'], ENT_QUOTES) ?><?php endif; ?>
         <?php if ($game['is_neutral_site']): ?>&middot; neutral site<?php endif; ?>
-        <span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span>
-    </p>
+        <form method="post" action="<?= htmlspecialchars($gameUrl . '/status', ENT_QUOTES) ?>" class="game-status-form">
+            <select name="status" aria-label="Game status" onchange="this.form.submit()"
+                    class="game-status badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>">
+                <?php foreach (\App\Repository\GameRepository::STATUSES as $value => $label): ?>
+                    <option value="<?= $value ?>" <?= $game['status'] === $value ? 'selected' : '' ?>><?= $label ?></option>
+                <?php endforeach; ?>
+            </select>
+            <noscript><button type="submit">Set</button></noscript>
+        </form>
+    </div>
     <nav class="game-tabs" aria-label="Game sections">
         <?php foreach ($gameTabs as $key => [$label, $href]): ?>
             <a href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"<?= $key === $gameTab ? ' class="is-active" aria-current="page"' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></a>

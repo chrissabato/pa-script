@@ -111,6 +111,18 @@ SQL;
     }
 
     /** 'name', 'pronunciation' or 'both' — see App\Rendering\Spoken::name(). */
+    /** Game statuses, value => label: set in the game header, shown as a badge in game lists. */
+    public const STATUSES = ['draft' => 'Draft', 'ready' => 'Ready'];
+
+    public function updateStatus(int $id, string $status): void
+    {
+        if (!isset(self::STATUSES[$status])) {
+            throw new \InvalidArgumentException('Unknown game status ' . $status);
+        }
+        $stmt = $this->pdo->prepare('update games set status = :status, updated_at = current_timestamp where id = :id');
+        $stmt->execute(['id' => $id, 'status' => $status]);
+    }
+
     public function updateNameDisplay(int $id, string $nameDisplay): void
     {
         $stmt = $this->pdo->prepare(

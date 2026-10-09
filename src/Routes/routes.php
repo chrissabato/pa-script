@@ -533,6 +533,21 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
             ->withStatus(302);
     });
 
+    // Draft / Ready, from the game header on any game tab; returns to that tab.
+    $app->post('/games/{id}/status', function (Request $request, Response $response, array $args) use ($games) {
+        $game = $games->find((int) $args['id']);
+        if ($game === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $status = (string) (((array) $request->getParsedBody())['status'] ?? '');
+        if (isset(GameRepository::STATUSES[$status])) {
+            $games->updateStatus((int) $game['id'], $status);
+        }
+        $back = $request->getHeaderLine('Referer');
+
+        return $response->withHeader('Location', $back !== '' ? $back : Url::to('/games/' . (int) $game['id']))->withStatus(302);
+    });
+
     // Script/teleprompter name display (Name / Pronunciation / both);
     // returns to whichever of the two pages it was changed on.
     $app->post('/games/{id}/name-display', function (
