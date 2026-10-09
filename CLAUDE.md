@@ -9,7 +9,7 @@ Build phases 1–5 of `PLAN.md` are implemented (scaffolding, template engine, a
 ## Commands
 
 - Install deps: `composer install`
-- Config: copy `.env.example` to `.env` (gitignored) — DB credentials + `IMPORT_TOKEN`.
+- Config: copy `.env.example` to `.env` (gitignored) — DB credentials + `IMPORT_TOKEN`. Production reads DB credentials from the server's shared `/www/athletics.willamette.edu/creds.pgsql.json` (`DB_CREDS_FILE`) and keeps its tables in their own schema of that shared database (`DB_SCHEMA=pa_script`; `App\Database\Config`, used by both the app and Phinx, which creates the schema on first run). Dev uses the `DB_*` vars and `public`.
 - Migrations: `vendor/bin/phinx migrate -c config/phinx.php` — the config lives at `config/phinx.php`, **not** the default `phinx.yml`, so `-c` is always required (`rollback`, `status`, `create` too).
 - Seeds (safe to re-run): `vendor/bin/phinx seed:run -c config/phinx.php` (or `-s ScriptTemplatesSeeder` for one). `ScriptTemplatesSeeder` is the source of truth for template content and **updates existing rows**, so re-run it after editing templates. `SchoolsSeeder` just runs the team API sync, so it needs network access.
 - Sync teams from the API: `php bin/sync-teams.php` (cron-safe; the app also auto-syncs at most hourly when `/schools` or `/games/new` loads).
