@@ -25,6 +25,11 @@ class Spoken
             'm' => 'midfield', 'mf' => 'midfield', 'mid' => 'midfield', 'midfielder' => 'midfield',
             'f' => 'forward', 'fw' => 'forward', 'fwd' => 'forward', 'forward' => 'forward',
         ],
+        'basketball' => [
+            'g' => 'guard', 'pg' => 'guard', 'sg' => 'guard', 'guard' => 'guard',
+            'f' => 'forward', 'sf' => 'forward', 'pf' => 'forward', 'forward' => 'forward',
+            'w' => 'wing', 'wing' => 'wing', 'c' => 'center', 'p' => 'post', 'post' => 'post', 'center' => 'center',
+        ],
         // As the Volleyball sheet reads them ("OH" is "outside", not
         // "outside hitter"). The match's libero is normally ticked on the
         // roster page (is_libero); a listed position of "L" reads the same.

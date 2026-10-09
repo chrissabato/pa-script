@@ -10,10 +10,11 @@ use Phinx\Seed\AbstractSeed;
  * PLAN.md's Phase 3 notes). Safe to re-run: this file is the source of
  * truth for template content, so existing rows are updated in place.
  *
- * Wording status: Women's and Men's Soccer (home) and Volleyball are
- * transcribed from their real sheets' Script-tab formulas (verified by
- * tests/Rendering/WomensSoccerScriptTest.php and VolleyballScriptTest.php;
- * the two soccer sheets differ only in "Women's"/"Men's"). Every other
+ * Wording status: Women's and Men's Soccer (home), Basketball and
+ * Volleyball are transcribed from their real sheets' Script-tab formulas
+ * (verified by tests/Rendering/WomensSoccerScriptTest.php,
+ * BasketballScriptTest.php and VolleyballScriptTest.php; the two soccer
+ * sheets differ only in "Women's"/"Men's"). Every other
  * template is still placeholder wording with the right structure — port
  * each from its sheet the same way before relying on it for a broadcast.
  */
@@ -68,7 +69,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => $womensId,
                 'site_variant' => 'home',
                 'name' => "Basketball — Women's — Home",
-                'content_blocks' => json_encode($this->basketballHomeBlocks('women')),
+                'content_blocks' => json_encode($this->basketballHomeBlocks("Women's")),
                 'version' => 1,
             ],
             [
@@ -76,7 +77,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => $mensId,
                 'site_variant' => 'home',
                 'name' => "Basketball — Men's — Home",
-                'content_blocks' => json_encode($this->basketballHomeBlocks('men')),
+                'content_blocks' => json_encode($this->basketballHomeBlocks("Men's")),
                 'version' => 1,
             ],
             [
@@ -308,6 +309,69 @@ class ScriptTemplatesSeeder extends AbstractSeed
         );
     }
 
+    // ---- Basketball (real sheet wording) -----------------------------------
+
+    /**
+     * Transcribed from the "PA Script - Women's Basketball" and "PA Script -
+     * Men's Basketball" sheets' Script tabs: welcome + anthem, visitors'
+     * starters + head coach, home starters + head coach, officials,
+     * sportsmanship statement. The sheets differ beyond "Women's"/"Men's" —
+     * only Men's has the walk-out music cue before Willamette's lineup, only
+     * Women's the closing "Willamette appreciates" line and Bearcats app
+     * plug — but both divisions get all three. Fixes vs. the
+     * sheets: typos ("enviroment", "Willamett"), a missing "a" and "the",
+     * a stray double space, and the officials use a proper "A, B, and C" list.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function basketballHomeBlocks(string $divisionLabel): array
+    {
+        $venue = self::venueOr('Cone Field House');
+
+        return array_merge(
+            [
+                self::t('Good '), self::p('meta.partOfDay'),
+                self::t(" and welcome to Willamette University's "), $venue,
+                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
+                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
+                self::t(" {$divisionLabel} Basketball game between the "),
+                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
+                self::t(' and the '),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::t(". And now for the playing of the National Anthem.\n\n"),
+                self::t("Before the game gets underway, let's meet the starting lineups.\n\n"),
+                self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
+                self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
+            ],
+            $this->starterLines('away'),
+            $this->headCoachLine('away'),
+            [
+                self::t("\n[START Joker and the Thief]\n"),
+                self::t("\nAnd now, the starting lineup for the "),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'), self::t("\n"),
+            ],
+            $this->starterLines('home'),
+            $this->headCoachLine('home'),
+            [
+                self::when('officials', [
+                    self::t("\nThe officials for "), self::todayOrTonight(),
+                    self::t(' game are '), self::p('officials.joinedList'), self::t(".\n"),
+                ]),
+                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
+                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
+                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
+                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
+                    . 'not be tolerated and are grounds for removal from '),
+                $venue,
+                self::t(".\n"),
+                self::t("\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+                self::t("\nBearcat Fans, don't forget to check in on the Willamette Bearcats app. You earn points by "
+                    . 'checking into Bearcat events and can redeem those points for various prizes. Download the app '
+                    . "now on Google Play or the Apple App Store and check in to get your points.\n"),
+            ]
+        );
+    }
+
     // ---- Shared lineup lines ---------------------------------------------
 
     /**
@@ -376,33 +440,6 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 ['type' => 'text', 'content' => ".\n\n"],
             ],
             $this->coachAndLineupBlocks(),
-            $this->officialsAnthemPsaBlocks()
-        );
-    }
-
-    /**
-     * Basketball has no neutral-site variant (only Women's/Men's home sheets
-     * were read) and, unlike Soccer, announces reserves.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function basketballHomeBlocks(string $gender): array
-    {
-        $teamAdjective = $gender === 'women' ? "Women's" : "Men's";
-
-        return array_merge(
-            [
-                ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
-                ['type' => 'placeholder', 'key' => 'meta.venue'],
-                ['type' => 'text', 'content' => " for today's Willamette {$teamAdjective} Basketball game, as your "],
-                ['type' => 'placeholder', 'key' => 'home.mascot'],
-                ['type' => 'text', 'content' => ' take on the '],
-                ['type' => 'placeholder', 'key' => 'away.mascot'],
-                ['type' => 'text', 'content' => ' from '],
-                ['type' => 'placeholder', 'key' => 'away.schoolName'],
-                ['type' => 'text', 'content' => ".\n\n"],
-            ],
-            $this->coachAndLineupBlocks(true),
             $this->officialsAnthemPsaBlocks()
         );
     }
