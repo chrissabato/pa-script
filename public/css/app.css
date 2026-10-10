@@ -699,6 +699,33 @@ main ul { padding-left: 1.3rem; }
     .print-sheet { max-width: none; padding: 0; box-shadow: none; }
     .print-roster thead { display: table-header-group; }
     .print-roster tbody.print-player { break-inside: avoid; }
+
+    /* Script tab: just the matchup line and the script text — no site
+       chrome, tabs, toolbar or data-gap warnings. */
+    body.script-page { background: #fff; color: #000; }
+    body.script-page .site-header,
+    body.script-page .game-header-crumb,
+    body.script-page .game-status-form,
+    body.script-page .game-tabs,
+    body.script-page .script-toolbar,
+    body.script-page .script-checks,
+    body.script-page .script-custom-notice { display: none; }
+    body.script-page main { max-width: none; margin: 0; padding: 0; }
+    body.script-page .game-header { margin-bottom: 12pt; padding-bottom: 6pt; border-bottom: 1px solid #000; }
+    body.script-page .game-header h2 { font-size: 16pt; margin: 0 0 2pt; }
+    body.script-page .game-header-meta { margin: 0; color: #000; font-size: 10pt; }
+    body.script-page .script-text {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background: none;
+        font-size: 13pt;
+        line-height: 1.6;
+        orphans: 3;
+        widows: 3;
+    }
 }
 
 /* Printed roster: alternate rows light gray. Browsers drop background

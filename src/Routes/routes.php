@@ -720,6 +720,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         $isCustomized = $game['custom_script'] !== null;
 
         $html = $view->render('games/script', [
+            'bodyClass' => 'script-page',
             'scriptChecks' => $scriptChecks,
             'title' => 'Script — ' . $game['home_school_name'] . ' vs ' . $game['away_school_name'],
             'game' => $game,

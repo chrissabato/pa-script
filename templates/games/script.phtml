@@ -20,6 +20,7 @@
             <a href="<?= $scriptUrl ?>/customize" class="button button-secondary">Customize script</a>
             <?php $nameDisplayReturnTo = 'script'; require __DIR__ . '/../partials/name-display.phtml'; ?>
         <?php endif; ?>
+        <button type="button" class="button-secondary" onclick="window.print()">Print script</button>
     </div>
     <?php if ($scriptChecks !== [] && !$isCustomized): ?>
     <div class="script-checks">
