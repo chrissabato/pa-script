@@ -127,13 +127,16 @@ class Spoken
         'both' => 'Name + Pronunciation',
     ];
 
+    /** A new game's name_display (also the games column's default). */
+    public const DEFAULT_NAME_DISPLAY = 'both';
+
     /**
      * A person's name as the script shows it (a game's name_display):
      * 'name' — "Siera Edwards"; 'pronunciation' — "SEE-era ED-werds", or the
      * name when there's no guide; 'both' — "Siera Edwards (SEE-era
      * ED-werds)", just the name when there's no guide or it's the same.
      */
-    public static function name(array $person, string $display = 'pronunciation'): string
+    public static function name(array $person, string $display = self::DEFAULT_NAME_DISPLAY): string
     {
         $name = trim((string) ($person['name'] ?? ''));
         $pronunciation = trim((string) ($person['pronunciation'] ?? ''));

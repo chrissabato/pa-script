@@ -65,7 +65,8 @@ class BasketballScriptTest extends TestCase
     private function render(string $divisionLabel, bool $hasAnthem = true, ?string $special = null, ?string $closing = null): string
     {
         $game = [
-            'id' => 1, 'sport_slug' => 'basketball', 'time_of_day' => '19:00:00', 'is_conference' => true,
+            'id' => 1, 'sport_slug' => 'basketball', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'time_of_day' => '19:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => $special, 'closing_announcement' => $closing,
             'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',

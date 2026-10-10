@@ -53,7 +53,7 @@ class GameContextBuilder
     {
         $partOfDay = Spoken::partOfDay($game['time_of_day'] ?? null);
         $sportSlug = (string) ($game['sport_slug'] ?? '');
-        $nameDisplay = (string) ($game['name_display'] ?? 'pronunciation');
+        $nameDisplay = (string) ($game['name_display'] ?? Spoken::DEFAULT_NAME_DISPLAY);
 
         return [
             'home' => self::sideContext($game, 'home', $sportSlug, $nameDisplay, $rosters['home']['players'], $rosters['home']['coaches']),

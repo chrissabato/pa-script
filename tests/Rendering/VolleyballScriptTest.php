@@ -64,7 +64,8 @@ class VolleyballScriptTest extends TestCase
     private function render(array $homePlayers, array $awayPlayers = [], array $officials = [], bool $hasAnthem = true): string
     {
         $game = [
-            'id' => 1, 'sport_slug' => 'volleyball', 'time_of_day' => '11:00:00', 'is_conference' => true,
+            'id' => 1, 'sport_slug' => 'volleyball', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'time_of_day' => '11:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => 'Welcome, Class of 1976.', 'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
             'away_school_name' => 'Lewis & Clark College', 'away_short_name' => 'Lewis & Clark', 'away_mascot' => 'River Otters',

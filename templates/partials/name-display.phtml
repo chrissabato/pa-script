@@ -10,7 +10,7 @@
     <label>Names
         <select name="name_display" onchange="this.form.submit()">
             <?php foreach (\App\Rendering\Spoken::NAME_DISPLAYS as $value => $label): ?>
-                <option value="<?= $value ?>" <?= ($game['name_display'] ?? 'pronunciation') === $value ? 'selected' : '' ?>><?= $label ?></option>
+                <option value="<?= $value ?>" <?= ($game['name_display'] ?? \App\Rendering\Spoken::DEFAULT_NAME_DISPLAY) === $value ? 'selected' : '' ?>><?= $label ?></option>
             <?php endforeach; ?>
         </select>
     </label>
