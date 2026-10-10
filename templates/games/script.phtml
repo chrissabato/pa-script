@@ -20,7 +20,6 @@
             <a href="<?= $scriptUrl ?>/customize" class="button button-secondary">Customize script</a>
             <?php $nameDisplayReturnTo = 'script'; require __DIR__ . '/../partials/name-display.phtml'; ?>
         <?php endif; ?>
-        <button type="button" class="button-secondary" onclick="window.print()">Print script</button>
     </div>
     <?php if ($scriptChecks !== [] && !$isCustomized): ?>
     <div class="script-checks">
@@ -33,4 +32,10 @@
     </div>
     <?php endif; ?>
     <pre class="script-text"><?= htmlspecialchars($renderedScript, ENT_QUOTES) ?></pre>
+    <?php if ($autoPrint): ?>
+        <script>
+            history.replaceState(null, '', location.pathname);
+            window.addEventListener('load', function () { window.print(); });
+        </script>
+    <?php endif; ?>
 <?php endif; ?>

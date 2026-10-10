@@ -727,6 +727,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
             'renderedScript' => $isCustomized ? $game['custom_script'] : $renderedScript,
             'missingTemplateReason' => $isCustomized ? null : $missingTemplateReason,
             'isCustomized' => $isCustomized,
+            'autoPrint' => ($request->getQueryParams()['print'] ?? '') === '1',
         ]);
         $response->getBody()->write($html);
 

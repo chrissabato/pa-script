@@ -45,6 +45,8 @@ $gameTabs = [
             <a href="<?= htmlspecialchars($href, ENT_QUOTES) ?>"<?= $key === $gameTab ? ' class="is-active" aria-current="page"' : '' ?>><?= htmlspecialchars($label, ENT_QUOTES) ?></a>
         <?php endforeach; ?>
         <a href="<?= htmlspecialchars($gameUrl . '/print', ENT_QUOTES) ?>" class="game-tabs-launch button button-secondary">Print rosters</a>
+        <?php /* From other tabs, open the Script tab and print there (?print=1). */ ?>
+        <a href="<?= htmlspecialchars($gameUrl . '/script?print=1', ENT_QUOTES) ?>" class="game-tabs-launch-next button button-secondary"<?= $gameTab === 'script' ? ' onclick="window.print(); return false;"' : '' ?>>Print script</a>
         <a href="<?= htmlspecialchars($gameUrl . '/teleprompter', ENT_QUOTES) ?>" class="game-tabs-launch-next button">Teleprompter &rarr;</a>
     </nav>
 </div>
