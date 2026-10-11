@@ -1,0 +1,14 @@
+<?php
+/**
+ * A game's team as a table cell's contents: logo tile (on the team API's
+ * logo background colour) + school name. Expects $game and $side.
+ */
+$logo = (string) ($game[$side . '_logo'] ?? '');
+$logoBg = (string) ($game[$side . '_logo_bg'] ?? '');
+?>
+<span class="team-cell">
+    <span class="logo-thumb"<?= preg_match('/^#[0-9a-fA-F]{3,8}$/', $logoBg) ? ' style="background:' . htmlspecialchars($logoBg, ENT_QUOTES) . '"' : '' ?>>
+        <?php if ($logo !== ''): ?><img src="<?= htmlspecialchars($logo, ENT_QUOTES) ?>" alt="" loading="lazy"><?php endif; ?>
+    </span>
+    <?= htmlspecialchars((string) $game[$side . '_school_name'], ENT_QUOTES) ?>
+</span>

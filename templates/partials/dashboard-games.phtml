@@ -5,7 +5,7 @@
  */
 ?>
 <table>
-    <tr><th></th><?php if ($showDate): ?><th>Date</th><?php endif; ?><th>Time</th><th>Sport</th><th>Matchup</th><th>Venue</th><th>Status</th></tr>
+    <tr><th></th><?php if ($showDate): ?><th>Date</th><?php endif; ?><th>Time</th><th>Sport</th><th>Away</th><th>Home</th><th>Status</th></tr>
     <?php foreach ($dashboardGames as $game): ?>
     <tr>
         <td><a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>" class="button button-secondary">Open</a></td>
@@ -17,13 +17,12 @@
             <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>
             <?php if ($game['division_name']): ?>(<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
         </td>
+        <?php foreach (['away', 'home'] as $side): ?>
         <td>
-            <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
-            vs
-            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
-            <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
+            <?php require __DIR__ . '/team-cell.phtml'; ?>
+            <?= $side === 'home' && $game['is_neutral_site'] ? '<span class="neutral-note">(neutral site)</span>' : '' ?>
         </td>
-        <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
+        <?php endforeach; ?>
         <td><span class="badge badge-<?= htmlspecialchars($game['status'], ENT_QUOTES) ?>"><?= htmlspecialchars($game['status'], ENT_QUOTES) ?></span></td>
     </tr>
     <?php endforeach; ?>
