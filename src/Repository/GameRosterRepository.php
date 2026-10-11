@@ -15,8 +15,10 @@ use PDO;
 class GameRosterRepository
 {
     /**
-     * Softball's flex (the player the designated player bats for) is read
-     * after the nine batters, so it's stored as batting slot 10.
+     * The starter who plays but doesn't bat — Softball's flex (the
+     * designated player bats for them), Baseball's starting pitcher (the
+     * designated hitter does) — is read after the nine batters, so it's
+     * stored as batting slot 10.
      */
     public const FLEX_SLOT = 10;
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Repository\GameRosterRepository;
 use Phinx\Seed\AbstractSeed;
 
 /**
@@ -11,10 +12,11 @@ use Phinx\Seed\AbstractSeed;
  * truth for template content, so existing rows are updated in place.
  *
  * Wording status: Women's and Men's Soccer (home), Basketball,
- * Volleyball, Lacrosse and Softball are transcribed from their real sheets'
+ * Volleyball, Lacrosse, Softball and Baseball are transcribed from their real sheets'
  * Script-tab formulas (verified by tests/Rendering/WomensSoccerScriptTest.php,
  * BasketballScriptTest.php, VolleyballScriptTest.php,
- * LacrosseScriptTest.php and SoftballScriptTest.php; the two soccer sheets differ only in
+ * LacrosseScriptTest.php and SoftballScriptTest.php (Softball +
+ * Baseball); the two soccer sheets differ only in
  * "Women's"/"Men's"). Every other
  * template is still placeholder wording with the right structure — port
  * each from its sheet the same way before relying on it for a broadcast.
@@ -86,7 +88,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => null,
                 'site_variant' => 'home',
                 'name' => 'Baseball — Home',
-                'content_blocks' => json_encode($this->battingOrderSportHomeBlocks('Baseball')),
+                'content_blocks' => json_encode($this->baseballHomeBlocks()),
                 'version' => 1,
             ],
             [
@@ -297,7 +299,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
         );
     }
 
-    // ---- Softball (real sheet wording) -------------------------------------
+    // ---- Softball + Baseball (real sheet wording) --------------------------
 
     /**
      * Transcribed from the "PA Script - Softball" sheet's Script tab:
@@ -314,26 +316,67 @@ class ScriptTemplatesSeeder extends AbstractSeed
      */
     private function softballHomeBlocks(): array
     {
+        $flexLine = [
+            self::t('In the flex'),
+            self::when('item.spokenLineupPosition', [self::t(' at '), self::p('item.spokenLineupPosition')]),
+            self::when('item.spokenYear', [self::t(', a '), self::p('item.spokenYear')]),
+            self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
+        ];
+
+        return $this->battingOrderSportHomeBlocks('softball', 'Willamette Softball Field', 'the Willamette Softball Field', $flexLine);
+    }
+
+    /**
+     * Transcribed from the "PA Script - Baseball" sheet: Softball's script
+     * with John Lewis Field at Spec Keene Stadium, and the starting pitcher
+     * (who the designated hitter bats for — the Bat column's "SP" slot)
+     * read after the nine batters with no class year: "The starting
+     * pitcher, from Cupertino, California, number 16, Elliot Hsu". Fixes
+     * vs. the sheet: "tonight'snon-conference", "removal from the Spec
+     * Keene Stadium", and the same typos as Softball.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function baseballHomeBlocks(): array
+    {
+        $pitcherLine = [
+            self::t('The starting pitcher'),
+            self::when('item.spokenHometown', [self::t(', from '), self::p('item.spokenHometown')]),
+        ];
+
+        return $this->battingOrderSportHomeBlocks('baseball', 'John Lewis Field at Spec Keene Stadium', 'Spec Keene Stadium', $pitcherLine);
+    }
+
+    /**
+     * The Softball/Baseball sheets' shared script. $slotTenLine opens the
+     * line for batting slot 10 (Softball's flex, Baseball's non-batting
+     * starting pitcher), up to ", number ...".
+     *
+     * @param array<int, array<string, mixed>> $slotTenLine
+     * @return array<int, array<string, mixed>>
+     */
+    private function battingOrderSportHomeBlocks(string $sportWord, string $defaultVenue, string $psaVenue, array $slotTenLine): array
+    {
         return array_merge(
             [
                 self::t('Good '), self::p('meta.partOfDay'),
-                self::t(' ladies and gentlemen, and welcome to '), self::venueOr('Willamette Softball Field'),
+                self::t(' ladies and gentlemen, and welcome to '), self::venueOr($defaultVenue),
                 self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
                 self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(' softball game between the '),
+                self::t(" {$sportWord} game between the "),
                 self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
                 self::t(' and the '),
                 self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
                 self::t(". Before the game gets underway, let's meet the starters.\n\n"),
                 self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
             ],
-            $this->battingOrderLines('away'),
+            $this->battingOrderLines('away', $slotTenLine),
             $this->headCoachLine('away'),
             [
                 self::t("\nAnd now, the starting lineup for the "),
                 self::p('home.schoolName'), self::t(' '), self::p('home.mascot'), self::t("\n"),
             ],
-            $this->battingOrderLines('home'),
+            $this->battingOrderLines('home', $slotTenLine),
             $this->headCoachLine('home'),
             [
                 self::when('officials', [
@@ -347,7 +390,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                     . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
                     . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
                     . 'not be tolerated and are grounds for removal from '),
-                self::when('meta.venue', [self::p('meta.venue')], [self::t('the Willamette Softball Field')]),
+                self::when('meta.venue', [self::p('meta.venue')], [self::t($psaVenue)]),
                 self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
                 self::closingAnnouncement(),
             ]
@@ -356,20 +399,29 @@ class ScriptTemplatesSeeder extends AbstractSeed
 
     /**
      * "Batting 2nd at 3rd base, a junior from Burien, Washington, number
-     * 13, MAG-ee FLY-sh-man" — one line per batting slot, flex last.
+     * 13, MAG-ee FLY-sh-man" — one line per batting slot, slot 10 last
+     * with its own opening ($slotTenLine).
      *
+     * @param array<int, array<string, mixed>> $slotTenLine
      * @return array<int, array<string, mixed>>
      */
-    private function battingOrderLines(string $side): array
+    private function battingOrderLines(string $side, array $slotTenLine): array
     {
+        $batterLine = [
+            self::p('item.battingOrderLabel'),
+            self::when('item.spokenLineupPosition', [self::t(' at '), self::p('item.spokenLineupPosition')]),
+            self::when('item.spokenYear', [self::t(', a '), self::p('item.spokenYear')]),
+            self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
+        ];
+
         return [[
             'type' => 'loop',
             'over' => $side . '.battingOrder',
             'template' => [
-                self::p('item.battingOrderLabel'),
-                self::when('item.spokenLineupPosition', [self::t(' at '), self::p('item.spokenLineupPosition')]),
-                self::when('item.spokenYear', [self::t(', a '), self::p('item.spokenYear')]),
-                self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
+                [
+                    'type' => 'when', 'key' => 'item.batting_order', 'equals' => GameRosterRepository::FLEX_SLOT,
+                    'then' => $slotTenLine, 'else' => $batterLine,
+                ],
                 self::when('item.number', [self::t(', number '), self::p('item.number')]),
                 self::t(', '), self::p('item.spokenName'), self::t("\n"),
             ],
@@ -586,117 +638,6 @@ class ScriptTemplatesSeeder extends AbstractSeed
             ],
             $this->coachAndLineupBlocks(),
             $this->officialsAnthemPsaBlocks()
-        );
-    }
-
-    /**
-     * Baseball (still placeholder wording): no divisions and no
-     * neutral-site variant read. Lineup is ordered by batting order rather
-     * than the starters/reserves pattern, with a standalone starting-pitcher
-     * callout, and umpires get role-specific phrasing instead of a flat list.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function battingOrderSportHomeBlocks(string $sportName): array
-    {
-        return array_merge(
-            [
-                ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
-                ['type' => 'placeholder', 'key' => 'meta.venue'],
-                ['type' => 'text', 'content' => " for today's Willamette {$sportName} game, as your "],
-                ['type' => 'placeholder', 'key' => 'home.mascot'],
-                ['type' => 'text', 'content' => ' take on the '],
-                ['type' => 'placeholder', 'key' => 'away.mascot'],
-                ['type' => 'text', 'content' => ' from '],
-                ['type' => 'placeholder', 'key' => 'away.schoolName'],
-                ['type' => 'text', 'content' => ".\n\n"],
-            ],
-            $this->coachAndBattingOrderBlocks(),
-            $this->umpiresAnthemPsaBlocks()
-        );
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function coachAndBattingOrderBlocks(): array
-    {
-        return array_merge([
-            ['type' => 'text', 'content' => 'Head coach for '],
-            ['type' => 'placeholder', 'key' => 'home.schoolName'],
-            ['type' => 'text', 'content' => ' is '],
-            ['type' => 'placeholder', 'key' => 'home.coaches.joinedList'],
-            ['type' => 'text', 'content' => ".\n"],
-            ['type' => 'text', 'content' => 'Head coach for '],
-            ['type' => 'placeholder', 'key' => 'away.schoolName'],
-            ['type' => 'text', 'content' => ' is '],
-            ['type' => 'placeholder', 'key' => 'away.coaches.joinedList'],
-            ['type' => 'text', 'content' => ".\n\n"],
-        ],
-            $this->battingOrderLineup('home'),
-            [['type' => 'text', 'content' => "\n"]],
-            $this->battingOrderLineup('away'),
-            [['type' => 'text', 'content' => "\n"]]
-        );
-    }
-
-    /**
-     * Standalone starting-pitcher callout followed by the batting-order
-     * loop for one side.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function battingOrderLineup(string $side): array
-    {
-        return [
-            ['type' => 'text', 'content' => "Today's starting pitcher for "],
-            ['type' => 'placeholder', 'key' => "{$side}.schoolName"],
-            ['type' => 'text', 'content' => ' is '],
-            ['type' => 'placeholder', 'key' => "{$side}.startingPitcher.name"],
-            ['type' => 'text', 'content' => ".\n\n"],
-            ['type' => 'text', 'content' => "Now, introducing the batting order for "],
-            ['type' => 'placeholder', 'key' => "{$side}.schoolName"],
-            ['type' => 'text', 'content' => ":\n"],
-            [
-                'type' => 'loop',
-                'over' => "{$side}.battingOrder",
-                'template' => [
-                    ['type' => 'placeholder', 'key' => 'item.battingOrderLabel'],
-                    ['type' => 'text', 'content' => ' at '],
-                    ['type' => 'placeholder', 'key' => 'item.position'],
-                    ['type' => 'text', 'content' => ', '],
-                    ['type' => 'placeholder', 'key' => 'item.name'],
-                    ['type' => 'text', 'content' => ".\n"],
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * Baseball/Softball variant of officialsAnthemPsaBlocks(): umpires get
-     * role-specific phrasing ("behind the plate", "at first base", ...)
-     * rather than a flat joined list.
-     *
-     * @return array<int, array<string, mixed>>
-     */
-    private function umpiresAnthemPsaBlocks(): array
-    {
-        return array_merge(
-            [
-                ['type' => 'text', 'content' => "Today's umpires:\n"],
-                [
-                    'type' => 'loop',
-                    'over' => 'officials',
-                    'template' => [
-                        ['type' => 'placeholder', 'key' => 'item.role'],
-                        ['type' => 'text', 'content' => ', '],
-                        ['type' => 'placeholder', 'key' => 'item.name'],
-                        ['type' => 'text', 'content' => ".\n"],
-                    ],
-                ],
-                ['type' => 'text', 'content' => "\n"],
-            ],
-            $this->anthemPsaBlocks()
         );
     }
 

@@ -34,7 +34,8 @@ class ScriptChecks
             if ($starters === [] && $reserves === [] && $battingOrder === []) {
                 $checks[] = [$team . "'s roster is empty — import it.", $rosterUrl];
             } elseif (!empty($game['uses_batting_order'])) {
-                $checks = array_merge($checks, self::battingOrderChecks($team, $battingOrder, $rosterUrl));
+                $slotTen = !empty($game['uses_flex']) ? 'flex' : 'starting-pitcher';
+                $checks = array_merge($checks, self::battingOrderChecks($team, $battingOrder, $rosterUrl, $slotTen));
             } elseif ($starters === []) {
                 $checks[] = ['No starters marked for ' . $team . '.', $rosterUrl];
             }
@@ -69,12 +70,13 @@ class ScriptChecks
     }
 
     /**
-     * Baseball/Softball: every slot 1–9 filled, once each.
+     * Baseball/Softball: every slot 1–9 filled, once each; $slotTen names
+     * slot 10 ("flex", "starting-pitcher").
      *
      * @param array<int, array<string, mixed>> $battingOrder
      * @return array<int, array{0: string, 1: string}>
      */
-    private static function battingOrderChecks(string $team, array $battingOrder, string $rosterUrl): array
+    private static function battingOrderChecks(string $team, array $battingOrder, string $rosterUrl, string $slotTen): array
     {
         if ($battingOrder === []) {
             return [['No batting order set for ' . $team . '.', $rosterUrl]];
@@ -87,7 +89,7 @@ class ScriptChecks
         }
         foreach ($bySlot as $slot => $names) {
             if (count($names) > 1) {
-                $spot = $slot === GameRosterRepository::FLEX_SLOT ? 'flex' : Spoken::ordinal($slot);
+                $spot = $slot === GameRosterRepository::FLEX_SLOT ? $slotTen : Spoken::ordinal($slot);
                 $checks[] = [
                     PlaceholderRegistry::joinWithAnd($names) . ' share the ' . $spot . ' spot in ' . $team . "'s batting order.",
                     $rosterUrl,

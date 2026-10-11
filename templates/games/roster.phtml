@@ -8,9 +8,10 @@ $battingSlots = ['' => '—'];
 for ($slot = 1; $slot <= 9; $slot++) {
     $battingSlots[(string) $slot] = (string) $slot;
 }
-if (!empty($game['uses_flex'])) {
-    $battingSlots[(string) \App\Repository\GameRosterRepository::FLEX_SLOT] = 'Flex';
-}
+// The starter who plays but doesn't bat: Softball's flex, else (Baseball)
+// the starting pitcher the designated hitter bats for.
+$slotTenLabel = !empty($game['uses_flex']) ? 'Flex' : 'SP (not batting)';
+$battingSlots[(string) \App\Repository\GameRosterRepository::FLEX_SLOT] = $slotTenLabel;
 $lineupPositions = ['pitcher', 'catcher', 'first base', 'second base', 'third base', 'shortstop',
     'left field', 'center field', 'right field', 'designated player', 'designated hitter'];
 ?>
@@ -76,8 +77,9 @@ $lineupPositions = ['pitcher', 'catcher', 'first base', 'second base', 'third ba
 
 <h3>Players</h3>
 <?php if ($usesBattingOrder): ?>
-<p class="hint">Changes save automatically. Pick each starter's spot in the batting order<?= isset($battingSlots['10']) ? ' (or Flex)' : '' ?> and
-    where they're playing today — "Leading off at right field, …". With no Playing position the roster position is read.</p>
+<p class="hint">Changes save automatically. Pick each starter's spot in the batting order and where they're playing
+    today — "Leading off at right field, …". With no Playing position the roster position is read.
+    <?= !empty($game['uses_flex']) ? 'Flex is read last: "In the flex at catcher, …".' : 'SP is a starting pitcher who doesn\'t bat (there\'s a DH), read last: "The starting pitcher, from …".' ?></p>
 <datalist id="lineup-positions">
     <?php foreach ($lineupPositions as $lineupPosition): ?><option value="<?= htmlspecialchars($lineupPosition, ENT_QUOTES) ?>"><?php endforeach; ?>
 </datalist>
