@@ -7,9 +7,9 @@
         <td><?= htmlspecialchars($game['date'], ENT_QUOTES) ?></td>
         <td><?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?><?php if ($game['division_name']): ?> (<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?></td>
         <td>
-            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
-            vs
             <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+            vs
+            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
             <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
         </td>
         <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>
@@ -18,7 +18,7 @@
             <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>" class="button button-secondary">Open</a>
             <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>" style="display:inline">
                 <button type="submit" name="_method" value="DELETE"
-                    onclick="return confirm('Delete this game (<?= htmlspecialchars(addslashes($game['date'] . ' ' . $game['home_school_name'] . ' vs ' . $game['away_school_name']), ENT_QUOTES) ?>)? Its rosters and officials are deleted too.')">Delete</button>
+                    onclick="return confirm('Delete this game (<?= htmlspecialchars(addslashes($game['date'] . ' ' . $game['away_school_name'] . ' vs ' . $game['home_school_name']), ENT_QUOTES) ?>)? Its rosters and officials are deleted too.')">Delete</button>
             </form>
         </td>
     </tr>

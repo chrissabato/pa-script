@@ -18,9 +18,9 @@
             <?php if ($game['division_name']): ?>(<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>
         </td>
         <td>
-            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
-            vs
             <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+            vs
+            <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
             <?= $game['is_neutral_site'] ? '(neutral site)' : '' ?>
         </td>
         <td><?= htmlspecialchars((string) $game['venue'], ENT_QUOTES) ?></td>

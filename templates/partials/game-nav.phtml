@@ -13,17 +13,18 @@ $teamLabel = function (string $side) use ($game): string {
 };
 $gameTabs = [
     'overview' => ['Overview', $gameUrl],
-    'home' => ['Home · ' . $teamLabel('home'), $gameUrl . '/roster/home'],
+    // Away first, as on the sheets and in the script.
     'away' => ['Away · ' . $teamLabel('away'), $gameUrl . '/roster/away'],
+    'home' => ['Home · ' . $teamLabel('home'), $gameUrl . '/roster/home'],
     'script' => ['Script', $gameUrl . '/script'],
 ];
 ?>
 <div class="game-header">
     <p class="game-header-crumb"><a href="<?= $this->base() ?>/">&larr; Dashboard</a></p>
     <h2>
-        <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
-        <span class="game-header-vs">vs</span>
         <?= htmlspecialchars((string) $game['away_school_name'], ENT_QUOTES) ?>
+        <span class="game-header-vs">vs</span>
+        <?= htmlspecialchars((string) $game['home_school_name'], ENT_QUOTES) ?>
     </h2>
     <div class="game-header-meta">
         <?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?><?php if ($game['division_name']): ?> (<?= htmlspecialchars($game['division_name'], ENT_QUOTES) ?>)<?php endif; ?>

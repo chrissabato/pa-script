@@ -35,8 +35,8 @@ $presetGameId = (int) ($preset['game_id'] ?? 0);
             <?php foreach ($games as $game): ?>
                 <option value="<?= (int) $game['id'] ?>" <?= (int) $game['id'] === $presetGameId ? 'selected' : '' ?>>
                     <?= htmlspecialchars($game['date'], ENT_QUOTES) ?> —
-                    <?= htmlspecialchars($game['home_school_name'], ENT_QUOTES) ?> vs
-                    <?= htmlspecialchars($game['away_school_name'], ENT_QUOTES) ?>
+                    <?= htmlspecialchars($game['away_school_name'], ENT_QUOTES) ?> vs
+                    <?= htmlspecialchars($game['home_school_name'], ENT_QUOTES) ?>
                     (<?= htmlspecialchars($game['sport_name'], ENT_QUOTES) ?>)
                 </option>
             <?php endforeach; ?>

@@ -2,7 +2,7 @@
 
 <h3>Rosters</h3>
 <div class="roster-status">
-    <?php foreach (['home', 'away'] as $side): ?>
+    <?php foreach (['away', 'home'] as $side): ?>
     <?php
         $count = $rosterCounts[$side];
         $isEmpty = $count['players'] === 0 && $count['coaches'] === 0;
