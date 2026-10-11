@@ -5,16 +5,17 @@ use Phinx\Seed\AbstractSeed;
 /**
  * Seeds script_templates rows per PLAN.md's two-axis design (division_id x
  * site_variant): three for Soccer (Women's/home, Men's/home, neutral), two
- * for Basketball (Women's/home, Men's/home), and one each for Baseball,
- * Softball, Volleyball, and Lacrosse (all single-division/home-only per
+ * each for Basketball and Lacrosse (Women's/home, Men's/home), and one
+ * each for Baseball, Softball and Volleyball (divisionless, home-only per
  * PLAN.md's Phase 3 notes). Safe to re-run: this file is the source of
  * truth for template content, so existing rows are updated in place.
  *
- * Wording status: Women's and Men's Soccer (home), Basketball and
- * Volleyball are transcribed from their real sheets' Script-tab formulas
- * (verified by tests/Rendering/WomensSoccerScriptTest.php,
- * BasketballScriptTest.php and VolleyballScriptTest.php; the two soccer
- * sheets differ only in "Women's"/"Men's"). Every other
+ * Wording status: Women's and Men's Soccer (home), Basketball,
+ * Volleyball and Lacrosse are transcribed from their real sheets'
+ * Script-tab formulas (verified by tests/Rendering/WomensSoccerScriptTest.php,
+ * BasketballScriptTest.php, VolleyballScriptTest.php and
+ * LacrosseScriptTest.php; the two soccer sheets differ only in
+ * "Women's"/"Men's"). Every other
  * template is still placeholder wording with the right structure — port
  * each from its sheet the same way before relying on it for a broadcast.
  */
@@ -106,13 +107,28 @@ class ScriptTemplatesSeeder extends AbstractSeed
             ],
             [
                 'sport_id' => $lacrosseId,
-                'division_id' => null,
+                'division_id' => $womensId,
                 'site_variant' => 'home',
-                'name' => 'Lacrosse — Home',
-                'content_blocks' => json_encode($this->lacrosseHomeBlocks()),
+                'name' => "Lacrosse — Women's — Home",
+                'content_blocks' => json_encode($this->lacrosseHomeBlocks("Women's")),
+                'version' => 1,
+            ],
+            [
+                'sport_id' => $lacrosseId,
+                'division_id' => $mensId,
+                'site_variant' => 'home',
+                'name' => "Lacrosse — Men's — Home",
+                'content_blocks' => json_encode($this->lacrosseHomeBlocks("Men's")),
                 'version' => 1,
             ],
         ];
+
+        // Rows a template split replaced (Lacrosse was one divisionless
+        // template until it got the Soccer-style Women's/Men's pair).
+        $this->execute(sprintf(
+            "delete from script_templates where sport_id = %d and division_id is null and site_variant = 'home'",
+            $lacrosseId
+        ));
 
         $data = [];
         foreach ($wanted as $row) {
@@ -205,15 +221,49 @@ class ScriptTemplatesSeeder extends AbstractSeed
      */
     private function soccerHomeBlocks(string $divisionLabel): array
     {
+        return $this->fieldSportHomeBlocks(
+            "{$divisionLabel} Soccer",
+            "Willamette University's ",
+            'And now the playing of the National Anthem.'
+        );
+    }
+
+    /**
+     * Transcribed from the "PA Script - Lacrosse" sheet's Script tab, the
+     * same formulas as Soccer's apart from the sport, no "Willamette
+     * University's" before the venue, and "And now for the playing of the
+     * National Anthem." Same wording fixes as Soccer. The sheet is the
+     * Women's game; Men's reads the same with "Men's".
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function lacrosseHomeBlocks(string $divisionLabel): array
+    {
+        return $this->fieldSportHomeBlocks(
+            "{$divisionLabel} Lacrosse",
+            '',
+            'And now for the playing of the National Anthem.'
+        );
+    }
+
+    /**
+     * The Soccer/Lacrosse sheets' shared script: welcome, visitors'
+     * starters + head coach, home starters + head coach, officials,
+     * anthem, sportsmanship statement.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function fieldSportHomeBlocks(string $gameLabel, string $venuePrefix, string $anthemLine): array
+    {
         $venue = self::venueOr('Sparks Field');
 
         return array_merge(
             [
                 self::t('Good '), self::p('meta.partOfDay'),
-                self::t(" and welcome to Willamette University's "), $venue,
+                self::t(" and welcome to {$venuePrefix}"), $venue,
                 self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
                 self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(" {$divisionLabel} Soccer game between the "),
+                self::t(" {$gameLabel} game between the "),
                 self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
                 self::t(' and the '),
                 self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
@@ -234,7 +284,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                     self::t(' game are '), self::p('officials.joinedList'), self::t(".\n"),
                 ]),
                 self::when('meta.specialAnnouncement', [self::t("\n"), self::p('meta.specialAnnouncement'), self::t("\n")]),
-                self::when('meta.hasAnthem', [self::t("\nAnd now the playing of the National Anthem.\n")]),
+                self::when('meta.hasAnthem', [self::t("\n{$anthemLine}\n")]),
                 self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
                     . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
                     . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
@@ -458,36 +508,6 @@ class ScriptTemplatesSeeder extends AbstractSeed
             $this->coachAndLineupBlocks(),
             $this->officialsAnthemPsaBlocks()
         );
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function lacrosseHomeBlocks(): array
-    {
-        return array_merge(
-            $this->singleDivisionWelcomeBlocks('Lacrosse', 'game'),
-            $this->coachAndLineupBlocks(true),
-            $this->officialsAnthemPsaBlocks()
-        );
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    private function singleDivisionWelcomeBlocks(string $sportName, string $eventWord): array
-    {
-        return [
-            ['type' => 'text', 'content' => "Good afternoon, and welcome to "],
-            ['type' => 'placeholder', 'key' => 'meta.venue'],
-            ['type' => 'text', 'content' => " for today's Willamette {$sportName} {$eventWord}, as your "],
-            ['type' => 'placeholder', 'key' => 'home.mascot'],
-            ['type' => 'text', 'content' => ' take on the '],
-            ['type' => 'placeholder', 'key' => 'away.mascot'],
-            ['type' => 'text', 'content' => ' from '],
-            ['type' => 'placeholder', 'key' => 'away.schoolName'],
-            ['type' => 'text', 'content' => ".\n\n"],
-        ];
     }
 
     /**

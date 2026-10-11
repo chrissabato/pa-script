@@ -30,6 +30,13 @@ class Spoken
             'f' => 'forward', 'sf' => 'forward', 'pf' => 'forward', 'forward' => 'forward',
             'w' => 'wing', 'wing' => 'wing', 'c' => 'center', 'p' => 'post', 'post' => 'post', 'center' => 'center',
         ],
+        // As the Lacrosse sheet reads them; "M/D" reads "midfield".
+        'lacrosse' => [
+            'gk' => 'goalie', 'g' => 'goalie', 'goalie' => 'goalie', 'goalkeeper' => 'goalie',
+            'd' => 'defense', 'def' => 'defense', 'defense' => 'defense', 'defender' => 'defense',
+            'm' => 'midfield', 'mf' => 'midfield', 'mid' => 'midfield', 'midfield' => 'midfield', 'midfielder' => 'midfield',
+            'a' => 'attack', 'att' => 'attack', 'attack' => 'attack', 'attacker' => 'attack',
+        ],
         // As the Volleyball sheet reads them ("OH" is "outside", not
         // "outside hitter"). The match's libero is normally ticked on the
         // roster page (is_libero); a listed position of "L" reads the same.
