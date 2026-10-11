@@ -626,7 +626,8 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
     });
 
     // Printable rosters, teams side by side (like the source sheets' Roster
-    // tab). ?starters=1 prints just the starters.
+    // tab). ?starters=1 prints just the starters; ?show_starters=1 marks
+    // starters and liberos (hidden by default).
     $app->get('/games/{id}/print', function (
         Request $request,
         Response $response,
@@ -638,6 +639,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         }
 
         $startersOnly = !empty($request->getQueryParams()['starters']);
+        $showStarters = !empty($request->getQueryParams()['show_starters']);
         $context = $contextBuilder->build($game);
         $teams = [];
         // Away on the left, home on the right, as on the sheet.
@@ -681,6 +683,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
             'game' => $game,
             'teams' => $teams,
             'startersOnly' => $startersOnly,
+            'showStarters' => $showStarters,
         ]);
         $response->getBody()->write($html);
 

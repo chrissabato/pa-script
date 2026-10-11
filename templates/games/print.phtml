@@ -11,13 +11,23 @@ $h = function ($value): string {
 };
 $usesLibero = !empty($game['uses_libero']);
 $printUrl = $this->base() . '/games/' . (int) $game['id'] . '/print';
+// Filter links keep the starter-marks toggle, and vice versa.
+$marksQuery = $showStarters ? 'show_starters=1' : '';
 ?>
 <div class="print-toolbar">
     <a href="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>">&larr; Back to game</a>
     <span class="print-toolbar-filter">
-        <a href="<?= $printUrl ?>"<?= !$startersOnly ? ' class="is-active"' : '' ?>>All players</a>
-        <a href="<?= $printUrl ?>?starters=1"<?= $startersOnly ? ' class="is-active"' : '' ?>>Starters only</a>
+        <a href="<?= $printUrl ?><?= $marksQuery !== '' ? '?' . $marksQuery : '' ?>"<?= !$startersOnly ? ' class="is-active"' : '' ?>>All players</a>
+        <a href="<?= $printUrl ?>?starters=1<?= $marksQuery !== '' ? '&amp;' . $marksQuery : '' ?>"<?= $startersOnly ? ' class="is-active"' : '' ?>>Starters only</a>
     </span>
+    <form class="print-toolbar-toggle" method="get" action="<?= $printUrl ?>">
+        <?php if ($startersOnly): ?><input type="hidden" name="starters" value="1"><?php endif; ?>
+        <label>
+            <input type="checkbox" name="show_starters" value="1"<?= $showStarters ? ' checked' : '' ?> onchange="this.form.submit()">
+            Mark starters<?= $usesLibero ? ' &amp; libero' : '' ?>
+        </label>
+        <noscript><button type="submit">Apply</button></noscript>
+    </form>
     <button type="button" onclick="window.print()">Print</button>
 </div>
 
@@ -69,7 +79,7 @@ $printUrl = $this->base() . '/games/' . (int) $game['id'] . '/print';
                     <tr><th class="print-num">#</th><th class="print-star" title="Starter"></th><th>Name</th><th>Pos</th><th>Yr</th><th>Hometown</th></tr>
                 </thead>
                 <?php foreach ($team['players'] as $p): ?>
-                    <?php $starter = (bool) $p['is_starter'] || $p['batting_order'] !== null; ?>
+                    <?php $starter = $showStarters && ((bool) $p['is_starter'] || $p['batting_order'] !== null); ?>
                 <?php /* One tbody per player: line 1 is name/pos/yr/hometown, line 2 the
                          pronunciation across all four, so long guides aren't cut short. */ ?>
                 <tbody class="print-player<?= $starter ? ' is-starter' : '' ?>">
@@ -78,7 +88,7 @@ $printUrl = $this->base() . '/games/' . (int) $game['id'] . '/print';
                         <td class="print-star" rowspan="2">
                             <?php if ($starter): ?><span title="Starter">&#9733;</span><?php endif; ?>
                             <?php if (!empty($p['is_captain'])): ?><span class="print-badge" title="Captain">C</span><?php endif; ?>
-                            <?php if ($usesLibero && !empty($p['is_libero'])): ?><span class="print-badge" title="Libero">L</span><?php endif; ?>
+                            <?php if ($showStarters && $usesLibero && !empty($p['is_libero'])): ?><span class="print-badge" title="Libero">L</span><?php endif; ?>
                         </td>
                         <td class="print-name"><?= $h($p['name']) ?></td>
                         <td class="print-cell"><?= $h($p['position']) ?></td>
@@ -95,7 +105,7 @@ $printUrl = $this->base() . '/games/' . (int) $game['id'] . '/print';
         </section>
         <?php endforeach; ?>
     </div>
-    <p class="print-legend">&#9733; starter &middot; C captain<?= $usesLibero ? ' &middot; L libero' : '' ?></p>
+    <p class="print-legend"><?= $showStarters ? '&#9733; starter &middot; ' : '' ?>C captain<?= $showStarters && $usesLibero ? ' &middot; L libero' : '' ?></p>
 </div>
 
 <script>
