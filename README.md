@@ -150,8 +150,9 @@ src/Roster/        roster URL guessing and server-side page fetching
 src/Fill/          document fill: Gemini client, .docx text extraction
 src/Auth/          shared-password middleware
 src/Teams/         Team Data API sync
+src/Templates/     default template wording, template editor syntax + field names
 templates/         .phtml views, wrapped by layout.phtml
-migrations/ seeds/ Phinx; seeds/ScriptTemplatesSeeder.php holds the script wording
+migrations/ seeds/ Phinx; ScriptTemplatesSeeder writes src/Templates/DefaultTemplates
 tests/             PHPUnit tests, roster-page and document fixtures, scraper harness
 ```
 
@@ -165,9 +166,14 @@ form actions.
 Each `script_templates` row is a sport × division (or all divisions) × site
 (home / neutral), with content as JSON blocks: text, placeholders, loops over
 starters / reserves / batting order / officials, and `when` conditionals.
-Sport differences are data, not code. Edit wording in
-`seeds/ScriptTemplatesSeeder.php` and re-run that seeder, which updates the
-existing rows. To port a sport from its Google Sheet, download the sheet as
+Sport differences are data, not code. Announcers edit templates in the app
+(Templates in the nav, `/templates/{id}`): the blocks are shown as text with
+tags — `{venue}`, `[if venue]…[else]…[/if]`, `[each home starters]…[/each]`
+(`App\Templates\TemplateSyntax`, friendly names in `FieldCatalog`) — with a
+live preview against one of the sport's games. The default wording lives in
+`src/Templates/DefaultTemplates.php`; `ScriptTemplatesSeeder` writes it to
+every template that hasn't been edited in the app (`edited_at` is null), and
+the editor's Reset to default puts it back. To port a sport from its Google Sheet, download the sheet as
 .xlsx and read the Script tab's formulas (the Drive text view only samples
 rows), then pin the result with a test like
 `tests/Rendering/WomensSoccerScriptTest.php`.

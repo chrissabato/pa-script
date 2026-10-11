@@ -6,6 +6,7 @@ namespace Tests\Rendering;
 
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
+use App\Templates\DefaultTemplates;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -38,10 +39,7 @@ class VolleyballScriptTest extends TestCase
 
     protected function setUp(): void
     {
-        require_once __DIR__ . '/../../seeds/ScriptTemplatesSeeder.php';
-        $method = new \ReflectionMethod(\ScriptTemplatesSeeder::class, 'volleyballBlocks');
-        $method->setAccessible(true);
-        $this->blocks = $method->invoke(new \ScriptTemplatesSeeder());
+        $this->blocks = (new DefaultTemplates())->volleyballBlocks();
     }
 
     private static function player(array $row, bool $starter = false): array

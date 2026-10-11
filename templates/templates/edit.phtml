@@ -1,0 +1,114 @@
+<?php
+use App\Templates\FieldCatalog;
+
+$templateUrl = $this->base() . '/templates/' . (int) $scriptTemplate['id'];
+
+// Sidebar groups: the general fields by their group, then what works
+// inside an [each] list.
+$fieldGroups = [];
+foreach (FieldCatalog::fields() as $field) {
+    $fieldGroups[$field['group']][] = $field;
+}
+$fieldGroups['In a player list'] = FieldCatalog::itemFields('player');
+$fieldGroups['In the officials list'] = FieldCatalog::itemFields('official');
+
+$gameLabel = function (array $game): string {
+    $away = trim((string) $game['away_short_name']) !== '' ? $game['away_short_name'] : $game['away_school_name'];
+    $home = trim((string) $game['home_short_name']) !== '' ? $game['home_short_name'] : $game['home_school_name'];
+
+    return date('M j, Y', (int) strtotime((string) $game['date'])) . ' — ' . $away . ' at ' . $home;
+};
+?>
+<p class="game-header-crumb"><a href="<?= $this->base() ?>/templates">&larr; Script templates</a></p>
+<h2><?= htmlspecialchars($scriptTemplate['name'], ENT_QUOTES) ?></h2>
+<p class="hint">
+    <?php if ($scriptTemplate['edited_at'] !== null): ?>
+        Edited <?= htmlspecialchars(date('M j, Y g:i A', (int) strtotime($scriptTemplate['edited_at'])), ENT_QUOTES) ?>.
+    <?php else: ?>
+        Default wording.
+    <?php endif; ?>
+    Changes apply to every game that uses this template, except games with a customized script.
+</p>
+
+<?php if ($error !== null): ?>
+    <p class="notice notice-error">Not saved — line <?= (int) $error->getTemplateLine() ?>: <?= htmlspecialchars($error->getMessage(), ENT_QUOTES) ?></p>
+<?php elseif ($saved): ?>
+    <p class="notice">Saved.</p>
+<?php elseif ($wasReset): ?>
+    <p class="notice">Reset to the default wording.</p>
+<?php endif; ?>
+
+<form method="post" action="<?= $templateUrl ?>" class="template-editor" id="template-editor"
+    data-preview-url="<?= $templateUrl ?>/preview"<?= $error !== null ? ' data-unsaved' : '' ?>>
+
+    <aside class="template-fields">
+        <h3>Fields</h3>
+        <p class="hint">Click to insert at the cursor. <strong>if</strong> and <strong>each</strong> wrap the selected text.</p>
+        <?php foreach ($fieldGroups as $group => $fields): ?>
+            <details<?= in_array($group, ['Game', 'Visitors', 'In a player list'], true) ? ' open' : '' ?>>
+                <summary><?= htmlspecialchars($group, ENT_QUOTES) ?></summary>
+                <ul>
+                    <?php foreach ($fields as $field): ?>
+                    <li title="<?= htmlspecialchars($field['hint'], ENT_QUOTES) ?>">
+                        <span class="template-field-name"><?= htmlspecialchars($field['label'], ENT_QUOTES) ?></span>
+                        <span class="template-field-actions">
+                            <?php if (isset($field['value'])): ?>
+                                <button type="button" data-insert="{<?= htmlspecialchars($field['label'], ENT_QUOTES) ?>}">{ }</button>
+                            <?php endif; ?>
+                            <?php if (isset($field['test'])): ?>
+                                <button type="button" data-wrap-open="[if <?= htmlspecialchars($field['label'], ENT_QUOTES) ?>]" data-wrap-close="[/if]">if</button>
+                            <?php endif; ?>
+                            <?php if (isset($field['list'])): ?>
+                                <button type="button" data-wrap-open="[each <?= htmlspecialchars($field['label'], ENT_QUOTES) ?>]" data-wrap-close="[/each]">each</button>
+                            <?php endif; ?>
+                        </span>
+                        <span class="template-field-hint"><?= htmlspecialchars($field['hint'], ENT_QUOTES) ?></span>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </details>
+        <?php endforeach; ?>
+        <details>
+            <summary>How tags work</summary>
+            <div class="template-help">
+                <p><code>{venue}</code> — replaced by the game's value.</p>
+                <p><code>[if venue]…[else]…[/if]</code> — the first part when it's set, else the second (<code>[else]</code> is optional).
+                    <code>[if batting slot = 10]</code> compares.</p>
+                <p><code>[each home starters]…[/each]</code> — repeated per player; inside it, <code>{name}</code>, <code>{position}</code>, … are that player's.</p>
+                <p>Line breaks are read as written. Other brackets, like <code>[START walk-out music]</code>, are just text. Write <code>{{</code> for a literal <code>{</code>.</p>
+            </div>
+        </details>
+    </aside>
+
+    <div class="template-code-column">
+        <div class="template-code">
+            <pre class="template-highlight" aria-hidden="true"></pre>
+            <textarea name="text" spellcheck="false" autocapitalize="off" aria-label="Template"><?= htmlspecialchars($text, ENT_QUOTES) ?></textarea>
+        </div>
+        <p class="template-editor-actions">
+            <button type="submit">Save</button>
+            <a href="<?= $this->base() ?>/templates" class="button button-secondary">Cancel</a>
+            <?php if ($hasDefault && $scriptTemplate['edited_at'] !== null): ?>
+                <button type="submit" formaction="<?= $templateUrl ?>/reset" class="button-danger"
+                    onclick="return confirm('Throw away the edits to this template and go back to the default wording?')">Reset to default</button>
+            <?php endif; ?>
+            <span class="template-status" data-template-status></span>
+        </p>
+    </div>
+
+    <section class="template-preview">
+        <h3>
+            Preview
+            <select data-preview-game aria-label="Preview with game">
+                <option value="">Blank game</option>
+                <?php foreach ($previewGames as $i => $game): ?>
+                    <option value="<?= (int) $game['id'] ?>"<?= $i === 0 ? ' selected' : '' ?>><?= htmlspecialchars($gameLabel($game), ENT_QUOTES) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </h3>
+        <p class="notice notice-error" data-preview-error hidden></p>
+        <pre class="script-text" data-preview-output></pre>
+    </section>
+</form>
+
+<script src="<?= htmlspecialchars($this->asset('/js/template-editor.js'), ENT_QUOTES) ?>"></script>

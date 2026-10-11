@@ -1,0 +1,27 @@
+<h2>Script templates</h2>
+<p><em>
+    Each game's script is generated from its sport's template. Editing a template changes the script for every
+    game that uses it — except games with a customized script, which keep their own copy.
+</em></p>
+
+<table class="templates-table">
+    <tr>
+        <th>Template</th><th>Used for</th><th>Wording</th>
+    </tr>
+    <?php foreach ($templates as $scriptTemplate): ?>
+    <tr>
+        <td><a href="<?= $this->base() ?>/templates/<?= (int) $scriptTemplate['id'] ?>"><?= htmlspecialchars($scriptTemplate['name'], ENT_QUOTES) ?></a></td>
+        <td>
+            <?= htmlspecialchars($scriptTemplate['division_name'] !== null ? $scriptTemplate['division_name'] . ' ' . $scriptTemplate['sport_name'] : 'All ' . $scriptTemplate['sport_name'], ENT_QUOTES) ?>
+            <?= $scriptTemplate['site_variant'] === 'neutral' ? 'games at a neutral site' : 'home games' ?>
+        </td>
+        <td>
+            <?php if ($scriptTemplate['edited_at'] !== null): ?>
+                Edited <?= htmlspecialchars(date('M j, Y', (int) strtotime($scriptTemplate['edited_at'])), ENT_QUOTES) ?>
+            <?php else: ?>
+                <span class="muted">Default</span>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</table>

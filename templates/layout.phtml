@@ -14,6 +14,7 @@
             <a href="<?= $this->base() ?>/">Dashboard</a>
             <a href="<?= $this->base() ?>/games">Games</a>
             <a href="<?= $this->base() ?>/schools">Teams</a>
+            <a href="<?= $this->base() ?>/templates">Templates</a>
             <?php if (!empty($_ENV['APP_PASSWORD'])): ?>
             <form method="post" action="<?= $this->base() ?>/logout" class="logout-form">
                 <button type="submit" class="link-button">Log out</button>

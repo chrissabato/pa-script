@@ -6,6 +6,7 @@ namespace Tests\Rendering;
 
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
+use App\Templates\DefaultTemplates;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -51,10 +52,7 @@ class WomensSoccerScriptTest extends TestCase
 
     protected function setUp(): void
     {
-        require_once __DIR__ . '/../../seeds/ScriptTemplatesSeeder.php';
-        $method = new \ReflectionMethod(\ScriptTemplatesSeeder::class, 'soccerHomeBlocks');
-        $method->setAccessible(true);
-        $this->blocks = $method->invoke(new \ScriptTemplatesSeeder(), "Women's");
+        $this->blocks = (new DefaultTemplates())->soccerHomeBlocks("Women's");
     }
 
     private static function player(string $number, string $name, string $phonetic, string $pos, string $year, string $hometown, bool $captain = false): array

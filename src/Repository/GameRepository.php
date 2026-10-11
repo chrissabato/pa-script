@@ -71,6 +71,21 @@ SQL;
         return $stmt->fetchAll();
     }
 
+    /**
+     * A sport's games, newest first — the template editor previews against one.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function forSport(int $sportId): array
+    {
+        $stmt = $this->pdo->prepare(
+            self::SELECT . ' where games.sport_id = :sport_id order by games.date desc, games.time_of_day desc'
+        );
+        $stmt->execute(['sport_id' => $sportId]);
+
+        return $stmt->fetchAll();
+    }
+
     /** Roster snapshots and officials go with it (ON DELETE CASCADE). */
     public function delete(int $id): void
     {

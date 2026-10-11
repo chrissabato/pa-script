@@ -6,6 +6,7 @@ namespace Tests\Rendering;
 
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
+use App\Templates\DefaultTemplates;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -53,11 +54,7 @@ class LacrosseScriptTest extends TestCase
 
     private static function blocks(string $divisionLabel): array
     {
-        require_once __DIR__ . '/../../seeds/ScriptTemplatesSeeder.php';
-        $method = new \ReflectionMethod(\ScriptTemplatesSeeder::class, 'lacrosseHomeBlocks');
-        $method->setAccessible(true);
-
-        return $method->invoke(new \ScriptTemplatesSeeder(), $divisionLabel);
+        return (new DefaultTemplates())->lacrosseHomeBlocks($divisionLabel);
     }
 
     private static function player(string $number, string $name, string $phonetic, string $pos, string $year, string $hometown, bool $captain = false): array

@@ -6,6 +6,7 @@ namespace Tests\Rendering;
 
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
+use App\Templates\DefaultTemplates;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -35,11 +36,7 @@ class BasketballScriptTest extends TestCase
 
     private static function blocks(string $divisionLabel): array
     {
-        require_once __DIR__ . '/../../seeds/ScriptTemplatesSeeder.php';
-        $method = new \ReflectionMethod(\ScriptTemplatesSeeder::class, 'basketballHomeBlocks');
-        $method->setAccessible(true);
-
-        return $method->invoke(new \ScriptTemplatesSeeder(), $divisionLabel);
+        return (new DefaultTemplates())->basketballHomeBlocks($divisionLabel);
     }
 
     private static function players(array $rows): array

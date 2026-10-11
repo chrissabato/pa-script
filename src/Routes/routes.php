@@ -25,6 +25,9 @@ use App\Roster\RosterFetchException;
 use App\Roster\RosterPageFetcher;
 use App\Roster\RosterUrlGuesser;
 use App\Teams\TeamApiSync;
+use App\Templates\DefaultTemplates;
+use App\Templates\TemplateSyntax;
+use App\Templates\TemplateSyntaxError;
 use App\View\Renderer;
 use App\View\Url;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -822,6 +825,130 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         $games->updateCustomScript((int) $game['id'], null);
 
         return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'] . '/script')->withStatus(302);
+    });
+
+    // ---- Script templates ------------------------------------------------
+    //
+    // The template editor: a template's blocks as TemplateSyntax text, with
+    // a live preview against one of the sport's games. Saving marks the
+    // template edited, so ScriptTemplatesSeeder stops resetting it; Reset
+    // puts DefaultTemplates' wording back.
+
+    $app->get('/templates', function (Request $request, Response $response) use ($view, $scriptTemplates) {
+        $html = $view->render('templates/index', [
+            'title' => 'Script templates',
+            'templates' => $scriptTemplates->allWithNames(),
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    });
+
+    // The games a template's preview can use: the sport's games that would
+    // read this template (same division when it has one, same site).
+    $previewGames = function (array $template) use ($games): array {
+        return array_values(array_filter($games->forSport((int) $template['sport_id']), function (array $game) use ($template): bool {
+            return ($template['division_id'] === null || (int) $game['division_id'] === (int) $template['division_id'])
+                && (bool) $game['is_neutral_site'] === ($template['site_variant'] === 'neutral');
+        }));
+    };
+
+    $renderTemplateEditor = function (
+        Request $request,
+        Response $response,
+        array $template,
+        string $text,
+        ?TemplateSyntaxError $error = null
+    ) use ($view, $previewGames) {
+        $query = $request->getQueryParams();
+        $html = $view->render('templates/edit', [
+            'saved' => isset($query['saved']),
+            'wasReset' => isset($query['reset']),
+            'title' => 'Edit template — ' . $template['name'],
+            'bodyClass' => 'template-editor-page',
+            'scriptTemplate' => $template,
+            'text' => $text,
+            'error' => $error,
+            'previewGames' => $previewGames($template),
+            'hasDefault' => (new DefaultTemplates())->blocksFor(
+                $template['sport_slug'],
+                $template['division_slug'],
+                $template['site_variant']
+            ) !== null,
+        ]);
+        $response->getBody()->write($html);
+
+        return $response;
+    };
+
+    $app->get('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $renderTemplateEditor) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $renderTemplateEditor($request, $response, $template, TemplateSyntax::toText((array) json_decode($template['content_blocks'], true)));
+    });
+
+    $app->post('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $renderTemplateEditor) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $text = (string) (((array) $request->getParsedBody())['text'] ?? '');
+        try {
+            $blocks = TemplateSyntax::parse($text);
+        } catch (TemplateSyntaxError $e) {
+            return $renderTemplateEditor($request, $response->withStatus(422), $template, $text, $e);
+        }
+        $scriptTemplates->updateBlocks((int) $template['id'], $blocks, true);
+
+        return $response->withHeader('Location', Url::base() . '/templates/' . (int) $template['id'] . '?saved=1')->withStatus(302);
+    });
+
+    $app->post('/templates/{id}/preview', function (Request $request, Response $response, array $args) use (
+        $scriptTemplates,
+        $games,
+        $contextBuilder,
+        $renderer
+    ) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $data = (array) $request->getParsedBody();
+        try {
+            $blocks = TemplateSyntax::parse((string) ($data['text'] ?? ''));
+            $game = !empty($data['game_id']) ? $games->find((int) $data['game_id']) : null;
+            // No game picked (or none yet): an empty one, so the preview
+            // still shows the wording with blank names.
+            $context = $game !== null
+                ? $contextBuilder->build($game)
+                : GameContextBuilder::assemble(
+                    ['sport_slug' => $template['sport_slug']],
+                    ['home' => ['players' => [], 'coaches' => []], 'away' => ['players' => [], 'coaches' => []]],
+                    []
+                );
+            $result = ['script' => $renderer->render($blocks, $context)];
+        } catch (TemplateSyntaxError $e) {
+            $result = ['error' => $e->getMessage(), 'line' => $e->getTemplateLine()];
+        }
+        $response->getBody()->write((string) json_encode($result));
+
+        return $response->withHeader('Content-Type', 'application/json');
+    });
+
+    $app->post('/templates/{id}/reset', function (Request $request, Response $response, array $args) use ($scriptTemplates) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $blocks = (new DefaultTemplates())->blocksFor($template['sport_slug'], $template['division_slug'], $template['site_variant']);
+        if ($blocks !== null) {
+            $scriptTemplates->updateBlocks((int) $template['id'], $blocks, false);
+        }
+
+        return $response->withHeader('Location', Url::base() . '/templates/' . (int) $template['id'] . '?reset=1')->withStatus(302);
     });
 
     // ---- Roster URL fetch ------------------------------------------------

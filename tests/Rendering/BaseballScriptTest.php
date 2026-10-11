@@ -6,6 +6,7 @@ namespace Tests\Rendering;
 
 use App\Rendering\GameContextBuilder;
 use App\Rendering\TemplateRenderer;
+use App\Templates\DefaultTemplates;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -46,10 +47,6 @@ class BaseballScriptTest extends TestCase
 
     private function render(array $gameOverrides = []): string
     {
-        require_once __DIR__ . '/../../seeds/ScriptTemplatesSeeder.php';
-        $method = new \ReflectionMethod(\ScriptTemplatesSeeder::class, 'baseballHomeBlocks');
-        $method->setAccessible(true);
-
         $id = 0;
         $players = array_map(function (array $row) use (&$id): array {
             list($slot, $number, $name, $year, $hometown, $playing) = $row;
@@ -79,7 +76,7 @@ class BaseballScriptTest extends TestCase
             ['name' => 'Kevin Rice', 'role' => '3B'],
         ]);
 
-        return (new TemplateRenderer())->render($method->invoke(new \ScriptTemplatesSeeder()), $context);
+        return (new TemplateRenderer())->render((new DefaultTemplates())->baseballHomeBlocks(), $context);
     }
 
     public function testWelcomeMatchesSheet(): void

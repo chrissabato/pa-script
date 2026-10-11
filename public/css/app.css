@@ -787,3 +787,108 @@ main ul { padding-left: 1.3rem; }
 
 .roster-table.fill-review td.hint { color: var(--color-text-muted); font-size: 0.85rem; white-space: normal; }
 .roster-table.fill-review td input[type="text"] { width: 100%; min-width: 18rem; box-sizing: border-box; }
+
+/* ---- Script template editor ------------------------------------------
+   Fields sidebar | tag-coloured editor | live preview. The editor is a
+   textarea with transparent text over a <pre> mirror that draws the
+   colours, so both must share font, padding, wrapping and scrollbar. */
+
+main:has(.template-editor) { max-width: 1680px; }
+.templates-table .muted { color: var(--color-text-muted); }
+
+.template-editor {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1rem;
+    align-items: start;
+}
+@media (max-width: 1100px) {
+    .template-editor { grid-template-columns: minmax(0, 1fr); }
+}
+
+.template-fields {
+    font-size: 0.85rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    position: sticky;
+    top: 1rem;
+}
+.template-fields h3 { margin-top: 0; }
+.template-fields details { margin: 0.4rem 0; }
+.template-fields summary { font-weight: 600; cursor: pointer; }
+.template-fields ul { list-style: none; padding: 0; margin: 0.3rem 0 0.6rem; }
+.template-fields li {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    padding: 0.2rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+.template-field-hint { grid-column: 1 / -1; color: var(--color-text-muted); font-size: 0.78rem; }
+.template-field-actions { display: inline-flex; gap: 0.2rem; }
+.template-field-actions button {
+    padding: 0.05rem 0.4rem;
+    font-size: 0.75rem;
+    background: var(--color-surface);
+    color: var(--color-text);
+    border-color: var(--color-border);
+}
+.template-field-actions button:hover { background: var(--color-bg); border-color: var(--color-text-muted); }
+.template-help p { margin: 0.4rem 0; }
+.template-help code { font-size: 0.8rem; }
+
+.template-code { position: relative; }
+.template-code textarea,
+.template-highlight {
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(100vh - 12rem);
+    min-height: 24rem;
+    margin: 0;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font: 0.88rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: normal;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-break: normal;
+    tab-size: 4;
+    overflow-y: scroll;
+    overflow-x: hidden;
+}
+.template-highlight {
+    position: absolute;
+    inset: 0;
+    background: var(--color-surface);
+    color: var(--color-text);
+    pointer-events: none;
+}
+.template-code textarea {
+    position: relative;
+    display: block;
+    background: transparent;
+    color: transparent;
+    caret-color: var(--color-text);
+    resize: none;
+}
+.template-code textarea::selection { background: rgba(158, 27, 50, 0.2); color: transparent; }
+.tok-field { color: #0b5cad; background: #e8f1fb; border-radius: 3px; }
+.tok-if { color: #8a4b00; background: #fdf1df; border-radius: 3px; }
+.tok-each { color: #1e6b34; background: #e5f4e8; border-radius: 3px; }
+.tok-escape { color: var(--color-text-muted); }
+
+.template-editor-actions { display: flex; align-items: center; gap: 0.6rem; }
+.template-status { color: var(--color-text-muted); font-size: 0.85rem; }
+
+.template-preview h3 { margin-top: 0; display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; }
+.template-preview h3 select { font-size: 0.85rem; font-weight: 400; max-width: 100%; }
+.template-preview .script-text {
+    margin: 0;
+    font-size: 0.95rem;
+    max-height: calc(100vh - 12rem);
+    overflow-y: auto;
+}
+.template-preview .script-text.is-stale { opacity: 0.5; }
+.template-preview [hidden] { display: none; }
+.template-preview .script-text { font-family: var(--font-sans); }
