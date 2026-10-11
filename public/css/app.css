@@ -232,6 +232,13 @@ fieldset {
     margin: 1rem 0;
     background: var(--color-surface);
 }
+/* New Game: away and home team pickers side by side, as on the sheets */
+.team-pick { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+.team-pick fieldset { margin: 0; min-width: 0; }
+.team-pick select { max-width: 100%; }
+@media (max-width: 640px) {
+    .team-pick { grid-template-columns: 1fr; }
+}
 legend {
     font-weight: 600;
     padding: 0 0.4rem;

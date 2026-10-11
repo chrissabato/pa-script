@@ -2,7 +2,6 @@
 <?php if ($syncError !== null): ?>
     <p class="notice notice-error">Couldn't refresh teams from the team API (<?= htmlspecialchars($syncError, ENT_QUOTES) ?>); showing the last synced list.</p>
 <?php endif; ?>
-<p><em>Teams come from the <a href="<?= $this->base() ?>/schools">team API</a>. Missing one? Add it in the API's admin, then sync.</em></p>
 <form method="post" action="<?= $this->base() ?>/games">
     <p>
         <label>Team:
@@ -20,27 +19,28 @@
         <label class="inline-check"><input type="checkbox" name="is_neutral_site" value="1"> Neutral site (neither team gets home framing)</label>
     </p>
 
-    <fieldset>
-        <legend>Home team</legend>
-        <p>
-        <select name="home_school_id" required>
-            <option value="">— choose a team —</option>
-            <?php foreach ($schools as $school): ?>
-                <option value="<?= (int) $school['id'] ?>"<?= $school['slug'] === \App\Repository\SchoolRepository::WILLAMETTE_SLUG ? ' selected' : '' ?>><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
-            <?php endforeach; ?>
-        </select></p>
-    </fieldset>
-
-    <fieldset>
-        <legend>Away team</legend>
-        <p>
-        <select name="away_school_id" required>
-            <option value="">— choose a team —</option>
-            <?php foreach ($schools as $school): ?>
-                <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
-            <?php endforeach; ?>
-        </select></p>
-    </fieldset>
+    <div class="team-pick">
+        <fieldset>
+            <legend>Away team</legend>
+            <p>
+            <select name="away_school_id" required>
+                <option value="">— choose a team —</option>
+                <?php foreach ($schools as $school): ?>
+                    <option value="<?= (int) $school['id'] ?>"><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
+                <?php endforeach; ?>
+            </select></p>
+        </fieldset>
+        <fieldset>
+            <legend>Home team</legend>
+            <p>
+            <select name="home_school_id" required>
+                <option value="">— choose a team —</option>
+                <?php foreach ($schools as $school): ?>
+                    <option value="<?= (int) $school['id'] ?>"<?= $school['slug'] === \App\Repository\SchoolRepository::WILLAMETTE_SLUG ? ' selected' : '' ?>><?= htmlspecialchars(\App\Repository\SchoolRepository::label($school), ENT_QUOTES) ?></option>
+                <?php endforeach; ?>
+            </select></p>
+        </fieldset>
+    </div>
 
     <p>
         Date: <input type="date" name="date" required>
