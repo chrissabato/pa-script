@@ -895,3 +895,5 @@ main:has(.template-editor) { max-width: 1680px; }
 .tok-snippet { color: #6b2fa3; background: #f1e9fa; border-radius: 3px; }
 .new-snippet { display: flex; align-items: end; gap: 0.6rem; margin: 0.8rem 0 1.5rem; }
 .venues-table input { width: 100%; min-width: 22rem; }
+.site-header .nav-admin { opacity: 0.75; }
+.login-form .hint { color: var(--color-text-muted); font-size: 0.9rem; margin: 0; }

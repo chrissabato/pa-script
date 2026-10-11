@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Auth\AdminGate;
 use App\Auth\PasswordGate;
 use App\Database\PgType;
 use App\Fill\DocumentFillException;
@@ -71,7 +72,7 @@ function rowSaved(Request $request, Response $response, string $location): Respo
     return $response->withHeader('Location', $location)->withStatus(302);
 }
 
-return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
+return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGate $adminGate): void {
     $sports = new SportRepository($pdo);
     $divisions = new DivisionRepository($pdo);
     $schools = new SchoolRepository($pdo);
@@ -144,6 +145,42 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
 
     $app->post('/logout', function (Request $request, Response $response) use ($gate) {
         return $gate->logOut($request, $response)->withHeader('Location', Url::to('/login'))->withStatus(302);
+    });
+
+    // ---- Admin unlock (template pages; see App\Auth\AdminGate) ------------
+
+    $app->get('/admin/login', function (Request $request, Response $response) use ($view, $adminGate) {
+        $next = PasswordGate::safeNext((string) ($request->getQueryParams()['next'] ?? '/templates'));
+        if ($adminGate->isUnlocked($request)) {
+            return $response->withHeader('Location', Url::to($next))->withStatus(302);
+        }
+        $response->getBody()->write($view->render('admin-login', [
+            'title' => 'Admin — PA Script',
+            'next' => $next,
+            'failed' => false,
+        ]));
+
+        return $response;
+    });
+
+    $app->post('/admin/login', function (Request $request, Response $response) use ($view, $adminGate) {
+        $data = (array) $request->getParsedBody();
+        $next = PasswordGate::safeNext((string) ($data['next'] ?? '/templates'));
+        if ($adminGate->check((string) ($data['password'] ?? ''))) {
+            return $adminGate->unlock($request, $response)->withHeader('Location', Url::to($next))->withStatus(302);
+        }
+        sleep(1); // slow down password guessing
+        $response->getBody()->write($view->render('admin-login', [
+            'title' => 'Admin — PA Script',
+            'next' => $next,
+            'failed' => true,
+        ]));
+
+        return $response->withStatus(401);
+    });
+
+    $app->post('/admin/logout', function (Request $request, Response $response) use ($adminGate) {
+        return $adminGate->lock($request, $response)->withHeader('Location', Url::to('/'))->withStatus(302);
     });
 
     // ---- Dashboard -------------------------------------------------------

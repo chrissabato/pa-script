@@ -15,7 +15,8 @@ use Slim\Psr7\Response as SlimResponse;
  * One shared password (APP_PASSWORD) for the whole app — no usernames.
  * Logging in sets a cookie holding an HMAC of the password, so there is no
  * server-side session to expire and changing the password logs everyone out.
- * With APP_PASSWORD unset the gate is off (local dev).
+ * With APP_PASSWORD unset the gate is off (local dev). AdminGate reuses the
+ * cookie handling with its own password, cookie name and lifetime.
  */
 class PasswordGate implements MiddlewareInterface
 {
@@ -32,9 +33,25 @@ class PasswordGate implements MiddlewareInterface
     /** @var string */
     private $password;
 
-    public function __construct(string $password)
-    {
+    /** @var string */
+    private $cookieName;
+
+    /** @var string */
+    private $label;
+
+    /** @var int */
+    private $lifetime;
+
+    public function __construct(
+        string $password,
+        string $cookieName = self::COOKIE,
+        string $label = 'pa-script-login',
+        int $lifetime = self::LIFETIME
+    ) {
         $this->password = $password;
+        $this->cookieName = $cookieName;
+        $this->label = $label;
+        $this->lifetime = $lifetime;
     }
 
     public function enabled(): bool
@@ -62,7 +79,7 @@ class PasswordGate implements MiddlewareInterface
 
     public function isLoggedIn(Request $request): bool
     {
-        $cookie = (string) ($request->getCookieParams()[self::COOKIE] ?? '');
+        $cookie = (string) ($request->getCookieParams()[$this->cookieName] ?? '');
 
         return $this->enabled() && $cookie !== '' && hash_equals($this->token(), $cookie);
     }
@@ -74,7 +91,7 @@ class PasswordGate implements MiddlewareInterface
 
     public function logIn(Request $request, Response $response): Response
     {
-        return $response->withAddedHeader('Set-Cookie', $this->cookie($request, $this->token(), self::LIFETIME));
+        return $response->withAddedHeader('Set-Cookie', $this->cookie($request, $this->token(), $this->lifetime));
     }
 
     public function logOut(Request $request, Response $response): Response
@@ -90,7 +107,7 @@ class PasswordGate implements MiddlewareInterface
 
     private function token(): string
     {
-        return hash_hmac('sha256', 'pa-script-login', $this->password);
+        return hash_hmac('sha256', $this->label, $this->password);
     }
 
     /**
@@ -99,7 +116,7 @@ class PasswordGate implements MiddlewareInterface
     private function cookie(Request $request, string $value, int $lifetime): string
     {
         $parts = [
-            self::COOKIE . '=' . $value,
+            $this->cookieName . '=' . $value,
             'Path=' . (Url::base() === '' ? '/' : Url::base() . '/'),
             'Max-Age=' . max(0, $lifetime),
             'Expires=' . gmdate('D, d M Y H:i:s \G\M\T', time() + $lifetime),
@@ -114,7 +131,7 @@ class PasswordGate implements MiddlewareInterface
     }
 
     /** The request path without the base ('/pa/games/3' → '/games/3'). */
-    private static function appPath(Request $request): string
+    public static function appPath(Request $request): string
     {
         $path = $request->getUri()->getPath();
         $base = Url::base();
@@ -125,7 +142,7 @@ class PasswordGate implements MiddlewareInterface
         return $path === '' ? '/' : $path;
     }
 
-    private static function query(Request $request): string
+    public static function query(Request $request): string
     {
         $query = $request->getUri()->getQuery();
 

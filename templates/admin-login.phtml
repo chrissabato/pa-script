@@ -1,0 +1,12 @@
+<form method="post" action="<?= $this->base() ?>/admin/login" class="login-form">
+    <h2>Admin</h2>
+    <p class="hint">Script templates, snippets and default venues change every game's script, so they need the admin password.</p>
+    <?php if ($failed): ?>
+        <p class="error">That password isn't right.</p>
+    <?php endif; ?>
+    <input type="hidden" name="next" value="<?= htmlspecialchars($next, ENT_QUOTES) ?>">
+    <label>Admin password
+        <input type="password" name="password" autocomplete="current-password" required autofocus>
+    </label>
+    <button type="submit">Unlock</button>
+</form>

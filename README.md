@@ -84,6 +84,7 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 | `DB_CREDS_FILE` | Production: read the DB credentials from the server's shared JSON file instead. |
 | `DB_SCHEMA` | Production: keep the app's tables in their own schema (`pa_script`) of the shared database. |
 | `APP_PASSWORD` | The single shared login password (no usernames). Unset = no login. Changing it logs everyone out. |
+| `ADMIN_PASSWORD` | A second password for script templates, snippets and default venues (Admin in the nav). Unset = those pages are open to everyone. Changing it locks every admin out. |
 | `IMPORT_TOKEN` | Shared secret embedded in the bookmarklet; the bookmarklet's endpoints check it instead of the login. |
 | `GEMINI_API_KEY` | Enables "Fill in from a document". Unset = the panel says it isn't set up. |
 | `GEMINI_MODEL`, `GEMINI_THINKING_LEVEL` | Optional; default `gemini-3.5-flash-lite` with `minimal` thinking (~3 s per document). |
@@ -96,6 +97,9 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
   campus; on campus (158.104.0.0/16) is open.
 - **Shared password** — when `APP_PASSWORD` is set, every page asks for it
   once per browser (a 30-day cookie).
+- **Admin password** — when `ADMIN_PASSWORD` is set, the script templates,
+  snippets and default venues are hidden behind it too (Admin in the nav; a
+  7-day cookie, Lock admin to clear it).
 - **Exceptions** — the bookmarklet's cross-site endpoints
   (`/bookmarklet/scraper.js`, `/api/import/stage`) are exempt from both and
   gated by `IMPORT_TOKEN`. Any new endpoint called from another site must be

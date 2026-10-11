@@ -9,13 +9,28 @@ class Renderer
     /** @var string */
     private $templatesPath;
 
+    /** @var array<string, mixed> data every view gets (see share()) */
+    private $shared = [];
+
     public function __construct(string $templatesPath)
     {
         $this->templatesPath = rtrim($templatesPath, '/');
     }
 
+    /**
+     * Data every view and the layout get, under their own data — e.g.
+     * AdminGate's adminUnlocked for the nav.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function share(array $data): void
+    {
+        $this->shared = array_merge($this->shared, $data);
+    }
+
     public function render(string $template, array $data = []): string
     {
+        $data = array_merge($this->shared, $data);
         $content = $this->renderTemplate($template, $data);
 
         return $this->renderTemplate('layout', array_merge($data, ['content' => $content]));

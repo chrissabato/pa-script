@@ -14,7 +14,18 @@
             <a href="<?= $this->base() ?>/">Dashboard</a>
             <a href="<?= $this->base() ?>/games">Games</a>
             <a href="<?= $this->base() ?>/schools">Teams</a>
+            <?php if (!empty($adminUnlocked)): ?>
             <a href="<?= $this->base() ?>/templates">Templates</a>
+            <?php endif; ?>
+            <?php if (!empty($adminEnabled)): ?>
+                <?php if (!empty($adminUnlocked)): ?>
+            <form method="post" action="<?= $this->base() ?>/admin/logout" class="logout-form">
+                <button type="submit" class="link-button" title="Hide the template pages again">Lock admin</button>
+            </form>
+                <?php else: ?>
+            <a href="<?= $this->base() ?>/admin/login" class="nav-admin">Admin</a>
+                <?php endif; ?>
+            <?php endif; ?>
             <?php if (!empty($_ENV['APP_PASSWORD'])): ?>
             <form method="post" action="<?= $this->base() ?>/logout" class="logout-form">
                 <button type="submit" class="link-button">Log out</button>

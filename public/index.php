@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Auth\AdminGate;
 use App\Auth\PasswordGate;
 use App\Database\Connection;
 use App\View\Renderer;
@@ -32,16 +33,21 @@ Url::setBase(Url::detect($_ENV, $_SERVER));
 
 $app = AppFactory::create();
 $app->setBasePath(Url::base());
-// One shared password for the whole app (off when APP_PASSWORD is unset).
+$view = new Renderer(__DIR__ . '/../templates');
+
+// One shared password for the whole app (off when APP_PASSWORD is unset),
+// and inside it a second one for the template pages (ADMIN_PASSWORD).
+// Slim runs the last-added middleware first, so the app login comes first.
 $gate = new PasswordGate((string) ($_ENV['APP_PASSWORD'] ?? ''));
+$adminGate = new AdminGate((string) ($_ENV['ADMIN_PASSWORD'] ?? ''), $view);
+$app->add($adminGate);
 $app->add($gate);
 $app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 $app->addErrorMiddleware(filter_var($_ENV['APP_DEBUG'] ?? false, FILTER_VALIDATE_BOOLEAN), true, true);
 
-$view = new Renderer(__DIR__ . '/../templates');
 $pdo = Connection::fromEnv();
 
-(require __DIR__ . '/../src/Routes/routes.php')($app, $pdo, $view, $gate);
+(require __DIR__ . '/../src/Routes/routes.php')($app, $pdo, $view, $gate, $adminGate);
 
 $app->run();
