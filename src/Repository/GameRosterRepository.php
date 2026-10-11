@@ -14,6 +14,12 @@ use PDO;
  */
 class GameRosterRepository
 {
+    /**
+     * Softball's flex (the player the designated player bats for) is read
+     * after the nine batters, so it's stored as batting slot 10.
+     */
+    public const FLEX_SLOT = 10;
+
     /** @var PDO */
     private $pdo;
 
@@ -44,7 +50,8 @@ class GameRosterRepository
         $stmt = $this->pdo->prepare(
             'select s.side, '
             . '(select count(*) from game_roster_players p where p.snapshot_id = s.id) as players, '
-            . '(select count(*) from game_roster_players p where p.snapshot_id = s.id and p.is_starter) as starters, '
+            . '(select count(*) from game_roster_players p where p.snapshot_id = s.id '
+            . 'and (p.is_starter or p.batting_order is not null)) as starters, '
             . '(select count(*) from game_roster_coaches c where c.snapshot_id = s.id) as coaches '
             . 'from game_roster_snapshots s where s.game_id = :game_id'
         );
@@ -163,9 +170,9 @@ class GameRosterRepository
     {
         $stmt = $this->pdo->prepare(
             'insert into game_roster_players (snapshot_id, number, name, pronunciation, position, year, '
-            . 'hometown, is_starter, is_captain, is_libero, batting_order) '
+            . 'hometown, is_starter, is_captain, is_libero, batting_order, lineup_position) '
             . 'values (:snapshot_id, :number, :name, :pronunciation, :position, :year, :hometown, '
-            . ':is_starter, :is_captain, :is_libero, :batting_order) returning id'
+            . ':is_starter, :is_captain, :is_libero, :batting_order, :lineup_position) returning id'
         );
         $stmt->execute(array_merge(['snapshot_id' => $snapshotId], $this->normalizePlayer($data)));
 
@@ -175,20 +182,19 @@ class GameRosterRepository
     /** @param array<string, mixed> $data */
     public function updatePlayer(int $id, array $data): void
     {
-        // The roster editor doesn't post batting_order (hidden until the
-        // baseball/softball designated-player design lands), so only touch
-        // it when a caller actually sends it.
+        // Only Baseball/Softball roster pages post the lineup (batting
+        // slot + today's position), so only touch it when a caller sends it.
         $params = array_merge(['id' => $id], $this->normalizePlayer($data));
-        $battingOrderSet = 'batting_order = :batting_order, ';
+        $lineupSet = 'batting_order = :batting_order, lineup_position = :lineup_position, ';
         if (!array_key_exists('batting_order', $data)) {
-            unset($params['batting_order']);
-            $battingOrderSet = '';
+            unset($params['batting_order'], $params['lineup_position']);
+            $lineupSet = '';
         }
         $stmt = $this->pdo->prepare(
             'update game_roster_players set number = :number, name = :name, pronunciation = :pronunciation, '
             . 'position = :position, year = :year, hometown = :hometown, is_starter = :is_starter, '
             . 'is_captain = :is_captain, is_libero = :is_libero, '
-            . $battingOrderSet . 'updated_at = current_timestamp '
+            . $lineupSet . 'updated_at = current_timestamp '
             . 'where id = :id'
         );
         $stmt->execute($params);
@@ -340,6 +346,7 @@ class GameRosterRepository
             'is_captain' => PgType::boolToString(!empty($data['is_captain'])),
             'is_libero' => PgType::boolToString(!empty($data['is_libero'])),
             'batting_order' => ($data['batting_order'] ?? '') !== '' ? (int) $data['batting_order'] : null,
+            'lineup_position' => trim((string) ($data['lineup_position'] ?? '')) !== '' ? trim((string) $data['lineup_position']) : null,
         ];
     }
 }

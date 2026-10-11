@@ -22,6 +22,8 @@ class GameRepository
             sports.name as sport_name,
             sports.slug as sport_slug,
             sports.uses_libero,
+            sports.uses_batting_order,
+            sports.uses_flex,
             home.school_id as home_school_id,
             away.school_id as away_school_id,
             home.division_id as division_id,

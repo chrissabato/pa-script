@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Rendering;
 
+use App\Repository\GameRosterRepository;
 use App\View\Url;
 
 /**
@@ -32,7 +33,9 @@ class ScriptChecks
 
             if ($starters === [] && $reserves === [] && $battingOrder === []) {
                 $checks[] = [$team . "'s roster is empty — import it.", $rosterUrl];
-            } elseif ($starters === [] && $battingOrder === []) {
+            } elseif (!empty($game['uses_batting_order'])) {
+                $checks = array_merge($checks, self::battingOrderChecks($team, $battingOrder, $rosterUrl));
+            } elseif ($starters === []) {
                 $checks[] = ['No starters marked for ' . $team . '.', $rosterUrl];
             }
 
@@ -60,6 +63,45 @@ class ScriptChecks
         }
         if (($game['time_of_day'] ?? null) === null) {
             $checks[] = ['No game time set — reads "Good afternoon".', $gameUrl];
+        }
+
+        return $checks;
+    }
+
+    /**
+     * Baseball/Softball: every slot 1–9 filled, once each.
+     *
+     * @param array<int, array<string, mixed>> $battingOrder
+     * @return array<int, array{0: string, 1: string}>
+     */
+    private static function battingOrderChecks(string $team, array $battingOrder, string $rosterUrl): array
+    {
+        if ($battingOrder === []) {
+            return [['No batting order set for ' . $team . '.', $rosterUrl]];
+        }
+
+        $checks = [];
+        $bySlot = [];
+        foreach ($battingOrder as $player) {
+            $bySlot[(int) $player['batting_order']][] = $player['name'];
+        }
+        foreach ($bySlot as $slot => $names) {
+            if (count($names) > 1) {
+                $spot = $slot === GameRosterRepository::FLEX_SLOT ? 'flex' : Spoken::ordinal($slot);
+                $checks[] = [
+                    PlaceholderRegistry::joinWithAnd($names) . ' share the ' . $spot . ' spot in ' . $team . "'s batting order.",
+                    $rosterUrl,
+                ];
+            }
+        }
+        $missing = array_values(array_diff(range(1, 9), array_keys($bySlot)));
+        if ($missing !== []) {
+            $checks[] = [
+                $team . "'s batting order has no " . PlaceholderRegistry::joinWithAnd(array_map(function (int $slot): string {
+                    return Spoken::ordinal($slot);
+                }, $missing)) . ' batter.',
+                $rosterUrl,
+            ];
         }
 
         return $checks;

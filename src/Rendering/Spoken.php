@@ -37,6 +37,24 @@ class Spoken
             'm' => 'midfield', 'mf' => 'midfield', 'mid' => 'midfield', 'midfield' => 'midfield', 'midfielder' => 'midfield',
             'a' => 'attack', 'att' => 'attack', 'attack' => 'attack', 'attacker' => 'attack',
         ],
+        // Fallback when a lineup slot has no "Playing" position for the
+        // game (GameContextBuilder::lineupPosition()).
+        'baseball' => [
+            'p' => 'pitcher', 'rhp' => 'pitcher', 'lhp' => 'pitcher', 'pitcher' => 'pitcher',
+            'c' => 'catcher', 'catcher' => 'catcher',
+            '1b' => 'first base', '2b' => 'second base', '3b' => 'third base', 'ss' => 'shortstop',
+            'lf' => 'left field', 'cf' => 'center field', 'rf' => 'right field',
+            'of' => 'outfield', 'inf' => 'infield', 'if' => 'infield', 'ut' => 'utility', 'util' => 'utility',
+            'dh' => 'designated hitter',
+        ],
+        'softball' => [
+            'p' => 'pitcher', 'rhp' => 'pitcher', 'lhp' => 'pitcher', 'pitcher' => 'pitcher',
+            'c' => 'catcher', 'catcher' => 'catcher',
+            '1b' => 'first base', '2b' => 'second base', '3b' => 'third base', 'ss' => 'shortstop',
+            'lf' => 'left field', 'cf' => 'center field', 'rf' => 'right field',
+            'of' => 'outfield', 'inf' => 'infield', 'if' => 'infield', 'ut' => 'utility', 'util' => 'utility',
+            'dp' => 'designated player', 'dh' => 'designated player',
+        ],
         // As the Volleyball sheet reads them ("OH" is "outside", not
         // "outside hitter"). The match's libero is normally ticked on the
         // roster page (is_libero); a listed position of "L" reads the same.

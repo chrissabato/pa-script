@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Rendering;
 
+use App\Repository\GameRosterRepository;
+
 /**
  * Resolves a placeholder key against a render context array.
  *
@@ -36,6 +38,11 @@ class PlaceholderRegistry
             },
             'away.coaches.joinedList' => function (array $context): string {
                 return self::joinCoaches($context['away']['coaches'] ?? []);
+            },
+            // "Ed Trudell behind the plate, and Faith Hebert covering the
+            // bases" — umpires read by role; plain names when no roles are set.
+            'officials.umpireList' => function (array $context): string {
+                return self::umpiresByRole($context['officials'] ?? []);
             },
             'item.battingOrderLabel' => function (array $context): string {
                 $order = $context['item']['batting_order'] ?? null;
@@ -137,10 +144,49 @@ class PlaceholderRegistry
         return count($parts) === 2 ? $parts[0] . ', and ' . $parts[1] : self::joinWithAnd($parts);
     }
 
+    /**
+     * Where an umpire works, from their role as typed on the officials list
+     * ("Plate", "HP", "1B", "Field", "Bases"); unrecognized roles read as-is.
+     */
+    public static function umpirePosition(string $role): string
+    {
+        $key = strtolower(trim(str_replace('.', '', $role)));
+        $key = trim((string) preg_replace('/\bump(ire)?\b/', '', $key));
+        if ($key === '') {
+            return '';
+        }
+        if (preg_match('/plate|^hp$|^home$|chief/', $key)) {
+            return 'behind the plate';
+        }
+        foreach (['first' => '1b', 'second' => '2b', 'third' => '3b'] as $word => $short) {
+            if (preg_match('/^(' . $word . '|' . $short . ')\b/', $key)) {
+                return 'at ' . $word . ' base';
+            }
+        }
+        if (preg_match('/field|base|^bu$/', $key)) {
+            return 'covering the bases';
+        }
+
+        return 'at ' . $key;
+    }
+
+    /** @param array<int, array<string, mixed>> $officials */
+    private static function umpiresByRole(array $officials): string
+    {
+        $parts = array_map(function (array $official): string {
+            return trim((string) $official['name'] . ' ' . self::umpirePosition((string) ($official['role'] ?? '')));
+        }, $officials);
+
+        return count($parts) === 2 ? $parts[0] . ', and ' . $parts[1] : self::joinWithAnd($parts);
+    }
+
     private static function battingOrderLabel(int $order): string
     {
         if ($order === 1) {
             return 'Leading off';
+        }
+        if ($order === GameRosterRepository::FLEX_SLOT) {
+            return 'In the flex';
         }
 
         $suffix = 'th';

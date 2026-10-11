@@ -103,6 +103,10 @@ class GameContextBuilder
                 : Spoken::position($p['position'] ?? null, $sportSlug);
             $p['spokenYear'] = Spoken::year($p['year'] ?? null);
             $p['spokenHometown'] = Spoken::hometown($p['hometown'] ?? null);
+            // Baseball/Softball: where they play today, typed per game on
+            // the roster page, else their roster position read aloud.
+            $lineupPosition = trim((string) ($p['lineup_position'] ?? ''));
+            $p['spokenLineupPosition'] = $lineupPosition !== '' ? $lineupPosition : $p['spokenPosition'];
 
             return $p;
         }, $players);

@@ -1,6 +1,18 @@
 <?php
 $teamName = $game[$side . '_school_name'] ?? null;
 $usesLibero = !empty($game['uses_libero']);
+// Baseball/Softball: a per-game batting slot + where they play today,
+// instead of the Starter checkbox.
+$usesBattingOrder = !empty($game['uses_batting_order']);
+$battingSlots = ['' => '—'];
+for ($slot = 1; $slot <= 9; $slot++) {
+    $battingSlots[(string) $slot] = (string) $slot;
+}
+if (!empty($game['uses_flex'])) {
+    $battingSlots[(string) \App\Repository\GameRosterRepository::FLEX_SLOT] = 'Flex';
+}
+$lineupPositions = ['pitcher', 'catcher', 'first base', 'second base', 'third base', 'shortstop',
+    'left field', 'center field', 'right field', 'designated player', 'designated hitter'];
 ?>
 <?php $gameTab = $side; require __DIR__ . '/../partials/game-nav.phtml'; ?>
 
@@ -63,19 +75,38 @@ $usesLibero = !empty($game['uses_libero']);
 </form>
 
 <h3>Players</h3>
+<?php if ($usesBattingOrder): ?>
+<p class="hint">Changes save automatically. Pick each starter's spot in the batting order<?= isset($battingSlots['10']) ? ' (or Flex)' : '' ?> and
+    where they're playing today — "Leading off at right field, …". With no Playing position the roster position is read.</p>
+<datalist id="lineup-positions">
+    <?php foreach ($lineupPositions as $lineupPosition): ?><option value="<?= htmlspecialchars($lineupPosition, ENT_QUOTES) ?>"><?php endforeach; ?>
+</datalist>
+<?php else: ?>
 <p class="hint">Changes save automatically — tick Starter or Captain<?= $usesLibero ? ' or Libero' : '' ?>, or edit a field and move on.<?php if ($usesLibero): ?>
     The libero is introduced as "At libero, …" and read last.<?php endif; ?></p>
+<?php endif; ?>
 <div class="table-scroll">
 <table class="roster-table">
     <tr>
-        <th>#</th><th class="cell-center">Starter</th><th class="cell-center">Captain</th><?php if ($usesLibero): ?><th class="cell-center">Libero</th><?php endif; ?><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
+        <th>#</th><?php if ($usesBattingOrder): ?><th>Bat</th><th>Playing</th><?php else: ?><th class="cell-center">Starter</th><?php endif; ?><th class="cell-center">Captain</th><?php if ($usesLibero): ?><th class="cell-center">Libero</th><?php endif; ?><th>Name</th><th>Pronunciation</th><th>Position</th><th>Year</th><th>Hometown</th>
         <th></th>
     </tr>
     <?php foreach ($players as $player): ?>
     <tr>
         <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/roster/<?= htmlspecialchars($side, ENT_QUOTES) ?>/players/<?= (int) $player['id'] ?>" id="player-<?= (int) $player['id'] ?>" data-autosave>
             <td><input type="text" name="number" value="<?= htmlspecialchars((string) $player['number'], ENT_QUOTES) ?>" size="3"></td>
+            <?php if ($usesBattingOrder): ?>
+            <td>
+                <select name="batting_order" aria-label="Batting order">
+                    <?php foreach ($battingSlots as $value => $label): ?>
+                        <option value="<?= $value ?>" <?= (string) $player['batting_order'] === (string) $value ? 'selected' : '' ?>><?= $label ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </td>
+            <td><input type="text" name="lineup_position" list="lineup-positions" aria-label="Playing today" value="<?= htmlspecialchars((string) $player['lineup_position'], ENT_QUOTES) ?>" size="14"></td>
+            <?php else: ?>
             <td class="cell-center"><input type="checkbox" name="is_starter" value="1" <?= $player['is_starter'] ? 'checked' : '' ?>></td>
+            <?php endif; ?>
             <td class="cell-center"><input type="checkbox" name="is_captain" value="1" <?= $player['is_captain'] ? 'checked' : '' ?>></td>
             <?php if ($usesLibero): ?>
             <td class="cell-center"><input type="checkbox" name="is_libero" value="1" <?= $player['is_libero'] ? 'checked' : '' ?>></td>

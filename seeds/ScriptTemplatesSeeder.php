@@ -11,10 +11,10 @@ use Phinx\Seed\AbstractSeed;
  * truth for template content, so existing rows are updated in place.
  *
  * Wording status: Women's and Men's Soccer (home), Basketball,
- * Volleyball and Lacrosse are transcribed from their real sheets'
+ * Volleyball, Lacrosse and Softball are transcribed from their real sheets'
  * Script-tab formulas (verified by tests/Rendering/WomensSoccerScriptTest.php,
- * BasketballScriptTest.php, VolleyballScriptTest.php and
- * LacrosseScriptTest.php; the two soccer sheets differ only in
+ * BasketballScriptTest.php, VolleyballScriptTest.php,
+ * LacrosseScriptTest.php and SoftballScriptTest.php; the two soccer sheets differ only in
  * "Women's"/"Men's"). Every other
  * template is still placeholder wording with the right structure — port
  * each from its sheet the same way before relying on it for a broadcast.
@@ -94,7 +94,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 'division_id' => null,
                 'site_variant' => 'home',
                 'name' => 'Softball — Home',
-                'content_blocks' => json_encode($this->battingOrderSportHomeBlocks('Softball')),
+                'content_blocks' => json_encode($this->softballHomeBlocks()),
                 'version' => 1,
             ],
             [
@@ -295,6 +295,85 @@ class ScriptTemplatesSeeder extends AbstractSeed
                 self::closingAnnouncement(),
             ]
         );
+    }
+
+    // ---- Softball (real sheet wording) -------------------------------------
+
+    /**
+     * Transcribed from the "PA Script - Softball" sheet's Script tab:
+     * welcome, the visitors' batting order + head coach, Willamette's
+     * batting order + head coach, umpires by position, anthem,
+     * sportsmanship statement. Each slot reads where the player is playing
+     * today ("Leading off at right field, a junior from ..."), the flex
+     * last ("In the flex at catcher, ..."). Fixes vs. the sheet: "Batting
+     * 3nd" and a second "Batting 6th" (slots come from the batting order
+     * now), its swapped year/hometown lookups, the coach line's missing
+     * space ("Cyrusin"), and the same typos as Soccer.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function softballHomeBlocks(): array
+    {
+        return array_merge(
+            [
+                self::t('Good '), self::p('meta.partOfDay'),
+                self::t(' ladies and gentlemen, and welcome to '), self::venueOr('Willamette Softball Field'),
+                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
+                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
+                self::t(' softball game between the '),
+                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
+                self::t(' and the '),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::t(". Before the game gets underway, let's meet the starters.\n\n"),
+                self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
+            ],
+            $this->battingOrderLines('away'),
+            $this->headCoachLine('away'),
+            [
+                self::t("\nAnd now, the starting lineup for the "),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'), self::t("\n"),
+            ],
+            $this->battingOrderLines('home'),
+            $this->headCoachLine('home'),
+            [
+                self::when('officials', [
+                    self::t("\nThe umpires for "), self::todayOrTonight(),
+                    self::t(' game are '), self::p('officials.umpireList'), self::t(".\n"),
+                ]),
+                self::when('meta.specialAnnouncement', [self::t("\n"), self::p('meta.specialAnnouncement'), self::t("\n")]),
+                self::when('meta.hasAnthem', [self::t("\nAnd now please stand for the playing of the National Anthem.\n")]),
+                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
+                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
+                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
+                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
+                    . 'not be tolerated and are grounds for removal from '),
+                self::when('meta.venue', [self::p('meta.venue')], [self::t('the Willamette Softball Field')]),
+                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+                self::closingAnnouncement(),
+            ]
+        );
+    }
+
+    /**
+     * "Batting 2nd at 3rd base, a junior from Burien, Washington, number
+     * 13, MAG-ee FLY-sh-man" — one line per batting slot, flex last.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function battingOrderLines(string $side): array
+    {
+        return [[
+            'type' => 'loop',
+            'over' => $side . '.battingOrder',
+            'template' => [
+                self::p('item.battingOrderLabel'),
+                self::when('item.spokenLineupPosition', [self::t(' at '), self::p('item.spokenLineupPosition')]),
+                self::when('item.spokenYear', [self::t(', a '), self::p('item.spokenYear')]),
+                self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
+                self::when('item.number', [self::t(', number '), self::p('item.number')]),
+                self::t(', '), self::p('item.spokenName'), self::t("\n"),
+            ],
+        ]];
     }
 
     // ---- Volleyball (real sheet wording) -----------------------------------
@@ -511,7 +590,7 @@ class ScriptTemplatesSeeder extends AbstractSeed
     }
 
     /**
-     * Baseball/Softball: no divisions (single team per school) and no
+     * Baseball (still placeholder wording): no divisions and no
      * neutral-site variant read. Lineup is ordered by batting order rather
      * than the starters/reserves pattern, with a standalone starting-pitcher
      * callout, and umpires get role-specific phrasing instead of a flat list.
