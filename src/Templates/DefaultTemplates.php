@@ -25,6 +25,60 @@ use App\Repository\GameRosterRepository;
 class DefaultTemplates
 {
     /**
+     * Each sport's default venue (sports.default_venue, edited in the app
+     * afterwards): what its sheet's welcome line reads.
+     */
+    public const VENUES = [
+        'soccer' => "Willamette University's Sparks Field",
+        'lacrosse' => 'Sparks Field',
+        'basketball' => "Willamette University's Cone Field House",
+        'volleyball' => "Willamette University's Cone Field House",
+        'softball' => 'Willamette Softball Field',
+        'baseball' => 'John Lewis Field at Spec Keene Stadium',
+    ];
+
+    public const WELCOME = 'Welcome';
+    public const SPORTSMANSHIP = 'Sportsmanship statement';
+
+    /**
+     * The default global snippets (script_snippets), by name: wording every
+     * template shares, used as [snippet Name].
+     *
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    public function snippets(): array
+    {
+        return [
+            // The sheets' welcome line, standardized: "Good evening and
+            // welcome to Sparks Field on the land of the Kalapuya for
+            // tonight's Northwest Conference Women's Lacrosse game between
+            // ..."; Volleyball reads "match".
+            self::WELCOME => [
+                self::t('Good '), self::p('meta.partOfDay'),
+                self::t(' and welcome to '), self::p('meta.venue'),
+                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
+                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
+                self::t(' '), self::p('meta.teamName'), self::t(' '),
+                ['type' => 'when', 'key' => 'meta.sport', 'equals' => 'volleyball', 'then' => [self::t('match')], 'else' => [self::t('game')]],
+                self::t(' between the '),
+                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
+                self::t(' and the '),
+                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
+                self::t('.'),
+            ],
+            self::SPORTSMANSHIP => [
+                self::t('Willamette University, the Northwest Conference, and the NCAA promote good sportsmanship '
+                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
+                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
+                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
+                    . 'not be tolerated and are grounds for removal from '),
+                self::p('meta.venue'),
+                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment."),
+            ],
+        ];
+    }
+
+    /**
      * Every default template, keyed by the sport/division slugs and site
      * variant that identify its script_templates row (division null =
      * every division of the sport).
@@ -35,15 +89,15 @@ class DefaultTemplates
     {
         return [
             ['sport' => 'soccer', 'division' => 'womens', 'site_variant' => 'home',
-                'name' => "Soccer — Women's — Home", 'blocks' => $this->soccerHomeBlocks("Women's")],
+                'name' => "Soccer — Women's — Home", 'blocks' => $this->soccerHomeBlocks()],
             ['sport' => 'soccer', 'division' => 'mens', 'site_variant' => 'home',
-                'name' => "Soccer — Men's — Home", 'blocks' => $this->soccerHomeBlocks("Men's")],
+                'name' => "Soccer — Men's — Home", 'blocks' => $this->soccerHomeBlocks()],
             ['sport' => 'soccer', 'division' => null, 'site_variant' => 'neutral',
                 'name' => 'Soccer — Neutral Site', 'blocks' => $this->neutralBlocks()],
             ['sport' => 'basketball', 'division' => 'womens', 'site_variant' => 'home',
-                'name' => "Basketball — Women's — Home", 'blocks' => $this->basketballHomeBlocks("Women's")],
+                'name' => "Basketball — Women's — Home", 'blocks' => $this->basketballHomeBlocks()],
             ['sport' => 'basketball', 'division' => 'mens', 'site_variant' => 'home',
-                'name' => "Basketball — Men's — Home", 'blocks' => $this->basketballHomeBlocks("Men's")],
+                'name' => "Basketball — Men's — Home", 'blocks' => $this->basketballHomeBlocks()],
             ['sport' => 'baseball', 'division' => null, 'site_variant' => 'home',
                 'name' => 'Baseball — Home', 'blocks' => $this->baseballHomeBlocks()],
             ['sport' => 'softball', 'division' => null, 'site_variant' => 'home',
@@ -51,9 +105,9 @@ class DefaultTemplates
             ['sport' => 'volleyball', 'division' => null, 'site_variant' => 'home',
                 'name' => 'Volleyball — Home', 'blocks' => $this->volleyballBlocks()],
             ['sport' => 'lacrosse', 'division' => 'womens', 'site_variant' => 'home',
-                'name' => "Lacrosse — Women's — Home", 'blocks' => $this->lacrosseHomeBlocks("Women's")],
+                'name' => "Lacrosse — Women's — Home", 'blocks' => $this->lacrosseHomeBlocks()],
             ['sport' => 'lacrosse', 'division' => 'mens', 'site_variant' => 'home',
-                'name' => "Lacrosse — Men's — Home", 'blocks' => $this->lacrosseHomeBlocks("Men's")],
+                'name' => "Lacrosse — Men's — Home", 'blocks' => $this->lacrosseHomeBlocks()],
         ];
     }
 
@@ -99,14 +153,20 @@ class DefaultTemplates
         return ['type' => 'when', 'key' => $key, 'then' => $then, 'else' => $else];
     }
 
-    /**
-     * The game's venue, or the sport's usual home facility when none is set.
-     *
-     * @return array<string, mixed>
-     */
-    private static function venueOr(string $defaultVenue): array
+    /** @return array<string, mixed> */
+    private static function snippet(string $name): array
     {
-        return self::when('meta.venue', [self::p('meta.venue')], [self::t($defaultVenue)]);
+        return ['type' => 'snippet', 'name' => $name];
+    }
+
+    /**
+     * The sportsmanship statement on its own lines, as every sheet reads it.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private static function sportsmanship(): array
+    {
+        return [self::t("\n"), self::snippet(self::SPORTSMANSHIP), self::t("\n")];
     }
 
     /** @return array<string, mixed> */
@@ -137,55 +197,40 @@ class DefaultTemplates
      *
      * @return array<int, array<string, mixed>>
      */
-    public function soccerHomeBlocks(string $divisionLabel): array
+    public function soccerHomeBlocks(): array
     {
-        return $this->fieldSportHomeBlocks(
-            "{$divisionLabel} Soccer",
-            "Willamette University's ",
-            'And now the playing of the National Anthem.'
-        );
+        return $this->fieldSportHomeBlocks('And now the playing of the National Anthem.');
     }
 
     /**
      * Transcribed from the "PA Script - Lacrosse" sheet's Script tab, the
      * same formulas as Soccer's apart from the sport, no "Willamette
-     * University's" before the venue, and "And now for the playing of the
-     * National Anthem." Same wording fixes as Soccer. The sheet is the
-     * Women's game; Men's reads the same with "Men's".
+     * University's" before the venue (Lacrosse's default venue), and "And
+     * now for the playing of the National Anthem." Same wording fixes as
+     * Soccer.
      *
      * @return array<int, array<string, mixed>>
      */
-    public function lacrosseHomeBlocks(string $divisionLabel): array
+    public function lacrosseHomeBlocks(): array
     {
-        return $this->fieldSportHomeBlocks(
-            "{$divisionLabel} Lacrosse",
-            '',
-            'And now for the playing of the National Anthem.'
-        );
+        return $this->fieldSportHomeBlocks('And now for the playing of the National Anthem.');
     }
 
     /**
      * The Soccer/Lacrosse sheets' shared script: welcome, visitors'
      * starters + head coach, home starters + head coach, officials,
-     * anthem, sportsmanship statement.
+     * anthem, sportsmanship statement. The welcome and sportsmanship
+     * statement are the shared snippets; the team ("Women's Soccer") and
+     * venue come from the game.
      *
      * @return array<int, array<string, mixed>>
      */
-    private function fieldSportHomeBlocks(string $gameLabel, string $venuePrefix, string $anthemLine): array
+    private function fieldSportHomeBlocks(string $anthemLine): array
     {
-        $venue = self::venueOr('Sparks Field');
-
         return array_merge(
             [
-                self::t('Good '), self::p('meta.partOfDay'),
-                self::t(" and welcome to {$venuePrefix}"), $venue,
-                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
-                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(" {$gameLabel} game between the "),
-                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
-                self::t(' and the '),
-                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t(". Before the game gets underway, let's meet the starters.\n\n"),
+                self::snippet(self::WELCOME),
+                self::t(" Before the game gets underway, let's meet the starters.\n\n"),
                 self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
             ],
             $this->starterLines('away'),
@@ -203,13 +248,9 @@ class DefaultTemplates
                 ]),
                 self::when('meta.specialAnnouncement', [self::t("\n"), self::p('meta.specialAnnouncement'), self::t("\n")]),
                 self::when('meta.hasAnthem', [self::t("\n{$anthemLine}\n")]),
-                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
-                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
-                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
-                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
-                    . 'not be tolerated and are grounds for removal from '),
-                $venue,
-                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ],
+            self::sportsmanship(),
+            [
                 self::closingAnnouncement(),
             ]
         );
@@ -239,7 +280,7 @@ class DefaultTemplates
             self::when('item.spokenHometown', [self::t(' from '), self::p('item.spokenHometown')]),
         ];
 
-        return $this->battingOrderSportHomeBlocks('softball', 'Willamette Softball Field', 'the Willamette Softball Field', $flexLine);
+        return $this->battingOrderSportHomeBlocks($flexLine);
     }
 
     /**
@@ -260,7 +301,7 @@ class DefaultTemplates
             self::when('item.spokenHometown', [self::t(', from '), self::p('item.spokenHometown')]),
         ];
 
-        return $this->battingOrderSportHomeBlocks('baseball', 'John Lewis Field at Spec Keene Stadium', 'Spec Keene Stadium', $pitcherLine);
+        return $this->battingOrderSportHomeBlocks($pitcherLine);
     }
 
     /**
@@ -271,19 +312,12 @@ class DefaultTemplates
      * @param array<int, array<string, mixed>> $slotTenLine
      * @return array<int, array<string, mixed>>
      */
-    private function battingOrderSportHomeBlocks(string $sportWord, string $defaultVenue, string $psaVenue, array $slotTenLine): array
+    private function battingOrderSportHomeBlocks(array $slotTenLine): array
     {
         return array_merge(
             [
-                self::t('Good '), self::p('meta.partOfDay'),
-                self::t(' ladies and gentlemen, and welcome to '), self::venueOr($defaultVenue),
-                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
-                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(" {$sportWord} game between the "),
-                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
-                self::t(' and the '),
-                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t(". Before the game gets underway, let's meet the starters.\n\n"),
+                self::snippet(self::WELCOME),
+                self::t(" Before the game gets underway, let's meet the starters.\n\n"),
                 self::t('First for the visitors from '), self::p('away.shortName'), self::t("\n"),
             ],
             $this->battingOrderLines('away', $slotTenLine),
@@ -301,13 +335,9 @@ class DefaultTemplates
                 ]),
                 self::when('meta.specialAnnouncement', [self::t("\n"), self::p('meta.specialAnnouncement'), self::t("\n")]),
                 self::when('meta.hasAnthem', [self::t("\nAnd now please stand for the playing of the National Anthem.\n")]),
-                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
-                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
-                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
-                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
-                    . 'not be tolerated and are grounds for removal from '),
-                self::when('meta.venue', [self::p('meta.venue')], [self::t($psaVenue)]),
-                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ],
+            self::sportsmanship(),
+            [
                 self::closingAnnouncement(),
             ]
         );
@@ -359,7 +389,6 @@ class DefaultTemplates
      */
     public function volleyballBlocks(): array
     {
-        $venue = self::venueOr('Cone Field House');
         $reserves = function (string $side): array {
             return [[
                 'type' => 'loop',
@@ -373,15 +402,8 @@ class DefaultTemplates
 
         return array_merge(
             [
-                self::t('Good '), self::p('meta.partOfDay'),
-                self::t(" and welcome to Willamette University's "), $venue,
-                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
-                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(' Volleyball match between the '),
-                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
-                self::t(' and your '),
-                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t(".\n\n"),
+                self::snippet(self::WELCOME),
+                self::t("\n\n"),
                 self::when('meta.specialAnnouncement', [self::p('meta.specialAnnouncement'), self::t("\n\n")]),
                 self::when('meta.hasAnthem', [self::t("And now for the playing of the National Anthem.\n\n")]),
                 self::t("Before the match gets underway, let's meet the teams.\n\n"),
@@ -407,13 +429,9 @@ class DefaultTemplates
                     self::t("\nThe officials for "), self::todayOrTonight(),
                     self::t(' game are '), self::p('officials.spokenList'), self::t(".\n"),
                 ]),
-                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
-                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
-                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
-                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
-                    . 'not be tolerated and are grounds for removal from '),
-                $venue,
-                self::t(".\n\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ],
+            self::sportsmanship(),
+            [
                 self::closingAnnouncement(),
             ]
         );
@@ -434,21 +452,11 @@ class DefaultTemplates
      *
      * @return array<int, array<string, mixed>>
      */
-    public function basketballHomeBlocks(string $divisionLabel): array
+    public function basketballHomeBlocks(): array
     {
-        $venue = self::venueOr('Cone Field House');
-
         return array_merge(
             [
-                self::t('Good '), self::p('meta.partOfDay'),
-                self::t(" and welcome to Willamette University's "), $venue,
-                self::t(' on the land of the Kalapuya for '), self::todayOrTonight(), self::t(' '),
-                self::when('meta.isConference', [self::t('Northwest Conference')], [self::t('non-conference')]),
-                self::t(" {$divisionLabel} Basketball game between the "),
-                self::p('away.schoolName'), self::t(' '), self::p('away.mascot'),
-                self::t(' and the '),
-                self::p('home.schoolName'), self::t(' '), self::p('home.mascot'),
-                self::t('.'),
+                self::snippet(self::WELCOME),
                 self::when('meta.specialAnnouncement', [self::t("\n\n"), self::p('meta.specialAnnouncement')]),
                 self::when('meta.hasAnthem', [
                     self::when('meta.specialAnnouncement', [self::t("\n\n")], [self::t(' ')]),
@@ -472,14 +480,9 @@ class DefaultTemplates
                     self::t("\nThe officials for "), self::todayOrTonight(),
                     self::t(' game are '), self::p('officials.joinedList'), self::t(".\n"),
                 ]),
-                self::t("\nWillamette University, the Northwest Conference, and the NCAA promote good sportsmanship "
-                    . 'by the student-athletes, coaches, and fans. We request your cooperation in supporting the '
-                    . 'student-athletes and officials in a positive manner. Profanity, derogatory comments or other '
-                    . 'intimidating actions directed at athletes, officials, team representatives or other fans will '
-                    . 'not be tolerated and are grounds for removal from '),
-                $venue,
-                self::t(".\n"),
-                self::t("\nWillamette appreciates your cooperation in creating a safe and positive game environment.\n"),
+            ],
+            self::sportsmanship(),
+            [
                 self::closingAnnouncement(),
             ]
         );

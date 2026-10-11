@@ -24,6 +24,7 @@ class GameRepository
             sports.uses_libero,
             sports.uses_batting_order,
             sports.uses_flex,
+            sports.default_venue as sport_default_venue,
             home.school_id as home_school_id,
             away.school_id as away_school_id,
             home.division_id as division_id,

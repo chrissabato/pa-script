@@ -17,6 +17,7 @@ namespace App\Templates;
  * - [if name]…[else]…[/if] — a `when` block (else optional);
  *   [if name = value] adds `equals`.
  * - [each name]…[/each] — a `loop` block.
+ * - [snippet Name] — a `snippet` block: a global snippet, by name.
  * - Everything else is text, line breaks included. Other bracketed text
  *   ("[START Joker and the Thief]") stays text; `{{` and `[[` are a literal
  *   `{` and `[` (only needed before something that would read as a tag).
@@ -26,7 +27,7 @@ namespace App\Templates;
  */
 class TemplateSyntax
 {
-    private const TOKEN = '/(\[\[|\{\{|\{[^{}\n]*\}|\[(?:if\s[^\]\n]*|else|\/if|each\s[^\]\n]*|\/each)\])/i';
+    private const TOKEN = '/(\[\[|\{\{|\{[^{}\n]*\}|\[(?:if\s[^\]\n]*|else|\/if|each\s[^\]\n]*|\/each|snippet\s[^\]\n]*)\])/i';
 
     /**
      * @param array<int, array<string, mixed>> $blocks
@@ -53,6 +54,9 @@ class TemplateSyntax
                     }
                     $text .= '[/if]';
                     break;
+                case 'snippet':
+                    $text .= '[snippet ' . $block['name'] . ']';
+                    break;
                 case 'loop':
                     $over = (string) $block['over'];
                     $text .= '[each ' . self::name($over, 'list', $itemKind) . ']'
@@ -68,10 +72,12 @@ class TemplateSyntax
     }
 
     /**
+     * @param string[]|null $snippetNames the snippets [snippet …] may name
+     *        (matched ignoring case); null accepts any name
      * @return array<int, array<string, mixed>>
      * @throws TemplateSyntaxError
      */
-    public static function parse(string $text): array
+    public static function parse(string $text, ?array $snippetNames = null): array
     {
         $text = str_replace("\r\n", "\n", $text);
         $parts = preg_split(self::TOKEN, $text, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_OFFSET_CAPTURE);
@@ -106,7 +112,9 @@ class TemplateSyntax
             }
 
             $tag = strtolower(trim(substr($part, 1, -1)));
-            if (strpos($tag, 'if ') === 0) {
+            if (strpos($tag, 'snippet ') === 0) {
+                $stack[$top]['blocks'][] = ['type' => 'snippet', 'name' => self::snippetName(trim(substr($part, 8, -1)), $snippetNames, $line)];
+            } elseif (strpos($tag, 'if ') === 0) {
                 $condition = trim(substr($part, 3, -1));
                 $block = ['type' => 'when'];
                 if (preg_match('/^(.*?)\s*=\s*(.*)$/', $condition, $m)) {
@@ -192,6 +200,24 @@ class TemplateSyntax
         throw new TemplateSyntaxError('"' . $name . '" in ' . $tag . ' isn\'t ' . $where . $hint . '.', $line);
     }
 
+    /**
+     * @param string[]|null $snippetNames
+     * @throws TemplateSyntaxError
+     */
+    private static function snippetName(string $name, ?array $snippetNames, int $line): string
+    {
+        if ($snippetNames === null) {
+            return $name;
+        }
+        foreach ($snippetNames as $known) {
+            if (strcasecmp($known, $name) === 0) {
+                return $known;
+            }
+        }
+
+        throw new TemplateSyntaxError('There\'s no snippet called "' . $name . '".', $line);
+    }
+
     private static function name(string $key, string $role, ?string $itemKind): string
     {
         $label = FieldCatalog::labelFor($key, $role, $itemKind);
@@ -215,6 +241,6 @@ class TemplateSyntax
     {
         $text = str_replace('{', '{{', $text);
 
-        return (string) preg_replace('/\[(?=\[|if\s|else\]|\/if\]|each\s|\/each\])/i', '[[', $text);
+        return (string) preg_replace('/\[(?=\[|if\s|else\]|\/if\]|each\s|\/each\]|snippet\s)/i', '[[', $text);
     }
 }

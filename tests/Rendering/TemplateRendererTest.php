@@ -183,29 +183,28 @@ class TemplateRendererTest extends TestCase
         ]));
     }
 
-    public function testFallbackTextFindsANestedWhenBlocksElseText(): void
+    public function testSnippetRendersInPlaceWithTheSameContext(): void
     {
-        $blocks = [
-            ['type' => 'text', 'content' => 'Welcome to '],
-            ['type' => 'when', 'key' => 'meta.isConference', 'then' => [
-                ['type' => 'when', 'key' => 'meta.venue', 'then' => [
-                    ['type' => 'placeholder', 'key' => 'meta.venue'],
-                ], 'else' => [['type' => 'text', 'content' => 'Sparks Field']]],
-            ]],
-        ];
+        $renderer = new TemplateRenderer([
+            'Welcome' => [
+                ['type' => 'text', 'content' => 'Welcome to '],
+                ['type' => 'placeholder', 'key' => 'meta.venue'],
+                ['type' => 'snippet', 'name' => 'Period'],
+            ],
+            'Period' => [['type' => 'text', 'content' => '.']],
+        ]);
 
-        $this->assertSame('Sparks Field', TemplateRenderer::fallbackText($blocks, 'meta.venue'));
+        $this->assertSame('Welcome to Sparks Field. Hi', $renderer->render([
+            ['type' => 'snippet', 'name' => 'Welcome'],
+            ['type' => 'text', 'content' => ' Hi'],
+        ], ['meta' => ['venue' => 'Sparks Field']]));
     }
 
-    public function testFallbackTextIsNullWithoutAFallback(): void
+    public function testMissingAndSelfReferencingSnippetsDontBreakTheScript(): void
     {
-        $this->assertNull(TemplateRenderer::fallbackText(
-            [['type' => 'placeholder', 'key' => 'meta.venue']],
-            'meta.venue'
-        ));
-        $this->assertNull(TemplateRenderer::fallbackText(
-            [['type' => 'when', 'key' => 'meta.venue', 'then' => [['type' => 'text', 'content' => 'x']]]],
-            'meta.venue'
-        ));
+        $renderer = new TemplateRenderer(['Loop' => [['type' => 'text', 'content' => 'x'], ['type' => 'snippet', 'name' => 'Loop']]]);
+
+        $this->assertSame('{{missing-snippet:Nope}}', $renderer->render([['type' => 'snippet', 'name' => 'Nope']], []));
+        $this->assertSame('xxxxx{{snippet-loop:Loop}}', $renderer->render([['type' => 'snippet', 'name' => 'Loop']], []));
     }
 }

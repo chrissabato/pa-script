@@ -59,7 +59,7 @@ class BaseballScriptTest extends TestCase
         }, self::HOME_LINEUP);
 
         $game = array_merge([
-            'id' => 1, 'sport_slug' => 'baseball', 'uses_batting_order' => true, 'name_display' => 'pronunciation',
+            'id' => 1, 'sport_slug' => 'baseball', 'division_slug' => null, 'sport_default_venue' => DefaultTemplates::VENUES['baseball'], 'uses_batting_order' => true, 'name_display' => 'pronunciation',
             'time_of_day' => '18:30:00', 'is_conference' => false,
             'venue' => null, 'special_announcement' => null,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
@@ -76,15 +76,16 @@ class BaseballScriptTest extends TestCase
             ['name' => 'Kevin Rice', 'role' => '3B'],
         ]);
 
-        return (new TemplateRenderer())->render((new DefaultTemplates())->baseballHomeBlocks(), $context);
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render((new DefaultTemplates())->baseballHomeBlocks(), $context);
     }
 
     public function testWelcomeMatchesSheet(): void
     {
-        // Sheet: "tonight'snon-conference" (missing space).
+        // The shared Welcome snippet: the sheet's "ladies and gentlemen," is
+        // gone and the team reads "Baseball". Sheet: "tonight'snon-conference".
         self::assertStringStartsWith(
-            "Good evening ladies and gentlemen, and welcome to John Lewis Field at Spec Keene Stadium on the land of "
-            . "the Kalapuya for tonight's non-conference baseball game between the George Fox University Bruins and "
+            "Good evening and welcome to John Lewis Field at Spec Keene Stadium on the land of "
+            . "the Kalapuya for tonight's non-conference Baseball game between the George Fox University Bruins and "
             . "the Willamette University Bearcats. Before the game gets underway, let's meet the starters.\n\n",
             $this->render()
         );
@@ -110,8 +111,9 @@ class BaseballScriptTest extends TestCase
             . "and Kevin Rice at third base.\n\nAnd now please stand for the playing of the National Anthem.\n",
             $script
         );
-        // Sheet: "removal from the Spec Keene Stadium".
-        self::assertStringContainsString('grounds for removal from Spec Keene Stadium.', $script);
+        // The sportsmanship snippet reads the venue (sheet: "removal from the
+        // Spec Keene Stadium").
+        self::assertStringContainsString('grounds for removal from John Lewis Field at Spec Keene Stadium.', $script);
         self::assertStringNotContainsString('{{', $script);
     }
 }

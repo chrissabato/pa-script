@@ -16,7 +16,7 @@
     var output = form.querySelector('[data-preview-output]');
     var errorBox = form.querySelector('[data-preview-error]');
     var status = form.querySelector('[data-template-status]');
-    var TOKEN = /(\[\[|\{\{|\{[^{}\n]*\}|\[(?:if\s[^\]\n]*|else|\/if|each\s[^\]\n]*|\/each)\])/i;
+    var TOKEN = /(\[\[|\{\{|\{[^{}\n]*\}|\[(?:if\s[^\]\n]*|else|\/if|each\s[^\]\n]*|\/each|snippet\s[^\]\n]*)\])/i;
     // After a save that didn't parse, the textarea holds the unsaved text.
     var original = form.hasAttribute('data-unsaved') ? null : textarea.value;
     var previewTimer = null;
@@ -32,6 +32,9 @@
         }
         if (token.charAt(0) === '{') {
             return 'tok-field';
+        }
+        if (/^\[snippet/i.test(token)) {
+            return 'tok-snippet';
         }
         return /^\[\/?each/i.test(token) ? 'tok-each' : 'tok-if';
     }

@@ -6,6 +6,7 @@ namespace App\Rendering;
 
 use App\Repository\GameRosterRepository;
 use App\Repository\OfficialRepository;
+use App\Repository\SportRepository;
 
 /**
  * Assembles the render context array (see PlaceholderRegistry/TemplateRenderer)
@@ -61,7 +62,14 @@ class GameContextBuilder
             'officials' => $officials,
             'meta' => [
                 'anthemNote' => $game['anthem_note'] ?? '',
-                'venue' => $game['venue'] ?? '',
+                // The venue typed on the game, else (home games only — a
+                // neutral site has no usual venue) the sport's default.
+                'venue' => self::venue($game),
+                'gameVenue' => trim((string) ($game['venue'] ?? '')),
+                // "Women's Soccer", "Softball" — the game's team as the New
+                // Game form names it.
+                'teamName' => self::teamName($game),
+                'sport' => (string) ($game['sport_slug'] ?? ''),
                 'date' => $game['date'] ?? '',
                 'neutralSiteNote' => $game['neutral_site_note'] ?? '',
                 // "Good morning" / "afternoon" / "evening"; templates fall
@@ -75,6 +83,28 @@ class GameContextBuilder
                 'closingAnnouncement' => trim((string) ($game['closing_announcement'] ?? '')),
             ],
         ];
+    }
+
+    /** @param array<string, mixed> $game */
+    private static function venue(array $game): string
+    {
+        $venue = trim((string) ($game['venue'] ?? ''));
+        if ($venue !== '' || !empty($game['is_neutral_site'])) {
+            return $venue;
+        }
+
+        return trim((string) ($game['sport_default_venue'] ?? ''));
+    }
+
+    /** @param array<string, mixed> $game */
+    private static function teamName(array $game): string
+    {
+        $sport = (string) ($game['sport_slug'] ?? '');
+        $division = (string) ($game['division_slug'] ?? '');
+
+        return SportRepository::TEAMS[$sport . '/' . $division]
+            ?? SportRepository::TEAMS[$sport]
+            ?? trim(($game['division_name'] ?? '') . ' ' . ($game['sport_name'] ?? ''));
     }
 
     /**

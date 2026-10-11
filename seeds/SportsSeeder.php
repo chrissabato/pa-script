@@ -1,9 +1,13 @@
 <?php
 
 use App\Database\UpsertsBySlug;
+use App\Templates\DefaultTemplates;
 use Phinx\Seed\AbstractSeed;
 
-/** Safe to re-run: rows are matched by slug and updated in place. */
+/**
+ * Safe to re-run: rows are matched by slug and updated in place. Default
+ * venues are only filled in where blank — they're edited in the app.
+ */
 class SportsSeeder extends AbstractSeed
 {
     use UpsertsBySlug;
@@ -20,5 +24,11 @@ class SportsSeeder extends AbstractSeed
         ];
 
         $this->upsertBySlug('sports', $data);
+
+        $update = $this->getAdapter()->getConnection()
+            ->prepare('update sports set default_venue = :venue where slug = :slug and default_venue is null');
+        foreach (DefaultTemplates::VENUES as $slug => $venue) {
+            $update->execute(['venue' => $venue, 'slug' => $slug]);
+        }
     }
 }

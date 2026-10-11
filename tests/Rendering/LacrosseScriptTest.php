@@ -52,9 +52,9 @@ class LacrosseScriptTest extends TestCase
         'At defense, a first year from Long Beach, California, number 27, Matthew Stout',
     ];
 
-    private static function blocks(string $divisionLabel): array
+    private static function blocks(): array
     {
-        return (new DefaultTemplates())->lacrosseHomeBlocks($divisionLabel);
+        return (new DefaultTemplates())->lacrosseHomeBlocks();
     }
 
     private static function player(string $number, string $name, string $phonetic, string $pos, string $year, string $hometown, bool $captain = false): array
@@ -77,7 +77,9 @@ class LacrosseScriptTest extends TestCase
     private function render(array $gameOverrides = [], array $awayPlayers = [], array $officials = [], string $divisionLabel = "Women's"): string
     {
         $game = array_merge([
-            'id' => 1, 'sport_slug' => 'lacrosse', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'id' => 1, 'sport_slug' => 'lacrosse', 'division_slug' => $divisionLabel === "Men's" ? 'mens' : 'womens',
+            // No "Men's Lacrosse" on the New Game form yet: read from the names.
+            'division_name' => $divisionLabel, 'sport_name' => 'Lacrosse', 'sport_default_venue' => DefaultTemplates::VENUES['lacrosse'], 'name_display' => 'pronunciation', // the sheets read only the guide
             'time_of_day' => '19:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => null,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
@@ -101,7 +103,7 @@ class LacrosseScriptTest extends TestCase
             ]],
         ], $officials);
 
-        return (new TemplateRenderer())->render(self::blocks($divisionLabel), $context);
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render(self::blocks(), $context);
     }
 
     public function testWelcomeMatchesSheet(): void

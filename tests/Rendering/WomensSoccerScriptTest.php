@@ -52,7 +52,7 @@ class WomensSoccerScriptTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->blocks = (new DefaultTemplates())->soccerHomeBlocks("Women's");
+        $this->blocks = (new DefaultTemplates())->soccerHomeBlocks();
     }
 
     private static function player(string $number, string $name, string $phonetic, string $pos, string $year, string $hometown, bool $captain = false): array
@@ -75,7 +75,7 @@ class WomensSoccerScriptTest extends TestCase
     private function render(array $gameOverrides = [], array $awayPlayers = [], array $officials = []): string
     {
         $game = array_merge([
-            'id' => 1, 'sport_slug' => 'soccer', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'id' => 1, 'sport_slug' => 'soccer', 'division_slug' => 'womens', 'sport_default_venue' => DefaultTemplates::VENUES['soccer'], 'name_display' => 'pronunciation', // the sheets read only the guide
             'time_of_day' => '11:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => null,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
@@ -102,7 +102,7 @@ class WomensSoccerScriptTest extends TestCase
             ]],
         ], $officials);
 
-        return (new TemplateRenderer())->render($this->blocks, $context);
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render($this->blocks, $context);
     }
 
     public function testWelcomeMatchesSheet(): void
@@ -173,7 +173,8 @@ class WomensSoccerScriptTest extends TestCase
         ], [], [['name' => 'Ana Ortiz'], ['name' => 'Ben Cole'], ['name' => 'Cy Dunn']]);
 
         self::assertStringStartsWith(
-            "Good evening and welcome to Willamette University's McCulloch Stadium on the land of the Kalapuya "
+            // A typed venue replaces the whole default, "Willamette University's" included.
+            "Good evening and welcome to McCulloch Stadium on the land of the Kalapuya "
             . "for tonight's non-conference Women's Soccer game",
             $script
         );

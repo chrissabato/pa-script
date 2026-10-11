@@ -34,9 +34,9 @@ class BasketballScriptTest extends TestCase
         ['30', 'Karina Franco', 'Ka-rina Fron-co', 'F', 'Fr.', 'Portland, Ore.'],
     ];
 
-    private static function blocks(string $divisionLabel): array
+    private static function blocks(): array
     {
-        return (new DefaultTemplates())->basketballHomeBlocks($divisionLabel);
+        return (new DefaultTemplates())->basketballHomeBlocks();
     }
 
     private static function players(array $rows): array
@@ -62,7 +62,7 @@ class BasketballScriptTest extends TestCase
     private function render(string $divisionLabel, bool $hasAnthem = true, ?string $special = null, ?string $closing = null): string
     {
         $game = [
-            'id' => 1, 'sport_slug' => 'basketball', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'id' => 1, 'sport_slug' => 'basketball', 'division_slug' => $divisionLabel === "Men's" ? 'mens' : 'womens', 'sport_default_venue' => DefaultTemplates::VENUES['basketball'], 'name_display' => 'pronunciation', // the sheets read only the guide
             'time_of_day' => '19:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => $special, 'closing_announcement' => $closing,
             'has_anthem' => $hasAnthem,
@@ -88,7 +88,7 @@ class BasketballScriptTest extends TestCase
             ['name' => 'John Gullic', 'role' => null],
         ]);
 
-        return (new TemplateRenderer())->render(self::blocks($divisionLabel), $context);
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render(self::blocks(), $context);
     }
 
     public function testWomensMatchesSheet(): void
@@ -130,7 +130,9 @@ class BasketballScriptTest extends TestCase
             . "\nThe officials for tonight's game are Rhonda Daws, Raynel Whitney, and John Gullic.\n",
             $script
         );
-        self::assertStringContainsString('grounds for removal from Cone Field House.', $script);
+        // The sportsmanship snippet reads the venue the welcome does (the sheet
+        // dropped "Willamette University's" here).
+        self::assertStringContainsString("grounds for removal from Willamette University's Cone Field House.", $script);
         self::assertStringContainsString(
             "Willamette appreciates your cooperation in creating a safe and positive game environment.\n",
             $script

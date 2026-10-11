@@ -5,10 +5,11 @@ use Phinx\Seed\AbstractSeed;
 
 /**
  * Seeds script_templates rows per PLAN.md's two-axis design (division_id x
- * site_variant) from App\Templates\DefaultTemplates, which holds the
- * wording. Safe to re-run: missing templates are created and existing ones
- * reset to the default wording — except templates edited in the app
- * (edited_at set), which keep their edits until someone resets them there.
+ * site_variant) and the default global snippets (script_snippets) from
+ * App\Templates\DefaultTemplates, which holds the wording. Safe to re-run:
+ * missing rows are created and existing ones reset to the default wording —
+ * except those edited in the app (edited_at set), which keep their edits
+ * until someone resets them there. Snippets added in the app are left alone.
  */
 class ScriptTemplatesSeeder extends AbstractSeed
 {
@@ -39,6 +40,23 @@ class ScriptTemplatesSeeder extends AbstractSeed
         ));
 
         $connection = $this->getAdapter()->getConnection();
+
+        // Default snippets first: the templates use them.
+        foreach ((new DefaultTemplates())->snippets() as $name => $blocks) {
+            $existing = $this->fetchRow(sprintf(
+                'select id, edited_at from script_snippets where name = %s',
+                $connection->quote($name)
+            ));
+            if ($existing === false) {
+                $connection->prepare('insert into script_snippets (name, content_blocks) values (:name, :content_blocks)')
+                    ->execute(['name' => $name, 'content_blocks' => json_encode($blocks)]);
+            } elseif ($existing['edited_at'] === null) {
+                $connection->prepare(
+                    'update script_snippets set content_blocks = :content_blocks, updated_at = current_timestamp where id = :id'
+                )->execute(['content_blocks' => json_encode($blocks), 'id' => $existing['id']]);
+            }
+        }
+
         $data = [];
         foreach ((new DefaultTemplates())->all() as $template) {
             $row = [

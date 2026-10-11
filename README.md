@@ -173,7 +173,10 @@ tags — `{venue}`, `[if venue]…[else]…[/if]`, `[each home starters]…[/eac
 live preview against one of the sport's games. The default wording lives in
 `src/Templates/DefaultTemplates.php`; `ScriptTemplatesSeeder` writes it to
 every template that hasn't been edited in the app (`edited_at` is null), and
-the editor's Reset to default puts it back. To port a sport from its Google Sheet, download the sheet as
+the editor's Reset to default puts it back. Wording every template shares
+lives in global snippets (`[snippet Welcome]`, `[snippet Sportsmanship
+statement]`), edited and added on the same page, which also sets each sport's
+default venue — what `{venue}` reads at a home game with no venue typed in. To port a sport from its Google Sheet, download the sheet as
 .xlsx and read the Script tab's formulas (the Drive text view only samples
 rows), then pin the result with a test like
 `tests/Rendering/WomensSoccerScriptTest.php`.

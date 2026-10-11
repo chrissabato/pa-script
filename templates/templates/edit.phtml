@@ -1,7 +1,11 @@
 <?php
 use App\Templates\FieldCatalog;
 
-$templateUrl = $this->base() . '/templates/' . (int) $scriptTemplate['id'];
+// Edits a script template or a global snippet ($kind); the routes pass
+// heading, editorUrl, editedAt, hasDefault, previewGames, snippetNames and,
+// for a snippet, snippetName and usedBy.
+$editorUrl = htmlspecialchars($editorUrl, ENT_QUOTES);
+$isSnippet = $kind === 'snippet';
 
 // Sidebar groups: the general fields by their group, then what works
 // inside an [each] list.
@@ -11,6 +15,9 @@ foreach (FieldCatalog::fields() as $field) {
 }
 $fieldGroups['In a player list'] = FieldCatalog::itemFields('player');
 $fieldGroups['In the officials list'] = FieldCatalog::itemFields('official');
+$fieldGroups = ['Snippets' => array_map(function (string $name): array {
+    return ['label' => $name, 'hint' => 'Shared wording', 'snippet' => true];
+}, $snippetNames)] + $fieldGroups;
 
 $gameLabel = function (array $game): string {
     $away = trim((string) $game['away_short_name']) !== '' ? $game['away_short_name'] : $game['away_school_name'];
@@ -20,14 +27,26 @@ $gameLabel = function (array $game): string {
 };
 ?>
 <p class="game-header-crumb"><a href="<?= $this->base() ?>/templates">&larr; Script templates</a></p>
-<h2><?= htmlspecialchars($scriptTemplate['name'], ENT_QUOTES) ?></h2>
+<h2><?= htmlspecialchars($heading, ENT_QUOTES) ?></h2>
 <p class="hint">
-    <?php if ($scriptTemplate['edited_at'] !== null): ?>
-        Edited <?= htmlspecialchars(date('M j, Y g:i A', (int) strtotime($scriptTemplate['edited_at'])), ENT_QUOTES) ?>.
+    <?php if (!$hasDefault): ?>
+        Added in the app.
+    <?php elseif ($editedAt !== null): ?>
+        Edited <?= htmlspecialchars(date('M j, Y g:i A', (int) strtotime($editedAt)), ENT_QUOTES) ?>.
     <?php else: ?>
         Default wording.
     <?php endif; ?>
-    Changes apply to every game that uses this template, except games with a customized script.
+    <?php if ($isSnippet): ?>
+        Use it in a template as <code>[snippet <?= htmlspecialchars($snippetName, ENT_QUOTES) ?>]</code>.
+        <?php if ($usedBy !== []): ?>
+            <span title="<?= htmlspecialchars(implode("\n", $usedBy), ENT_QUOTES) ?>" class="used-by">Used by <?= count($usedBy) ?> <?= count($usedBy) === 1 ? 'template' : 'templates' ?></span>
+            — changes apply to all of them.
+        <?php else: ?>
+            No template uses it yet.
+        <?php endif; ?>
+    <?php else: ?>
+        Changes apply to every game that uses this template, except games with a customized script.
+    <?php endif; ?>
 </p>
 
 <?php if ($error !== null): ?>
@@ -38,20 +57,26 @@ $gameLabel = function (array $game): string {
     <p class="notice">Reset to the default wording.</p>
 <?php endif; ?>
 
-<form method="post" action="<?= $templateUrl ?>" class="template-editor" id="template-editor"
-    data-preview-url="<?= $templateUrl ?>/preview"<?= $error !== null ? ' data-unsaved' : '' ?>>
+<form method="post" action="<?= $editorUrl ?>" class="template-editor" id="template-editor"
+    data-preview-url="<?= $editorUrl ?>/preview"<?= $error !== null ? ' data-unsaved' : '' ?>>
 
     <aside class="template-fields">
         <h3>Fields</h3>
         <p class="hint">Click to insert at the cursor. <strong>if</strong> and <strong>each</strong> wrap the selected text.</p>
         <?php foreach ($fieldGroups as $group => $fields): ?>
-            <details<?= in_array($group, ['Game', 'Visitors', 'In a player list'], true) ? ' open' : '' ?>>
+            <?php if ($fields === []) {
+                continue;
+            } ?>
+            <details<?= in_array($group, ['Snippets', 'Game', 'Visitors', 'In a player list'], true) ? ' open' : '' ?>>
                 <summary><?= htmlspecialchars($group, ENT_QUOTES) ?></summary>
                 <ul>
                     <?php foreach ($fields as $field): ?>
                     <li title="<?= htmlspecialchars($field['hint'], ENT_QUOTES) ?>">
                         <span class="template-field-name"><?= htmlspecialchars($field['label'], ENT_QUOTES) ?></span>
                         <span class="template-field-actions">
+                            <?php if (!empty($field['snippet'])): ?>
+                                <button type="button" data-insert="[snippet <?= htmlspecialchars($field['label'], ENT_QUOTES) ?>]">insert</button>
+                            <?php endif; ?>
                             <?php if (isset($field['value'])): ?>
                                 <button type="button" data-insert="{<?= htmlspecialchars($field['label'], ENT_QUOTES) ?>}">{ }</button>
                             <?php endif; ?>
@@ -75,6 +100,7 @@ $gameLabel = function (array $game): string {
                 <p><code>[if venue]…[else]…[/if]</code> — the first part when it's set, else the second (<code>[else]</code> is optional).
                     <code>[if batting slot = 10]</code> compares.</p>
                 <p><code>[each home starters]…[/each]</code> — repeated per player; inside it, <code>{name}</code>, <code>{position}</code>, … are that player's.</p>
+                <p><code>[snippet Welcome]</code> — a shared snippet's wording (Snippets, on the templates page).</p>
                 <p>Line breaks are read as written. Other brackets, like <code>[START walk-out music]</code>, are just text. Write <code>{{</code> for a literal <code>{</code>.</p>
             </div>
         </details>
@@ -83,14 +109,18 @@ $gameLabel = function (array $game): string {
     <div class="template-code-column">
         <div class="template-code">
             <pre class="template-highlight" aria-hidden="true"></pre>
-            <textarea name="text" spellcheck="false" autocapitalize="off" aria-label="Template"><?= htmlspecialchars($text, ENT_QUOTES) ?></textarea>
+            <textarea name="text" spellcheck="false" autocapitalize="off" aria-label="<?= $isSnippet ? 'Snippet' : 'Template' ?>"><?= htmlspecialchars($text, ENT_QUOTES) ?></textarea>
         </div>
         <p class="template-editor-actions">
             <button type="submit">Save</button>
             <a href="<?= $this->base() ?>/templates" class="button button-secondary">Cancel</a>
-            <?php if ($hasDefault && $scriptTemplate['edited_at'] !== null): ?>
-                <button type="submit" formaction="<?= $templateUrl ?>/reset" class="button-danger"
-                    onclick="return confirm('Throw away the edits to this template and go back to the default wording?')">Reset to default</button>
+            <?php if ($hasDefault && $editedAt !== null): ?>
+                <button type="submit" formaction="<?= $editorUrl ?>/reset" class="button-danger"
+                    onclick="return confirm('Throw away the edits and go back to the default wording?')">Reset to default</button>
+            <?php endif; ?>
+            <?php if ($isSnippet && $usedBy === []): ?>
+                <button type="submit" name="_method" value="DELETE" formnovalidate
+                    onclick="return confirm('Delete this snippet?')">Delete</button>
             <?php endif; ?>
             <span class="template-status" data-template-status></span>
         </p>

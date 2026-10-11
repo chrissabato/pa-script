@@ -18,6 +18,7 @@ use App\Repository\ImportBatchRepository;
 use App\Repository\OfficialRepository;
 use App\Repository\ProgramRepository;
 use App\Repository\SchoolRepository;
+use App\Repository\ScriptSnippetRepository;
 use App\Repository\ScriptTemplateRepository;
 use App\Repository\SportRepository;
 use App\Roster\RosterFetchBlocked;
@@ -25,6 +26,7 @@ use App\Roster\RosterFetchException;
 use App\Roster\RosterPageFetcher;
 use App\Roster\RosterUrlGuesser;
 use App\Teams\TeamApiSync;
+use App\Templates\Blocks;
 use App\Templates\DefaultTemplates;
 use App\Templates\TemplateSyntax;
 use App\Templates\TemplateSyntaxError;
@@ -81,7 +83,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
     $importBatches = new ImportBatchRepository($pdo);
     $teamSync = new TeamApiSync($pdo);
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
-    $renderer = new TemplateRenderer();
+    $snippets = new ScriptSnippetRepository($pdo);
     $rosterUrlGuesser = new RosterUrlGuesser();
     $rosterFetcher = new RosterPageFetcher();
 
@@ -311,22 +313,17 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         $view,
         $games,
         $gameRosters,
-        $officials,
-        $scriptTemplates
+        $officials
     ) {
         $game = $games->find((int) $args['id']);
         if ($game === null) {
             throw new HttpNotFoundException($request);
         }
 
-        // The venue the script reads when the field is blank, for its hint.
-        $template = $scriptTemplates->findForGame(
-            (int) $game['sport_id'],
-            $game['division_id'] !== null ? (int) $game['division_id'] : null,
-            (bool) $game['is_neutral_site']
-        );
-        $defaultVenue = $template !== null
-            ? TemplateRenderer::fallbackText((array) json_decode($template['content_blocks'], true), 'meta.venue')
+        // The venue the script reads when the field is blank, for its hint
+        // (a neutral site has no usual venue).
+        $defaultVenue = !$game['is_neutral_site'] && trim((string) $game['sport_default_venue']) !== ''
+            ? (string) $game['sport_default_venue']
             : null;
 
         $html = $view->render('games/show', [
@@ -699,7 +696,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
 
     // Shared by /script and /teleprompter — both just render the same
     // resolved template/context differently.
-    $resolveScript = function (array $game) use ($scriptTemplates, $contextBuilder, $renderer): array {
+    $resolveScript = function (array $game) use ($scriptTemplates, $contextBuilder, $snippets): array {
         $template = $scriptTemplates->findForGame(
             (int) $game['sport_id'],
             $game['division_id'] !== null ? (int) $game['division_id'] : null,
@@ -712,6 +709,8 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
 
         $blocks = json_decode($template['content_blocks'], true);
         $context = $contextBuilder->build($game);
+
+        $renderer = new TemplateRenderer($snippets->blocksByName());
 
         return [$renderer->render($blocks, $context), null, ScriptChecks::forGame($game, $context)];
     };
@@ -827,115 +826,159 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         return $response->withHeader('Location', Url::base() . '/games/' . (int) $game['id'] . '/script')->withStatus(302);
     });
 
-    // ---- Script templates ------------------------------------------------
+    // ---- Script templates and snippets ------------------------------------
     //
-    // The template editor: a template's blocks as TemplateSyntax text, with
-    // a live preview against one of the sport's games. Saving marks the
-    // template edited, so ScriptTemplatesSeeder stops resetting it; Reset
-    // puts DefaultTemplates' wording back.
+    // The template editor: a template's (or global snippet's) blocks as
+    // TemplateSyntax text, with a live preview against a game. Saving marks
+    // it edited, so ScriptTemplatesSeeder stops resetting it; Reset puts
+    // DefaultTemplates' wording back. The list page also holds each sport's
+    // default venue.
 
-    $app->get('/templates', function (Request $request, Response $response) use ($view, $scriptTemplates) {
+    $app->get('/templates', function (Request $request, Response $response) use ($view, $scriptTemplates, $snippets, $sports) {
         $html = $view->render('templates/index', [
             'title' => 'Script templates',
             'templates' => $scriptTemplates->allWithNames(),
+            'snippets' => $snippets->all(),
+            'defaultSnippets' => array_keys((new DefaultTemplates())->snippets()),
+            'sports' => $sports->all(),
+            'snippetError' => $request->getQueryParams()['snippet_error'] ?? null,
         ]);
         $response->getBody()->write($html);
 
         return $response;
     });
+
+    $app->post('/sports/{id}/default-venue', function (Request $request, Response $response, array $args) use ($sports) {
+        $venue = trim((string) (((array) $request->getParsedBody())['default_venue'] ?? ''));
+        $sports->updateDefaultVenue((int) $args['id'], $venue !== '' ? $venue : null);
+
+        return rowSaved($request, $response, Url::base() . '/templates');
+    });
+
+    // The editor page for a template or a snippet; $item describes which.
+    $renderEditor = function (Request $request, Response $response, array $item, string $text, ?TemplateSyntaxError $error = null) use ($view, $snippets) {
+        $query = $request->getQueryParams();
+        $html = $view->render('templates/edit', array_merge($item, [
+            'title' => 'Edit — ' . $item['heading'],
+            'bodyClass' => 'template-editor-page',
+            'text' => $text,
+            'error' => $error,
+            'saved' => isset($query['saved']),
+            'wasReset' => isset($query['reset']),
+            // A snippet can use other snippets, not itself.
+            'snippetNames' => array_values(array_diff($snippets->names(), [$item['snippetName'] ?? null])),
+        ]));
+        $response->getBody()->write($html);
+
+        return $response;
+    };
 
     // The games a template's preview can use: the sport's games that would
     // read this template (same division when it has one, same site).
-    $previewGames = function (array $template) use ($games): array {
-        return array_values(array_filter($games->forSport((int) $template['sport_id']), function (array $game) use ($template): bool {
+    $templateItem = function (array $template) use ($games): array {
+        $previewGames = array_values(array_filter($games->forSport((int) $template['sport_id']), function (array $game) use ($template): bool {
             return ($template['division_id'] === null || (int) $game['division_id'] === (int) $template['division_id'])
                 && (bool) $game['is_neutral_site'] === ($template['site_variant'] === 'neutral');
         }));
+
+        return [
+            'kind' => 'template',
+            'heading' => $template['name'],
+            'editorUrl' => Url::to('/templates/' . (int) $template['id']),
+            'editedAt' => $template['edited_at'],
+            'previewGames' => $previewGames,
+            'hasDefault' => (new DefaultTemplates())->blocksFor($template['sport_slug'], $template['division_slug'], $template['site_variant']) !== null,
+        ];
     };
 
-    $renderTemplateEditor = function (
-        Request $request,
-        Response $response,
-        array $template,
-        string $text,
-        ?TemplateSyntaxError $error = null
-    ) use ($view, $previewGames) {
-        $query = $request->getQueryParams();
-        $html = $view->render('templates/edit', [
-            'saved' => isset($query['saved']),
-            'wasReset' => isset($query['reset']),
-            'title' => 'Edit template — ' . $template['name'],
-            'bodyClass' => 'template-editor-page',
-            'scriptTemplate' => $template,
-            'text' => $text,
-            'error' => $error,
-            'previewGames' => $previewGames($template),
-            'hasDefault' => (new DefaultTemplates())->blocksFor(
-                $template['sport_slug'],
-                $template['division_slug'],
-                $template['site_variant']
-            ) !== null,
-        ]);
-        $response->getBody()->write($html);
+    // A snippet previews against any recent game; it's shared by every sport.
+    $snippetItem = function (array $snippet) use ($games, $scriptTemplates, $snippets): array {
+        $name = (string) $snippet['name'];
+        $usedBy = [];
+        foreach ($scriptTemplates->allWithNames() as $template) {
+            if (Blocks::usesSnippet((array) json_decode($template['content_blocks'], true), $name)) {
+                $usedBy[] = $template['name'];
+            }
+        }
+        foreach ($snippets->all() as $other) {
+            if ($other['name'] !== $name && Blocks::usesSnippet((array) json_decode($other['content_blocks'], true), $name)) {
+                $usedBy[] = 'Snippet: ' . $other['name'];
+            }
+        }
 
-        return $response;
+        return [
+            'kind' => 'snippet',
+            'heading' => 'Snippet: ' . $name,
+            'snippetName' => $name,
+            'editorUrl' => Url::to('/snippets/' . (int) $snippet['id']),
+            'editedAt' => $snippet['edited_at'],
+            'previewGames' => array_slice(array_reverse($games->upcoming()), 0, 40),
+            'hasDefault' => array_key_exists($name, (new DefaultTemplates())->snippets()),
+            'usedBy' => $usedBy,
+        ];
     };
 
-    $app->get('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $renderTemplateEditor) {
-        $template = $scriptTemplates->findWithNames((int) $args['id']);
-        if ($template === null) {
-            throw new HttpNotFoundException($request);
-        }
-
-        return $renderTemplateEditor($request, $response, $template, TemplateSyntax::toText((array) json_decode($template['content_blocks'], true)));
-    });
-
-    $app->post('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $renderTemplateEditor) {
-        $template = $scriptTemplates->findWithNames((int) $args['id']);
-        if ($template === null) {
-            throw new HttpNotFoundException($request);
-        }
-        $text = (string) (((array) $request->getParsedBody())['text'] ?? '');
-        try {
-            $blocks = TemplateSyntax::parse($text);
-        } catch (TemplateSyntaxError $e) {
-            return $renderTemplateEditor($request, $response->withStatus(422), $template, $text, $e);
-        }
-        $scriptTemplates->updateBlocks((int) $template['id'], $blocks, true);
-
-        return $response->withHeader('Location', Url::base() . '/templates/' . (int) $template['id'] . '?saved=1')->withStatus(302);
-    });
-
-    $app->post('/templates/{id}/preview', function (Request $request, Response $response, array $args) use (
-        $scriptTemplates,
+    // Renders unsaved editor text against a game (or a blank one) as JSON.
+    $previewResponse = function (Request $request, Response $response, string $sportSlug, ?string $snippetName = null) use (
         $games,
         $contextBuilder,
-        $renderer
+        $snippets
     ) {
-        $template = $scriptTemplates->findWithNames((int) $args['id']);
-        if ($template === null) {
-            throw new HttpNotFoundException($request);
-        }
         $data = (array) $request->getParsedBody();
         try {
-            $blocks = TemplateSyntax::parse((string) ($data['text'] ?? ''));
+            // A snippet can't use itself, as when saving.
+            $blocks = TemplateSyntax::parse((string) ($data['text'] ?? ''), array_values(array_diff($snippets->names(), [$snippetName])));
             $game = !empty($data['game_id']) ? $games->find((int) $data['game_id']) : null;
             // No game picked (or none yet): an empty one, so the preview
             // still shows the wording with blank names.
             $context = $game !== null
                 ? $contextBuilder->build($game)
                 : GameContextBuilder::assemble(
-                    ['sport_slug' => $template['sport_slug']],
+                    ['sport_slug' => $sportSlug],
                     ['home' => ['players' => [], 'coaches' => []], 'away' => ['players' => [], 'coaches' => []]],
                     []
                 );
-            $result = ['script' => $renderer->render($blocks, $context)];
+            $result = ['script' => (new TemplateRenderer($snippets->blocksByName()))->render($blocks, $context)];
         } catch (TemplateSyntaxError $e) {
             $result = ['error' => $e->getMessage(), 'line' => $e->getTemplateLine()];
         }
         $response->getBody()->write((string) json_encode($result));
 
         return $response->withHeader('Content-Type', 'application/json');
+    };
+
+    $app->get('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $renderEditor, $templateItem) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $renderEditor($request, $response, $templateItem($template), TemplateSyntax::toText((array) json_decode($template['content_blocks'], true)));
+    });
+
+    $app->post('/templates/{id}', function (Request $request, Response $response, array $args) use ($scriptTemplates, $snippets, $renderEditor, $templateItem) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $text = (string) (((array) $request->getParsedBody())['text'] ?? '');
+        try {
+            $blocks = TemplateSyntax::parse($text, $snippets->names());
+        } catch (TemplateSyntaxError $e) {
+            return $renderEditor($request, $response->withStatus(422), $templateItem($template), $text, $e);
+        }
+        $scriptTemplates->updateBlocks((int) $template['id'], $blocks, true);
+
+        return $response->withHeader('Location', Url::base() . '/templates/' . (int) $template['id'] . '?saved=1')->withStatus(302);
+    });
+
+    $app->post('/templates/{id}/preview', function (Request $request, Response $response, array $args) use ($scriptTemplates, $previewResponse) {
+        $template = $scriptTemplates->findWithNames((int) $args['id']);
+        if ($template === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $previewResponse($request, $response, $template['sport_slug']);
     });
 
     $app->post('/templates/{id}/reset', function (Request $request, Response $response, array $args) use ($scriptTemplates) {
@@ -949,6 +992,81 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         }
 
         return $response->withHeader('Location', Url::base() . '/templates/' . (int) $template['id'] . '?reset=1')->withStatus(302);
+    });
+
+    $app->post('/snippets', function (Request $request, Response $response) use ($snippets) {
+        $name = trim((string) preg_replace('/\s+/', ' ', (string) (((array) $request->getParsedBody())['snippet_name'] ?? '')));
+        $error = null;
+        if ($name === '' || strlen($name) > 100 || preg_match('/[\[\]{}]/', $name)) {
+            $error = 'Give the snippet a name (up to 100 characters, no brackets or braces).';
+        } else {
+            foreach ($snippets->names() as $existing) {
+                if (strcasecmp($existing, $name) === 0) {
+                    $error = 'There\'s already a snippet called "' . $existing . '".';
+                }
+            }
+        }
+        if ($error !== null) {
+            return $response->withHeader('Location', Url::base() . '/templates?snippet_error=' . rawurlencode($error))->withStatus(302);
+        }
+
+        return $response->withHeader('Location', Url::base() . '/snippets/' . $snippets->create($name))->withStatus(302);
+    });
+
+    $app->get('/snippets/{id}', function (Request $request, Response $response, array $args) use ($snippets, $renderEditor, $snippetItem) {
+        $snippet = $snippets->find((int) $args['id']);
+        if ($snippet === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $renderEditor($request, $response, $snippetItem($snippet), TemplateSyntax::toText((array) json_decode($snippet['content_blocks'], true)));
+    });
+
+    $app->post('/snippets/{id}', function (Request $request, Response $response, array $args) use ($snippets, $renderEditor, $snippetItem) {
+        $snippet = $snippets->find((int) $args['id']);
+        if ($snippet === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $data = (array) $request->getParsedBody();
+        if (($data['_method'] ?? '') === 'DELETE') {
+            // Only an unused snippet can go; the button is hidden otherwise.
+            if ($snippetItem($snippet)['usedBy'] === []) {
+                $snippets->delete((int) $snippet['id']);
+            }
+
+            return $response->withHeader('Location', Url::base() . '/templates')->withStatus(302);
+        }
+        $text = (string) ($data['text'] ?? '');
+        try {
+            $blocks = TemplateSyntax::parse($text, array_values(array_diff($snippets->names(), [$snippet['name']])));
+        } catch (TemplateSyntaxError $e) {
+            return $renderEditor($request, $response->withStatus(422), $snippetItem($snippet), $text, $e);
+        }
+        $snippets->updateBlocks((int) $snippet['id'], $blocks, true);
+
+        return $response->withHeader('Location', Url::base() . '/snippets/' . (int) $snippet['id'] . '?saved=1')->withStatus(302);
+    });
+
+    $app->post('/snippets/{id}/preview', function (Request $request, Response $response, array $args) use ($snippets, $previewResponse) {
+        $snippet = $snippets->find((int) $args['id']);
+        if ($snippet === null) {
+            throw new HttpNotFoundException($request);
+        }
+
+        return $previewResponse($request, $response, '', $snippet['name']);
+    });
+
+    $app->post('/snippets/{id}/reset', function (Request $request, Response $response, array $args) use ($snippets) {
+        $snippet = $snippets->find((int) $args['id']);
+        if ($snippet === null) {
+            throw new HttpNotFoundException($request);
+        }
+        $defaults = (new DefaultTemplates())->snippets();
+        if (isset($defaults[$snippet['name']])) {
+            $snippets->updateBlocks((int) $snippet['id'], $defaults[$snippet['name']], false);
+        }
+
+        return $response->withHeader('Location', Url::base() . '/snippets/' . (int) $snippet['id'] . '?reset=1')->withStatus(302);
     });
 
     // ---- Roster URL fetch ------------------------------------------------

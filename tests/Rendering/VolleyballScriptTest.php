@@ -62,7 +62,7 @@ class VolleyballScriptTest extends TestCase
     private function render(array $homePlayers, array $awayPlayers = [], array $officials = [], bool $hasAnthem = true): string
     {
         $game = [
-            'id' => 1, 'sport_slug' => 'volleyball', 'name_display' => 'pronunciation', // the sheets read only the guide
+            'id' => 1, 'sport_slug' => 'volleyball', 'division_slug' => 'womens', 'sport_default_venue' => DefaultTemplates::VENUES['volleyball'], 'name_display' => 'pronunciation', // the sheets read only the guide
             'time_of_day' => '11:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => 'Welcome, Class of 1976.', 'has_anthem' => $hasAnthem,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
@@ -80,16 +80,18 @@ class VolleyballScriptTest extends TestCase
             ]],
         ], $officials);
 
-        return (new TemplateRenderer())->render($this->blocks, $context);
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render($this->blocks, $context);
     }
 
     public function testWelcomeAnthemAndIntro(): void
     {
         $script = $this->render([]);
 
+        // The shared Welcome snippet: the team as the New Game form names it,
+        // and "and the" (the sheet read "and your").
         self::assertStringStartsWith(
             "Good morning and welcome to Willamette University's Cone Field House on the land of the Kalapuya for "
-            . "today's Northwest Conference Volleyball match between the Lewis & Clark College River Otters and your "
+            . "today's Northwest Conference Women's Volleyball match between the Lewis & Clark College River Otters and the "
             . "Willamette University Bearcats.\n\nWelcome, Class of 1976.\n\nAnd now for the playing of the National Anthem.\n\n"
             . "Before the match gets underway, let's meet the teams.\n\n",
             $script
@@ -184,7 +186,7 @@ class VolleyballScriptTest extends TestCase
     public function testNoAnthemDropsTheAnthemLine(): void
     {
         self::assertStringContainsString(
-            "your Willamette University Bearcats.\n\nWelcome, Class of 1976.\n\nBefore the match gets underway, let's meet the teams.\n\n",
+            "the Willamette University Bearcats.\n\nWelcome, Class of 1976.\n\nBefore the match gets underway, let's meet the teams.\n\n",
             $this->render([], [], [], false)
         );
     }

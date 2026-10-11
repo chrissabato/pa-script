@@ -64,4 +64,11 @@ class SportRepository
 
         return $row === false ? null : $row;
     }
+
+    /** The venue a home game's script reads when the game has none typed in; null clears it. */
+    public function updateDefaultVenue(int $id, ?string $venue): void
+    {
+        $stmt = $this->pdo->prepare('update sports set default_venue = :venue where id = :id');
+        $stmt->execute(['venue' => $venue, 'id' => $id]);
+    }
 }

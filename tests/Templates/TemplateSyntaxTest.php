@@ -18,6 +18,9 @@ class TemplateSyntaxTest extends TestCase
         foreach ((new DefaultTemplates())->all() as $template) {
             $cases[$template['name']] = [$template['blocks']];
         }
+        foreach ((new DefaultTemplates())->snippets() as $name => $blocks) {
+            $cases['Snippet: ' . $name] = [$blocks];
+        }
 
         return $cases;
     }
@@ -35,9 +38,12 @@ class TemplateSyntaxTest extends TestCase
 
     public function testFriendlyNames(): void
     {
-        $text = TemplateSyntax::toText((new DefaultTemplates())->soccerHomeBlocks("Women's"));
+        $text = TemplateSyntax::toText((new DefaultTemplates())->soccerHomeBlocks());
+        $welcome = TemplateSyntax::toText((new DefaultTemplates())->snippets()['Welcome']);
 
-        $this->assertStringContainsString('Good {part of day} and welcome to Willamette University\'s [if venue]{venue}[else]Sparks Field[/if]', $text);
+        $this->assertStringStartsWith("[snippet Welcome] Before the game gets underway, let's meet the starters.", $text);
+        $this->assertStringContainsString('Good {part of day} and welcome to {venue} on the land', $welcome);
+        $this->assertStringContainsString('{team} [if sport = volleyball]match[else]game[/if] between', $welcome);
         $this->assertStringContainsString("[each away starters][if captain]A captain, at [else]At [/if]{position}[if year], a {year}[/if]", $text);
         $this->assertStringContainsString("[if number], number {number}[/if], {name}\n[/each]", $text);
     }
@@ -57,6 +63,25 @@ class TemplateSyntaxTest extends TestCase
         ], TemplateSyntax::parse(
             "Hi {Away  Mascot}[if evening] tonight[/if][each home batting order][if batting slot = 10]Flex[else]{batting slot}[/if][/each]{meta.date}"
         ));
+    }
+
+    public function testSnippets(): void
+    {
+        $blocks = TemplateSyntax::parse("[snippet welcome]\n[[snippet x]", ['Welcome', 'Sportsmanship statement']);
+
+        $this->assertSame([
+            ['type' => 'snippet', 'name' => 'Welcome'],
+            ['type' => 'text', 'content' => "\n[snippet x]"],
+        ], $blocks);
+        $this->assertSame("[snippet Welcome]\n[[snippet x]", TemplateSyntax::toText($blocks));
+
+        try {
+            TemplateSyntax::parse("a\n[snippet Welcom]", ['Welcome']);
+            $this->fail('Expected a syntax error');
+        } catch (TemplateSyntaxError $e) {
+            $this->assertSame(2, $e->getTemplateLine());
+            $this->assertStringContainsString('no snippet called "Welcom"', $e->getMessage());
+        }
     }
 
     public function testLiteralBracketsAndBraces(): void

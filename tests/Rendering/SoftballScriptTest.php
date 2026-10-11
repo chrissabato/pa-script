@@ -79,7 +79,7 @@ class SoftballScriptTest extends TestCase
     private static function game(array $overrides = []): array
     {
         return array_merge([
-            'id' => 1, 'sport_slug' => 'softball', 'uses_batting_order' => true, 'name_display' => 'pronunciation',
+            'id' => 1, 'sport_slug' => 'softball', 'division_slug' => null, 'sport_default_venue' => DefaultTemplates::VENUES['softball'], 'uses_batting_order' => true, 'name_display' => 'pronunciation',
             'time_of_day' => '13:00:00', 'is_conference' => true,
             'venue' => null, 'special_announcement' => null,
             'home_school_name' => 'Willamette University', 'home_short_name' => 'Willamette', 'home_mascot' => 'Bearcats',
@@ -111,14 +111,16 @@ class SoftballScriptTest extends TestCase
 
     private function render(array $gameOverrides = [], array $awayPlayers = [], array $officials = []): string
     {
-        return (new TemplateRenderer())->render($this->blocks, self::context($gameOverrides, $awayPlayers, $officials));
+        return (new TemplateRenderer((new DefaultTemplates())->snippets()))->render($this->blocks, self::context($gameOverrides, $awayPlayers, $officials));
     }
 
     public function testWelcomeMatchesSheet(): void
     {
         self::assertStringStartsWith(
-            "Good afternoon ladies and gentlemen, and welcome to Willamette Softball Field on the land of the Kalapuya "
-            . "for today's Northwest Conference softball game between the Lewis & Clark College River Otters and the "
+            // The shared Welcome snippet: no "ladies and gentlemen," and the
+            // team reads "Softball".
+            "Good afternoon and welcome to Willamette Softball Field on the land of the Kalapuya "
+            . "for today's Northwest Conference Softball game between the Lewis & Clark College River Otters and the "
             . "Willamette University Bearcats. Before the game gets underway, let's meet the starters.\n\n"
             . "First for the visitors from Lewis & Clark\n",
             $this->render()
@@ -170,7 +172,8 @@ class SoftballScriptTest extends TestCase
             $script
         );
         self::assertStringContainsString('Profanity, derogatory comments', $script);
-        self::assertStringContainsString('grounds for removal from the Willamette Softball Field.', $script);
+        // The sportsmanship snippet reads the venue (sheet: "the Willamette Softball Field").
+        self::assertStringContainsString('grounds for removal from Willamette Softball Field.', $script);
         self::assertStringEndsWith(
             "Willamette appreciates your cooperation in creating a safe and positive game environment.\n",
             $script
@@ -183,8 +186,8 @@ class SoftballScriptTest extends TestCase
         $script = $this->render(['time_of_day' => '18:00:00', 'is_conference' => false, 'venue' => 'Wallace Park']);
 
         self::assertStringStartsWith(
-            "Good evening ladies and gentlemen, and welcome to Wallace Park on the land of the Kalapuya for "
-            . "tonight's non-conference softball game",
+            "Good evening and welcome to Wallace Park on the land of the Kalapuya for "
+            . "tonight's non-conference Softball game",
             $script
         );
         self::assertStringContainsString('grounds for removal from Wallace Park.', $script);

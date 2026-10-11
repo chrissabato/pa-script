@@ -25,3 +25,63 @@
     </tr>
     <?php endforeach; ?>
 </table>
+
+<h3>Snippets</h3>
+<p class="hint">
+    Wording shared by every template — change it once here and every script that uses it follows.
+    A template uses a snippet as <code>[snippet Name]</code>.
+</p>
+
+<?php if ($snippetError !== null): ?>
+    <p class="notice notice-error"><?= htmlspecialchars((string) $snippetError, ENT_QUOTES) ?></p>
+<?php endif; ?>
+
+<table class="templates-table">
+    <tr>
+        <th>Snippet</th><th>Wording</th>
+    </tr>
+    <?php foreach ($snippets as $snippet): ?>
+    <tr>
+        <td><a href="<?= $this->base() ?>/snippets/<?= (int) $snippet['id'] ?>"><?= htmlspecialchars($snippet['name'], ENT_QUOTES) ?></a></td>
+        <td>
+            <?php if (!in_array($snippet['name'], $defaultSnippets, true)): ?>
+                Added <?= htmlspecialchars(date('M j, Y', (int) strtotime($snippet['created_at'])), ENT_QUOTES) ?>
+            <?php elseif ($snippet['edited_at'] !== null): ?>
+                Edited <?= htmlspecialchars(date('M j, Y', (int) strtotime($snippet['edited_at'])), ENT_QUOTES) ?>
+            <?php else: ?>
+                <span class="muted">Default</span>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+</table>
+
+<form method="post" action="<?= $this->base() ?>/snippets" class="inline-form new-snippet">
+    <label>New snippet
+        <input type="text" name="snippet_name" maxlength="100" placeholder="e.g. Ticket reminder" required>
+    </label>
+    <button type="submit" class="button-secondary">Add</button>
+</form>
+
+<h3>Default venues</h3>
+<p class="hint">
+    What <code>{venue}</code> reads at a home game when the game has no venue typed in. Games at a neutral site
+    never use these.
+</p>
+
+<table class="templates-table venues-table">
+    <tr>
+        <th>Sport</th><th>Default venue</th><th></th>
+    </tr>
+    <?php foreach ($sports as $sport): ?>
+    <tr>
+        <form method="post" action="<?= $this->base() ?>/sports/<?= (int) $sport['id'] ?>/default-venue" id="venue-<?= (int) $sport['id'] ?>" data-autosave>
+            <td><?= htmlspecialchars($sport['name'], ENT_QUOTES) ?></td>
+            <td><input type="text" name="default_venue" maxlength="150" value="<?= htmlspecialchars((string) $sport['default_venue'], ENT_QUOTES) ?>"></td>
+            <td><span class="autosave-status" data-autosave-status="venue-<?= (int) $sport['id'] ?>"></span></td>
+        </form>
+    </tr>
+    <?php endforeach; ?>
+</table>
+
+<script src="<?= htmlspecialchars($this->asset('/js/autosave.js'), ENT_QUOTES) ?>"></script>
