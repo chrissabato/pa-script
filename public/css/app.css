@@ -192,7 +192,8 @@ form p.stacked-fields { align-items: flex-end; }
    height as the text inputs beside them: font-size x line-height +
    vertical padding + border, mirroring the text input rule below. */
 .roster-table input[type="checkbox"],
-.stacked-fields input[type="checkbox"] {
+.stacked-fields input[type="checkbox"],
+.print-toolbar-toggle input[type="checkbox"] {
     -webkit-appearance: none;
     appearance: none;
     font-size: 0.92rem;
@@ -206,7 +207,8 @@ form p.stacked-fields { align-items: flex-end; }
     vertical-align: middle;
 }
 .roster-table input[type="checkbox"]:checked,
-.stacked-fields input[type="checkbox"]:checked {
+.stacked-fields input[type="checkbox"]:checked,
+.print-toolbar-toggle input[type="checkbox"]:checked {
     background-color: var(--color-primary);
     border-color: var(--color-primary);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
