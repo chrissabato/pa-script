@@ -213,16 +213,12 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
 
     $app->get('/games/new', function (Request $request, Response $response) use (
         $view,
-        $sports,
-        $divisions,
         $schools,
         $teamSync
     ) {
         $syncError = $teamSync->syncIfStale(TEAM_SYNC_MAX_AGE);
         $html = $view->render('games/new', [
             'title' => 'New Game',
-            'sports' => $sports->all(),
-            'divisions' => $divisions->all(),
             'schools' => $schools->all(),
             'syncError' => $syncError,
         ]);
@@ -241,8 +237,17 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
     ) {
         $data = (array) $request->getParsedBody();
 
-        $sportId = (int) $data['sport_id'];
-        $divisionId = ($data['division_id'] ?? '') !== '' ? (int) $data['division_id'] : null;
+        $backToForm = $response->withHeader('Location', Url::base() . '/games/new')->withStatus(302);
+
+        // One "Team" pick ("soccer/womens") is the game's sport + division.
+        $team = SportRepository::parseTeam((string) ($data['team'] ?? ''));
+        $sport = $team !== null ? $sports->findBySlug($team[0]) : null;
+        $division = $team !== null && $team[1] !== null ? $divisions->findBySlug($team[1]) : null;
+        if ($sport === null || ($team[1] !== null && $division === null)) {
+            return $backToForm;
+        }
+        $sportId = (int) $sport['id'];
+        $divisionId = $division !== null ? (int) $division['id'] : null;
         $isNeutral = !empty($data['is_neutral_site']);
 
         // Teams come only from the team API cache; a missing one is added in
@@ -250,11 +255,10 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate): void {
         $homeSchool = $schools->find((int) ($data['home_school_id'] ?? 0));
         $awaySchool = $schools->find((int) ($data['away_school_id'] ?? 0));
         if ($homeSchool === null || $awaySchool === null) {
-            return $response->withHeader('Location', Url::base() . '/games/new')->withStatus(302);
+            return $backToForm;
         }
 
         // Men's/women's entries of one school: use the one for this division.
-        $division = $divisionId !== null ? $divisions->find($divisionId) : null;
         $homeSchool = $schools->forDivision($homeSchool, $division);
         $awaySchool = $schools->forDivision($awaySchool, $division);
 

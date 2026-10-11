@@ -188,11 +188,12 @@ form p.stacked-fields { align-items: flex-end; }
     font-weight: 400;
     color: var(--color-text);
 }
-/* Roster checkboxes (Starter, Active) drawn as a square the same
+/* Checkboxes (roster Starter/Captain, game options) drawn as a square the same
    height as the text inputs beside them: font-size x line-height +
    vertical padding + border, mirroring the text input rule below. */
 .roster-table input[type="checkbox"],
 .stacked-fields input[type="checkbox"],
+.inline-check input[type="checkbox"],
 .print-toolbar-toggle input[type="checkbox"] {
     -webkit-appearance: none;
     appearance: none;
@@ -208,6 +209,7 @@ form p.stacked-fields { align-items: flex-end; }
 }
 .roster-table input[type="checkbox"]:checked,
 .stacked-fields input[type="checkbox"]:checked,
+.inline-check input[type="checkbox"]:checked,
 .print-toolbar-toggle input[type="checkbox"]:checked {
     background-color: var(--color-primary);
     border-color: var(--color-primary);

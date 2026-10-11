@@ -8,6 +8,38 @@ use PDO;
 
 class SportRepository
 {
+    /**
+     * The teams Willamette fields, as the New Game form offers them:
+     * "sport/division" (sport and division slugs; no division for
+     * Baseball/Softball) => label. Parsed back by parseTeam().
+     */
+    public const TEAMS = [
+        'baseball' => 'Baseball',
+        'softball' => 'Softball',
+        'soccer/mens' => "Men's Soccer",
+        'soccer/womens' => "Women's Soccer",
+        'basketball/mens' => "Men's Basketball",
+        'basketball/womens' => "Women's Basketball",
+        'volleyball/womens' => "Women's Volleyball",
+        'lacrosse/womens' => "Women's Lacrosse",
+    ];
+
+    /**
+     * A TEAMS key split into its sport and division slugs, or null if it
+     * isn't one.
+     *
+     * @return array{0: string, 1: string|null}|null
+     */
+    public static function parseTeam(string $team): ?array
+    {
+        if (!array_key_exists($team, self::TEAMS)) {
+            return null;
+        }
+        $parts = explode('/', $team, 2);
+
+        return [$parts[0], $parts[1] ?? null];
+    }
+
     /** @var PDO */
     private $pdo;
 

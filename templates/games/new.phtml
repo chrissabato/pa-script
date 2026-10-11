@@ -5,27 +5,19 @@
 <p><em>Teams come from the <a href="<?= $this->base() ?>/schools">team API</a>. Missing one? Add it in the API's admin, then sync.</em></p>
 <form method="post" action="<?= $this->base() ?>/games">
     <p>
-        Sport:
-        <select name="sport_id" required>
-            <?php foreach ($sports as $sport): ?>
-                <option value="<?= (int) $sport['id'] ?>"><?= htmlspecialchars($sport['name'], ENT_QUOTES) ?></option>
+        <label>Team:
+        <select name="team" required>
+            <?php foreach (\App\Repository\SportRepository::TEAMS as $value => $label): ?>
+                <option value="<?= htmlspecialchars($value, ENT_QUOTES) ?>"><?= htmlspecialchars($label, ENT_QUOTES) ?></option>
             <?php endforeach; ?>
-        </select>
-        Division:
-        <select name="division_id">
-            <option value="">— none (e.g. Baseball, Softball) —</option>
-            <?php foreach ($divisions as $division): ?>
-                <option value="<?= (int) $division['id'] ?>"><?= htmlspecialchars($division['name'], ENT_QUOTES) ?></option>
-            <?php endforeach; ?>
-        </select>
+        </select></label>
     </p>
 
     <p>
-        <label><input type="checkbox" name="is_conference" value="1" checked> Conference game (Northwest Conference)</label>
+        <label class="inline-check"><input type="checkbox" name="is_conference" value="1" checked> Conference game (Northwest Conference)</label>
     </p>
     <p>
-        <label><input type="checkbox" name="is_neutral_site" value="1"> Neutral site (neither team gets home framing)</label>
-        Neutral site note: <input type="text" name="neutral_site_note">
+        <label class="inline-check"><input type="checkbox" name="is_neutral_site" value="1"> Neutral site (neither team gets home framing)</label>
     </p>
 
     <fieldset>
@@ -53,13 +45,6 @@
     <p>
         Date: <input type="date" name="date" required>
         Time: <input type="time" name="time_of_day">
-        Venue: <input type="text" name="venue" placeholder="e.g. Bearcat Field, Cone Fieldhouse">
-    </p>
-    <p>
-        Anthem note: <input type="text" name="anthem_note" placeholder="e.g. performed by the Willamette Chorale">
-    </p>
-    <p>
-        Notes: <textarea name="notes"></textarea>
     </p>
 
     <button type="submit">Create game</button>
