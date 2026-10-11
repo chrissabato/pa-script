@@ -1,8 +1,8 @@
 {
     "name": "willamette/pa-script",
-    "description": "PA announcer script generator for Willamette University Athletics",
+    "description": "PA announcer script generator for college athletics, built for Willamette University",
     "type": "project",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^7.2",
         "ext-pdo": "*",

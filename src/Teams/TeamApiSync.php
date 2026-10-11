@@ -10,7 +10,8 @@ use RuntimeException;
 /**
  * Mirrors the athletics Team Data API into the local `schools` table.
  *
- * The API (https://athletics.willamette.edu/api/teams/docs) is the source of
+ * The API (TEAMS_API_URL, see App\Site; Willamette's documented at
+ * https://athletics.willamette.edu/api/teams/docs) is the source of
  * truth for team names, mascots, logos, colors and websites — this app no
  * longer edits teams itself. `schools` is kept as a local cache rather than
  * calling the API per request so programs/games keep their foreign keys and
@@ -18,8 +19,6 @@ use RuntimeException;
  */
 class TeamApiSync
 {
-    public const BASE_URL = 'https://athletics.willamette.edu/api/teams';
-
     /** Placeholder entries in the API that aren't real opponents. */
     private const IGNORED_SLUGS = ['home', 'away'];
 
@@ -29,7 +28,7 @@ class TeamApiSync
     /** @var string */
     private $baseUrl;
 
-    public function __construct(PDO $pdo, string $baseUrl = self::BASE_URL)
+    public function __construct(PDO $pdo, string $baseUrl)
     {
         $this->pdo = $pdo;
         $this->baseUrl = rtrim($baseUrl, '/');

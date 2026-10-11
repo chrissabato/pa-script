@@ -6,6 +6,7 @@ declare(strict_types=1);
 // Usage: php bin/sync-teams.php   (safe to run from cron)
 
 use App\Database\Connection;
+use App\Site;
 use App\Teams\TeamApiSync;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -13,7 +14,7 @@ require __DIR__ . '/../vendor/autoload.php';
 Dotenv\Dotenv::createImmutable(__DIR__ . '/..')->load();
 
 try {
-    $result = (new TeamApiSync(Connection::fromEnv()))->sync();
+    $result = (new TeamApiSync(Connection::fromEnv(), Site::teamsApiUrl()))->sync();
 } catch (RuntimeException $e) {
     fwrite(STDERR, 'Team sync failed: ' . $e->getMessage() . "\n");
     exit(1);

@@ -26,6 +26,7 @@ use App\Roster\RosterFetchBlocked;
 use App\Roster\RosterFetchException;
 use App\Roster\RosterPageFetcher;
 use App\Roster\RosterUrlGuesser;
+use App\Site;
 use App\Teams\TeamApiSync;
 use App\Templates\Blocks;
 use App\Templates\DefaultTemplates;
@@ -82,7 +83,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
     $officials = new OfficialRepository($pdo);
     $scriptTemplates = new ScriptTemplateRepository($pdo);
     $importBatches = new ImportBatchRepository($pdo);
-    $teamSync = new TeamApiSync($pdo);
+    $teamSync = new TeamApiSync($pdo, Site::teamsApiUrl());
     $contextBuilder = new GameContextBuilder($gameRosters, $officials);
     $snippets = new ScriptSnippetRepository($pdo);
     $rosterUrlGuesser = new RosterUrlGuesser();
@@ -304,12 +305,12 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
         $homeSchool = $schools->forDivision($homeSchool, $division);
         $awaySchool = $schools->forDivision($awaySchool, $division);
 
-        $willamette = $schools->findBySlug(SchoolRepository::WILLAMETTE_SLUG);
-        $homeIsWillamette = $willamette !== null && (int) $homeSchool['id'] === (int) $willamette['id'];
-        $awayIsWillamette = $willamette !== null && (int) $awaySchool['id'] === (int) $willamette['id'];
+        $ours = $schools->findBySlug(Site::homeTeamSlug());
+        $homeIsOurs = $ours !== null && (int) $homeSchool['id'] === (int) $ours['id'];
+        $awayIsOurs = $ours !== null && (int) $awaySchool['id'] === (int) $ours['id'];
 
-        $homeProgram = $programs->findOrCreate((int) $homeSchool['id'], $sportId, $divisionId, $homeIsWillamette);
-        $awayProgram = $programs->findOrCreate((int) $awaySchool['id'], $sportId, $divisionId, $awayIsWillamette);
+        $homeProgram = $programs->findOrCreate((int) $homeSchool['id'], $sportId, $divisionId, $homeIsOurs);
+        $awayProgram = $programs->findOrCreate((int) $awaySchool['id'], $sportId, $divisionId, $awayIsOurs);
 
         $gameId = $games->create([
             'sport_id' => $sportId,

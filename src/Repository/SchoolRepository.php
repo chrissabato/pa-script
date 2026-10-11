@@ -12,8 +12,6 @@ use PDO;
  */
 class SchoolRepository
 {
-    public const WILLAMETTE_SLUG = 'willamette-university';
-
     /** @var PDO */
     private $pdo;
 

@@ -1,12 +1,13 @@
 # PA Script
 
-A web app for Willamette University Athletics public-address announcers. It
-replaces the hand-edited Google Sheets (one per sport) used to run PA scripts
+A web app for college athletics public-address announcers, built for
+Willamette University Athletics. It replaces the hand-edited Google Sheets (one per sport) used to run PA scripts
 at home games: rosters, coaches, officials and game details are entered once
 as data, and the app generates the announcer's script from them — on screen,
 as a teleprompter, or printed.
 
-Live at **https://athletics.willamette.edu/pa**.
+Live at **https://athletics.willamette.edu/pa**. Other schools can run their
+own copy — see [Installing at another school](#installing-at-another-school).
 
 ## What it does
 
@@ -37,9 +38,9 @@ Live at **https://athletics.willamette.edu/pa**.
 - **Teams** — schools, logos and mascots come read-only from the athletics
   Team Data API and sync automatically.
 
-Script wording is transcribed from the real sheets for Women's/Men's Soccer
-(home), Women's/Men's Basketball and Volleyball. Neutral-site Soccer,
-Baseball, Softball and Lacrosse still use placeholder wording.
+Script wording is transcribed from Willamette's real sheets for every sport
+(Soccer, Basketball, Volleyball, Lacrosse, Softball, Baseball) except
+neutral-site Soccer, which is still placeholder wording.
 
 ## Tech stack
 
@@ -74,6 +75,31 @@ without it PHP's built-in server 404s URLs that look like files
 Phinx's config lives at `config/phinx.php`, not the default `phinx.yml`, so
 every `phinx` command needs `-c config/phinx.php`.
 
+## Installing at another school
+
+The defaults are Willamette's. To run it for your own school:
+
+1. **Teams.** Schools, mascots and logos come from a Team Data API and are
+   read-only in the app. Willamette's
+   ([docs](https://athletics.willamette.edu/api/teams/docs)) is public and
+   lists Northwest Conference schools and other opponents; if your school
+   and opponents are there, keep it. Otherwise host your own endpoint
+   returning the same JSON and set `TEAMS_API_URL` to it.
+2. **Your school.** Set `HOME_TEAM_SLUG` to your school's slug in that API
+   (preselected as the home team) and `SITE_NAME` for the page header.
+3. **Timezone.** Set `APP_TIMEZONE`.
+4. **Access.** Set `APP_PASSWORD`, `ADMIN_PASSWORD` and a long random
+   `IMPORT_TOKEN`. `public/.htaccess` carries Willamette's Shibboleth rule;
+   it only applies when Apache has `mod_shib` loaded — if yours does, change
+   the campus address block or delete that section.
+5. **Script wording.** The default templates, shared snippets (welcome,
+   sportsmanship statement) and default venues are Willamette's. Edit them
+   in the app under Templates (Admin in the nav); edits survive reseeding.
+   The team list (`SportRepository::TEAMS`) is code.
+
+Then follow [Getting started](#getting-started). The app runs on PHP 7.2+ and
+PostgreSQL 9.3+, at a domain root or in a subfolder.
+
 ## Configuration
 
 All settings live in `.env` (gitignored); `.env.example` documents each one.
@@ -88,13 +114,17 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 | `IMPORT_TOKEN` | Shared secret embedded in the bookmarklet; the bookmarklet's endpoints check it instead of the login. |
 | `GEMINI_API_KEY` | Enables "Fill in from a document". Unset = the panel says it isn't set up. |
 | `GEMINI_MODEL`, `GEMINI_THINKING_LEVEL` | Optional; default `gemini-3.5-flash-lite` with `minimal` thinking (~3 s per document). |
+| `SITE_NAME` | Page-header name (default `Willamette Athletics`). |
+| `HOME_TEAM_SLUG` | Your school's slug in the Team Data API (default `willamette-university`). |
+| `TEAMS_API_URL` | Team Data API the schools sync from (default Willamette's, `https://athletics.willamette.edu/api/teams`). |
 | `APP_BASE_PATH` | URL prefix the app is served under (production: `/pa`). Detected automatically when unset. |
 | `APP_TIMEZONE`, `APP_DEBUG`, `APP_ENV` | Timezone for "today" (default `America/Los_Angeles`); error detail; environment name. |
 
 ## Access
 
-- **Shibboleth** — `public/.htaccess` requires a Willamette SSO login off
-  campus; on campus (158.104.0.0/16) is open.
+- **Shibboleth** — on Willamette's server (`mod_shib` loaded),
+  `public/.htaccess` requires a Willamette SSO login off campus; on campus
+  (158.104.0.0/16) is open. Servers without `mod_shib` skip it.
 - **Shared password** — when `APP_PASSWORD` is set, every page asks for it
   once per browser (a 30-day cookie).
 - **Admin password** — when `ADMIN_PASSWORD` is set, the script templates,
@@ -184,6 +214,10 @@ default venue — what `{venue}` reads at a home game with no venue typed in. To
 .xlsx and read the Script tab's formulas (the Drive text view only samples
 rows), then pin the result with a test like
 `tests/Rendering/WomensSoccerScriptTest.php`.
+
+## License
+
+[MIT](LICENSE).
 
 ## More
 

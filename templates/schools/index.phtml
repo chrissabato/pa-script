@@ -1,5 +1,5 @@
 <?php
-use App\Teams\TeamApiSync;
+use App\Site;
 
 $providers = ['sidearm' => 'Sidearm', 'presto' => 'Presto', 'presto_old' => 'Presto (old)'];
 
@@ -12,8 +12,8 @@ $isStale = function (array $school) use ($lastSyncedAt): bool {
 <h2>Teams</h2>
 <p><em>
     Teams come from the athletics
-    <a href="<?= TeamApiSync::BASE_URL ?>/docs">Team Data API</a> and are edited in its
-    <a href="<?= TeamApiSync::BASE_URL ?>/admin">admin</a>, not here. This app keeps a local copy,
+    <a href="<?= htmlspecialchars(Site::teamsApiUrl(), ENT_QUOTES) ?>/docs">Team Data API</a> and are edited in its
+    <a href="<?= htmlspecialchars(Site::teamsApiUrl(), ENT_QUOTES) ?>/admin">admin</a>, not here. This app keeps a local copy,
     refreshed automatically at most hourly so scripts still work if the API is down.
 </em></p>
 
