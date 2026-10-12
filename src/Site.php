@@ -6,17 +6,15 @@ namespace App;
 
 /**
  * Per-install settings from `.env`, so another school can run the app
- * without code changes. SITE_NAME defaults to Willamette's (the original
- * install); HOME_TEAM_SLUG and TEAMS_API_URL have no default.
+ * without code changes. None has a default.
  */
 final class Site
 {
-    public const DEFAULT_NAME = 'Willamette Athletics';
 
-    /** Shown in the page header before "PA Script" (SITE_NAME). */
+    /** Shown in the page header before "PA Script" (SITE_NAME); unset = just "PA Script". */
     public static function name(): string
     {
-        return self::env('SITE_NAME', self::DEFAULT_NAME);
+        return self::env('SITE_NAME', '');
     }
 
     /**
