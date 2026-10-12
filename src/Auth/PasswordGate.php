@@ -26,7 +26,7 @@ class PasswordGate implements MiddlewareInterface
     /**
      * Reachable without logging in: the login form, and the bookmarklet's
      * cross-site endpoints, which carry no cookie and check IMPORT_TOKEN
-     * instead (the same exemption public/.htaccess makes for Shibboleth).
+     * instead (a server's own .htaccess rules must exempt them too).
      */
     private const OPEN_PATHS = ['/login', '/bookmarklet/scraper.js', '/api/import/stage'];
 

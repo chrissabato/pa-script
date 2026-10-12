@@ -1,0 +1,22 @@
+# Copy to public/.htaccess (gitignored, so a server's own access rules
+# survive `git pull`).
+#
+# Apache front controller: real files (css/js) are served directly,
+# everything else goes to Slim. Works at a domain root or in a subfolder —
+# the app detects its base path.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Add your server's own access rules (SSO, IP ranges, ...) below. Leave the
+# bookmarklet's two endpoints open — they're called cross-site from another
+# school's roster page, carry no login, and check IMPORT_TOKEN themselves:
+# /bookmarklet/scraper.js and /api/import/stage. Match them on THE_REQUEST
+# (the original request line), not REQUEST_URI, because the rewrite to
+# index.php re-runs access checks with REQUEST_URI = .../index.php, e.g.
+#
+#   <If "%{THE_REQUEST} !~ m#^[A-Z]+ /(?:[^ ?]*/)?(?:bookmarklet/scraper\.js|api/import/stage)[? ]#">
+#       ...your auth directives...
+#   </If>

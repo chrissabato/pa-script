@@ -61,6 +61,7 @@ PostgreSQL.
 ```sh
 composer install
 cp .env.example .env          # then set the DB_* values and TEAMS_API_URL
+cp public/.htaccess.example public/.htaccess   # Apache only
 vendor/bin/phinx migrate -c config/phinx.php
 vendor/bin/phinx seed:run -c config/phinx.php   # sports, divisions, script templates, teams (needs network)
 php -S localhost:8000 -t public public/index.php
@@ -87,9 +88,9 @@ To run it for your own school:
    (preselected as the home team) and `SITE_NAME` for the page header (in quotes: `SITE_NAME="Example Athletics"`).
 3. **Timezone.** Set `APP_TIMEZONE`.
 4. **Access.** Set `APP_PASSWORD`, `ADMIN_PASSWORD` and a long random
-   `IMPORT_TOKEN`. **Delete the Shibboleth section of `public/.htaccess`**
-   (Willamette's SSO rule — without Shibboleth installed Apache errors on
-   it), or change its campus address block if you run Shibboleth too.
+   `IMPORT_TOKEN`. On Apache, copy `public/.htaccess.example` to
+   `public/.htaccess` and add any SSO or IP rules of your own there (it's
+   gitignored, so `git pull` leaves it alone).
 5. **Script wording.** The default templates, shared snippets (welcome,
    sportsmanship statement) and default venues are Willamette's. Edit them
    in the app under Templates (Admin in the nav); edits survive reseeding.
@@ -120,9 +121,9 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 
 ## Access
 
-- **Shibboleth** — `public/.htaccess` requires a Willamette SSO login off
-  campus; on campus (158.104.0.0/16) is open. Other installs delete or
-  adapt that section.
+- **Server rules** — `public/.htaccess` is per server and gitignored (start
+  from `public/.htaccess.example`), so an install can add its own SSO or IP
+  restrictions there.
 - **Shared password** — when `APP_PASSWORD` is set, every page asks for it
   once per browser (a 30-day cookie).
 - **Admin password** — when `ADMIN_PASSWORD` is set, the script templates,
@@ -131,7 +132,8 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 - **Exceptions** — the bookmarklet's cross-site endpoints
   (`/bookmarklet/scraper.js`, `/api/import/stage`) are exempt from both and
   gated by `IMPORT_TOKEN`. Any new endpoint called from another site must be
-  added to the `.htaccess` exemption *and* `App\Auth\PasswordGate::OPEN_PATHS`.
+  added to `App\Auth\PasswordGate::OPEN_PATHS`, `public/.htaccess.example`'s
+  note, and any server's own `.htaccess` exemption.
 
 ## Deploying
 
@@ -173,7 +175,7 @@ that works locally can break on deploy:
 ### Project layout
 
 ```
-public/            front controller (index.php), .htaccess, css/app.css, js/
+public/            front controller (index.php), .htaccess.example, css/app.css, js/
 src/Routes/        routes.php — every route
 src/Repository/    one PDO repository per table
 src/Rendering/     template engine: TemplateRenderer, PlaceholderRegistry,
