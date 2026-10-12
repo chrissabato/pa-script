@@ -115,7 +115,7 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 | `GEMINI_API_KEY` | Enables "Fill in from a document". Unset = the panel says it isn't set up. |
 | `GEMINI_MODEL`, `GEMINI_THINKING_LEVEL` | Optional; default `gemini-3.5-flash-lite` with `minimal` thinking (~3 s per document). |
 | `SITE_NAME` | Page-header name (default `Willamette Athletics`). |
-| `HOME_TEAM_SLUG` | Your school's slug in the Team Data API (default `willamette-university`). |
+| `HOME_TEAM_SLUG` | Your school's slug in the Team Data API, preselected as the home team (Willamette: `willamette-university`). Unset = none preselected. |
 | `TEAMS_API_URL` | Team Data API the schools sync from (default Willamette's, `https://athletics.willamette.edu/api/teams`). |
 | `APP_BASE_PATH` | URL prefix the app is served under (production: `/pa`). Detected automatically when unset. |
 | `APP_TIMEZONE`, `APP_DEBUG`, `APP_ENV` | Timezone for "today" (default `America/Los_Angeles`); error detail; environment name. |

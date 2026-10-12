@@ -6,12 +6,12 @@ namespace App;
 
 /**
  * Per-install settings from `.env`, so another school can run the app
- * without code changes. Defaults are Willamette's, the original install.
+ * without code changes. Defaults are Willamette's, the original install,
+ * except HOME_TEAM_SLUG, which is unset unless configured.
  */
 final class Site
 {
     public const DEFAULT_NAME = 'Willamette Athletics';
-    public const DEFAULT_HOME_TEAM_SLUG = 'willamette-university';
     public const DEFAULT_TEAMS_API_URL = 'https://athletics.willamette.edu/api/teams';
 
     /** Shown in the page header before "PA Script" (SITE_NAME). */
@@ -23,11 +23,11 @@ final class Site
     /**
      * The Team Data API slug of the school running this install
      * (HOME_TEAM_SLUG): preselected as the home team, and its programs are
-     * flagged as ours.
+     * flagged as ours. Unset = empty: no team preselected.
      */
     public static function homeTeamSlug(): string
     {
-        return self::env('HOME_TEAM_SLUG', self::DEFAULT_HOME_TEAM_SLUG);
+        return self::env('HOME_TEAM_SLUG', '');
     }
 
     /** Base URL of the Team Data API the schools cache syncs from (TEAMS_API_URL). */
