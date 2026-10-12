@@ -86,7 +86,7 @@ The defaults are Willamette's. To run it for your own school:
    and opponents are there, keep it. Otherwise host your own endpoint
    returning the same JSON and set `TEAMS_API_URL` to it.
 2. **Your school.** Set `HOME_TEAM_SLUG` to your school's slug in that API
-   (preselected as the home team) and `SITE_NAME` for the page header.
+   (preselected as the home team) and `SITE_NAME` for the page header (in quotes: `SITE_NAME="Example Athletics"`).
 3. **Timezone.** Set `APP_TIMEZONE`.
 4. **Access.** Set `APP_PASSWORD`, `ADMIN_PASSWORD` and a long random
    `IMPORT_TOKEN`. **Delete the Shibboleth section of `public/.htaccess`**
