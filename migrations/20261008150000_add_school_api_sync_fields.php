@@ -5,7 +5,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Teams now come from the athletics Team Data API
- * (https://athletics.willamette.edu/api/teams/docs); `schools` becomes a
+ * (https://github.com/chrissabato/opponent-api); `schools` becomes a
  * local, read-only cache of it so scripts still render if the API is
  * unreachable on game day. Rows are keyed by the API's slug, which the
  * API documents as the stable identifier (names get edited).

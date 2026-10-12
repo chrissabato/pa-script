@@ -10,8 +10,8 @@ use RuntimeException;
 /**
  * Mirrors the athletics Team Data API into the local `schools` table.
  *
- * The API (TEAMS_API_URL, see App\Site; Willamette's documented at
- * https://athletics.willamette.edu/api/teams/docs) is the source of
+ * The API (TEAMS_API_URL, see App\Site; https://github.com/chrissabato/opponent-api)
+ * is the source of
  * truth for team names, mascots, logos, colors and websites — this app no
  * longer edits teams itself. `schools` is kept as a local cache rather than
  * calling the API per request so programs/games keep their foreign keys and

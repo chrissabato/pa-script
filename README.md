@@ -82,10 +82,7 @@ To run it for your own school:
 1. **Teams (required).** Schools, mascots and logos come from a Team Data
    API and are read-only in the app; set `TEAMS_API_URL` to one — there is
    no default, and teams don't sync without it. Run your own with
-   [opponent-api](https://github.com/chrissabato/opponent-api), or use
-   Willamette's (`https://athletics.willamette.edu/api/teams`,
-   [docs](https://athletics.willamette.edu/api/teams/docs)), which is public
-   and lists Northwest Conference schools and other opponents.
+   [opponent-api](https://github.com/chrissabato/opponent-api).
 2. **Your school.** Set `HOME_TEAM_SLUG` to your school's slug in that API
    (preselected as the home team) and `SITE_NAME` for the page header (in quotes: `SITE_NAME="Example Athletics"`).
 3. **Timezone.** Set `APP_TIMEZONE`.
@@ -117,7 +114,7 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 | `GEMINI_MODEL`, `GEMINI_THINKING_LEVEL` | Optional; default `gemini-3.5-flash-lite` with `minimal` thinking (~3 s per document). |
 | `SITE_NAME` | Page-header name (default `Willamette Athletics`). |
 | `HOME_TEAM_SLUG` | Your school's slug in the Team Data API, preselected as the home team (Willamette: `willamette-university`). Unset = none preselected. |
-| `TEAMS_API_URL` | **Required.** Team Data API the schools sync from (Willamette: `https://athletics.willamette.edu/api/teams`; run your own with [opponent-api](https://github.com/chrissabato/opponent-api)). Unset = no team sync. |
+| `TEAMS_API_URL` | **Required.** Team Data API the schools sync from (run your own with [opponent-api](https://github.com/chrissabato/opponent-api)). Unset = no team sync. |
 | `APP_BASE_PATH` | URL prefix the app is served under (production: `/pa`). Detected automatically when unset. |
 | `APP_TIMEZONE`, `APP_DEBUG`, `APP_ENV` | Timezone for "today" (default `America/Los_Angeles`); error detail; environment name. |
 

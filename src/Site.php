@@ -31,9 +31,9 @@ final class Site
 
     /**
      * Base URL of the Team Data API the schools cache syncs from
-     * (TEAMS_API_URL, e.g. https://athletics.willamette.edu/api/teams; run
-     * your own with https://github.com/chrissabato/opponent-api). Unset =
-     * empty, and team sync refuses to run.
+     * (TEAMS_API_URL; run your own with
+     * https://github.com/chrissabato/opponent-api). Unset = empty, and team
+     * sync refuses to run.
      */
     public static function teamsApiUrl(): string
     {
