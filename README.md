@@ -221,4 +221,3 @@ rows), then pin the result with a test like
 ## More
 
 - [`PLAN.md`](PLAN.md) — the original design spec and build phases.
-- [`CLAUDE.md`](CLAUDE.md) — condensed architecture decisions and conventions.
