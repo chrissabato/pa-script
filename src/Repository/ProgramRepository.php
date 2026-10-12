@@ -69,30 +69,30 @@ SQL;
         return $row === false ? null : $row;
     }
 
-    public function create(int $schoolId, int $sportId, ?int $divisionId, bool $isWillamette): int
+    public function create(int $schoolId, int $sportId, ?int $divisionId, bool $isOwnSchool): int
     {
         $stmt = $this->pdo->prepare(
-            'insert into programs (school_id, sport_id, division_id, is_willamette) '
-            . 'values (:school_id, :sport_id, :division_id, :is_willamette) returning id'
+            'insert into programs (school_id, sport_id, division_id, is_own_school) '
+            . 'values (:school_id, :sport_id, :division_id, :is_own_school) returning id'
         );
         $stmt->execute([
             'school_id' => $schoolId,
             'sport_id' => $sportId,
             'division_id' => $divisionId,
-            'is_willamette' => PgType::boolToString($isWillamette),
+            'is_own_school' => PgType::boolToString($isOwnSchool),
         ]);
 
         return (int) $stmt->fetchColumn();
     }
 
-    public function findOrCreate(int $schoolId, int $sportId, ?int $divisionId, bool $isWillamette): array
+    public function findOrCreate(int $schoolId, int $sportId, ?int $divisionId, bool $isOwnSchool): array
     {
         $existing = $this->findBySchoolSportDivision($schoolId, $sportId, $divisionId);
         if ($existing !== null) {
             return $existing;
         }
 
-        $id = $this->create($schoolId, $sportId, $divisionId, $isWillamette);
+        $id = $this->create($schoolId, $sportId, $divisionId, $isOwnSchool);
 
         return $this->find($id);
     }

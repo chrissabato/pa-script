@@ -43,7 +43,7 @@ This confirms the design already validated across every sport: one **block-based
 - `sports` (id, name, slug, uses_batting_order bool) — gender-agnostic: Soccer, Basketball, Baseball, Softball, Volleyball, Lacrosse. Six rows, not eight.
 - `divisions` (id, name, slug) — a small open lookup, seeded with "Men's" and "Women's" but not hardcoded to just those two; add "Co-ed", "JV", etc. later with no schema change.
 - `schools` (id, name, mascot, short_name)
-- `programs` (id, school_id, sport_id, division_id nullable, is_willamette — true for the home school's own teams) — a school×sport×division combo (e.g. a school's "Women's Soccer" and "Men's Soccer" are two `programs` rows sharing the same `sport_id`). `division_id` is nullable for sports with only one team at a school in practice (e.g. Baseball), so those don't carry a meaningless division.
+- `programs` (id, school_id, sport_id, division_id nullable, is_own_school — true for the install's own school) — a school×sport×division combo (e.g. a school's "Women's Soccer" and "Men's Soccer" are two `programs` rows sharing the same `sport_id`). `division_id` is nullable for sports with only one team at a school in practice (e.g. Baseball), so those don't carry a meaningless division.
 - `players` (id, program_id, number, name, pronunciation, position, year, hometown, is_starter, batting_order nullable, sort_order, is_active)
 - `coaches` (id, program_id, name, title, sort_order)
 
