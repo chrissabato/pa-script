@@ -2,9 +2,9 @@
 
 ## Context
 
-Willamette University Athletics PA announcers currently run every home game off a library of Google Sheets in one Drive folder — one spreadsheet per sport (Women's/Men's/Neutral Soccer, Women's/Men's Basketball, Baseball, Softball, Volleyball, Lacrosse). Each sheet holds a two-team roster table, a narrated PA announcer script, and (inconsistently) a small game-setup block. Critically, **the script text is not formula-driven** — team names, coach names, officials, and per-player starting-lineup lines are hand-retyped into the script every single game. Reading six of these sheets in full turned up the evidence directly: literal blank double-spaces where names belong, `#N/A` placeholder rows never filled in, a repeated/misordered "Batting 6th" in Softball, swapped position/year text in another row, and merged-cell PSA paragraphs duplicated 2-3x in the export. This is the actual pain: manual, error-prone, repetitive data entry under time pressure before every game.
+A college athletics department's PA announcers currently run every home game off a library of Google Sheets in one shared folder — one spreadsheet per sport (Women's/Men's/Neutral Soccer, Women's/Men's Basketball, Baseball, Softball, Volleyball, Lacrosse). Each sheet holds a two-team roster table, a narrated PA announcer script, and (inconsistently) a small game-setup block. Critically, **the script text is not formula-driven** — team names, coach names, officials, and per-player starting-lineup lines are hand-retyped into the script every single game. Reading six of these sheets in full turned up the evidence directly: literal blank double-spaces where names belong, `#N/A` placeholder rows never filled in, a repeated/misordered "Batting 6th" in Softball, swapped position/year text in another row, and merged-cell PSA paragraphs duplicated 2-3x in the export. This is the actual pain: manual, error-prone, repetitive data entry under time pressure before every game.
 
-(The Drive folder also has a "Swimming" Google Doc using a completely different live, event-by-event meet-script format. It's out of scope for this app — excluded per your call.)
+(The folder also has a "Swimming" Google Doc using a completely different live, event-by-event meet-script format. It's out of scope for this app — excluded per your call.)
 
 The goal is a web app that replaces this: structured roster/coach/game data, one reusable script template per sport (with a `neutral` variant for soccer), and a rendered, presentable script — including a teleprompter mode for reading live at the mic — generated from that data instead of retyped by hand. A browser bookmarklet will let the announcer scrape an opponent's roster off a live roster page instead of typing 20-30 names in manually.
 
@@ -20,7 +20,7 @@ This last point overrides the initially-considered Node/Next.js stack — the pl
 
 ## What the source sheets actually contain (confirmed by direct reads)
 
-- **Soccer** (read: Women's, Men's, and Neutral-site versions): `Roster`, `Script`, `Setup` tabs. Roster = two-team side-by-side table (`#, NAME, POS, YEAR, HOMETOWN`, pronunciation on a second line, starter flag column, coaches block above). Script = welcome line, per-team coach/assistants line, officials line, anthem cue, sportsmanship PSA. Men's vs. Women's differ only in pronouns/rosters, not structure — confirming division belongs on the data, not the sport definition. The **Neutral** site case is genuinely different in structure: neither team gets "your Bearcats" home framing — both are announced as visiting teams (confirmed by reading a real Pacific Lutheran vs. Calvin script hosted at Willamette's field), independent of which division is playing.
+- **Soccer** (read: Women's, Men's, and Neutral-site versions): `Roster`, `Script`, `Setup` tabs. Roster = two-team side-by-side table (`#, NAME, POS, YEAR, HOMETOWN`, pronunciation on a second line, starter flag column, coaches block above). Script = welcome line, per-team coach/assistants line, officials line, anthem cue, sportsmanship PSA. Men's vs. Women's differ only in pronouns/rosters, not structure — confirming division belongs on the data, not the sport definition. The **Neutral** site case is genuinely different in structure: neither team gets "your {home mascot}" home framing — both are announced as visiting teams (confirmed by reading a real script for a game between two visiting schools hosted at the home school's field), independent of which division is playing.
 - **Basketball** (read: Women's and Men's), **Volleyball, Lacrosse**: starting lineup announced per player as *"At {position}, a {year} from {hometown}, number {#}, {name}"*; reserves (if listed) get a plain *"Number {#}, {name}"*. Volleyball adds a walk-out music cue (`[start Joker and the Thief]`) as an inline script beat.
 - **Baseball, Softball**: same per-player pattern but ordered by **batting order** (*"Leading off at {position}..."*, *"Batting 2nd at {position}..."*, ... *"Batting 9th..."*), plus a separate standalone **starting pitcher** callout outside the batting order. Umpires are announced with specific roles ("behind the plate", "at first base", "at third") rather than a flat officials list.
 
@@ -43,11 +43,11 @@ This confirms the design already validated across every sport: one **block-based
 - `sports` (id, name, slug, uses_batting_order bool) — gender-agnostic: Soccer, Basketball, Baseball, Softball, Volleyball, Lacrosse. Six rows, not eight.
 - `divisions` (id, name, slug) — a small open lookup, seeded with "Men's" and "Women's" but not hardcoded to just those two; add "Co-ed", "JV", etc. later with no schema change.
 - `schools` (id, name, mascot, short_name)
-- `programs` (id, school_id, sport_id, division_id nullable, is_willamette) — a school×sport×division combo (e.g. "Willamette Women's Soccer" and "Willamette Men's Soccer" are two `programs` rows sharing the same `sport_id`). `division_id` is nullable for sports with only one team at a school in practice (e.g. Baseball), so those don't carry a meaningless division.
+- `programs` (id, school_id, sport_id, division_id nullable, is_willamette — true for the home school's own teams) — a school×sport×division combo (e.g. a school's "Women's Soccer" and "Men's Soccer" are two `programs` rows sharing the same `sport_id`). `division_id` is nullable for sports with only one team at a school in practice (e.g. Baseball), so those don't carry a meaningless division.
 - `players` (id, program_id, number, name, pronunciation, position, year, hometown, is_starter, batting_order nullable, sort_order, is_active)
 - `coaches` (id, program_id, name, title, sort_order)
 
-**Per-game snapshots** (opponent rosters are one-off imports; Willamette's own lineup can change last-minute — neither should mutate the persistent roster above)
+**Per-game snapshots** (opponent rosters are one-off imports; the home team's own lineup can change last-minute — neither should mutate the persistent roster above)
 - `games` (id, sport_id, date, time_of_day, home_program_id nullable, away_program_id nullable, is_neutral_site, neutral_site_note, venue, script_template_id, anthem_note, notes, status)
 - `game_roster_snapshots` (id, game_id, program_id, side: home/away, captured_at)
 - `game_roster_players`, `game_roster_coaches` (snapshot row copies, same shape as `players`/`coaches`, plus `source_player_id`/`source_coach_id` nullable)
@@ -72,7 +72,7 @@ This confirms the design already validated across every sport: one **block-based
 
 - `/` — dashboard: upcoming games, quick "new game" per sport.
 - `/sports` — list of base sports; each expands to its divisions (e.g. Soccer → Women's, Men's).
-- `/sports/{sport}/{division}/roster` — persistent Willamette roster/coach editor for that sport+division's `program`.
+- `/sports/{sport}/{division}/roster` — persistent home-team roster/coach editor for that sport+division's `program`.
 - `/sports/{sport}/templates/{templateId}/edit` — script block editor with a placeholder-picker sidebar (one editor per `script_templates` row, i.e. per sport+division+site-variant combo).
 - `/games`, `/games/new` — list and setup wizard (sport, division, opponent, date/time, home/away/neutral, officials).
 - `/games/{id}` — hub linking to home/away roster snapshots, script preview, and teleprompter.
