@@ -6,13 +6,12 @@ namespace App;
 
 /**
  * Per-install settings from `.env`, so another school can run the app
- * without code changes. Defaults are Willamette's, the original install,
- * except HOME_TEAM_SLUG, which is unset unless configured.
+ * without code changes. SITE_NAME defaults to Willamette's (the original
+ * install); HOME_TEAM_SLUG and TEAMS_API_URL have no default.
  */
 final class Site
 {
     public const DEFAULT_NAME = 'Willamette Athletics';
-    public const DEFAULT_TEAMS_API_URL = 'https://athletics.willamette.edu/api/teams';
 
     /** Shown in the page header before "PA Script" (SITE_NAME). */
     public static function name(): string
@@ -30,10 +29,15 @@ final class Site
         return self::env('HOME_TEAM_SLUG', '');
     }
 
-    /** Base URL of the Team Data API the schools cache syncs from (TEAMS_API_URL). */
+    /**
+     * Base URL of the Team Data API the schools cache syncs from
+     * (TEAMS_API_URL, e.g. https://athletics.willamette.edu/api/teams; run
+     * your own with https://github.com/chrissabato/opponent-api). Unset =
+     * empty, and team sync refuses to run.
+     */
     public static function teamsApiUrl(): string
     {
-        return rtrim(self::env('TEAMS_API_URL', self::DEFAULT_TEAMS_API_URL), '/');
+        return rtrim(self::env('TEAMS_API_URL', ''), '/');
     }
 
     private static function env(string $key, string $default): string

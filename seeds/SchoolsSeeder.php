@@ -15,6 +15,13 @@ class SchoolsSeeder extends AbstractSeed
 {
     public function run(): void
     {
+        // Skip rather than fail, so a fresh install's other seeders still run.
+        if (Site::teamsApiUrl() === '') {
+            $this->getOutput()->writeln(' TEAMS_API_URL is not set in .env: skipping the team sync.');
+
+            return;
+        }
+
         $result = (new TeamApiSync($this->getAdapter()->getConnection(), Site::teamsApiUrl()))->sync();
 
         $this->getOutput()->writeln(sprintf(

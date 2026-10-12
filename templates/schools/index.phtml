@@ -10,12 +10,19 @@ $isStale = function (array $school) use ($lastSyncedAt): bool {
 };
 ?>
 <h2>Teams</h2>
+<?php if (Site::teamsApiUrl() !== ''): ?>
 <p><em>
     Teams come from the athletics
     <a href="<?= htmlspecialchars(Site::teamsApiUrl(), ENT_QUOTES) ?>/docs">Team Data API</a> and are edited in its
     <a href="<?= htmlspecialchars(Site::teamsApiUrl(), ENT_QUOTES) ?>/admin">admin</a>, not here. This app keeps a local copy,
     refreshed automatically at most hourly so scripts still work if the API is down.
 </em></p>
+<?php else: ?>
+<p><em>
+    Teams come from a Team Data API, but none is set up: set <code>TEAMS_API_URL</code> in <code>.env</code>
+    (see <a href="https://github.com/chrissabato/opponent-api">opponent-api</a> to run your own).
+</em></p>
+<?php endif; ?>
 
 <form method="post" action="<?= $this->base() ?>/schools/sync" class="sync-bar">
     <button type="submit" class="button-secondary">Sync now</button>

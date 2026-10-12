@@ -60,6 +60,10 @@ class TeamApiSync
      */
     public function sync(): array
     {
+        if ($this->baseUrl === '') {
+            throw new RuntimeException('TEAMS_API_URL is not set in .env, so there is no team API to sync from.');
+        }
+
         $teams = $this->fetchTeams();
         $now = gmdate('Y-m-d H:i:s');
 
