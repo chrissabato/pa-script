@@ -9,8 +9,8 @@
 
 # Willamette's install: off campus, require a Willamette SSO (Shibboleth)
 # login; on campus (158.104.0.0/16, the university's public address block)
-# stays open. Skipped on servers without mod_shib; another school running
-# Shibboleth should change the address block or delete this section.
+# stays open. Another school: delete this section (without Shibboleth
+# installed, Apache errors on it) or change the address block.
 #
 # Exempt: the bookmarklet's two endpoints. They're called cross-site from
 # another school's roster page, which carries no Shibboleth session, and
@@ -20,11 +20,9 @@
 # REQUEST_URI because the rewrite to index.php re-runs access checks with
 # REQUEST_URI = .../index.php. The path pattern doesn't name /pa, so it
 # keeps working if the app moves.
-<IfModule mod_shib>
 <If "! -R '158.104.0.0/16' && %{THE_REQUEST} !~ m#^[A-Z]+ /(?:[^ ?]*/)?(?:bookmarklet/scraper\.js|api/import/stage)[? ]#">
     AuthType shibboleth
     AuthName "PA Script"
     ShibRequestSetting requireSession 1
     Require shib-session
 </If>
-</IfModule>

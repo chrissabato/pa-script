@@ -89,9 +89,9 @@ The defaults are Willamette's. To run it for your own school:
    (preselected as the home team) and `SITE_NAME` for the page header.
 3. **Timezone.** Set `APP_TIMEZONE`.
 4. **Access.** Set `APP_PASSWORD`, `ADMIN_PASSWORD` and a long random
-   `IMPORT_TOKEN`. `public/.htaccess` carries Willamette's Shibboleth rule;
-   it only applies when Apache has `mod_shib` loaded — if yours does, change
-   the campus address block or delete that section.
+   `IMPORT_TOKEN`. **Delete the Shibboleth section of `public/.htaccess`**
+   (Willamette's SSO rule — without Shibboleth installed Apache errors on
+   it), or change its campus address block if you run Shibboleth too.
 5. **Script wording.** The default templates, shared snippets (welcome,
    sportsmanship statement) and default venues are Willamette's. Edit them
    in the app under Templates (Admin in the nav); edits survive reseeding.
@@ -122,9 +122,9 @@ All settings live in `.env` (gitignored); `.env.example` documents each one.
 
 ## Access
 
-- **Shibboleth** — on Willamette's server (`mod_shib` loaded),
-  `public/.htaccess` requires a Willamette SSO login off campus; on campus
-  (158.104.0.0/16) is open. Servers without `mod_shib` skip it.
+- **Shibboleth** — `public/.htaccess` requires a Willamette SSO login off
+  campus; on campus (158.104.0.0/16) is open. Other installs delete or
+  adapt that section.
 - **Shared password** — when `APP_PASSWORD` is set, every page asks for it
   once per browser (a 30-day cookie).
 - **Admin password** — when `ADMIN_PASSWORD` is set, the script templates,
