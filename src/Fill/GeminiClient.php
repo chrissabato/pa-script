@@ -11,7 +11,15 @@ namespace App\Fill;
 class GeminiClient implements JsonModel
 {
     private const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent';
-    private const TIMEOUT_SECONDS = 150;
+    /**
+     * Wall-clock budget for the whole call, retries included. PHP's
+     * set_time_limit() doesn't count time spent waiting on curl or sleep(),
+     * so without this a slow, overloaded Gemini kept the page loading for
+     * minutes.
+     */
+    private const BUDGET_SECONDS = 90;
+    /** Don't start a retry with less time than this left. */
+    private const MIN_ATTEMPT_SECONDS = 20;
 
     /**
      * Flash-Lite with minimal thinking: on a real 25-player pronunciation
@@ -73,14 +81,22 @@ class GeminiClient implements JsonModel
         ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         // Gemini answers 503/429 under load; those often pass in seconds.
-        foreach ([0, 3, 8] as $wait) {
+        $deadline = time() + self::BUDGET_SECONDS;
+        foreach ([0, 3, 8] as $attempt => $wait) {
+            if ($attempt > 0 && $deadline - time() - $wait < self::MIN_ATTEMPT_SECONDS) {
+                break;
+            }
             sleep($wait);
-            list($raw, $status, $error) = $this->post($body);
+            list($raw, $status, $error, $timedOut) = $this->post($body, $deadline - time());
             if ($status !== 503 && $status !== 429) {
                 break;
             }
         }
 
+        if ($timedOut) {
+            throw new DocumentFillException('Gemini took too long to answer (it seems overloaded right now). '
+                . 'Wait a few minutes and upload the document again.');
+        }
         if ($raw === false) {
             throw new DocumentFillException('Couldn\'t reach Gemini: ' . $error);
         }
@@ -109,8 +125,8 @@ class GeminiClient implements JsonModel
         return $json;
     }
 
-    /** @return array{0: string|false, 1: int, 2: string} body, HTTP status, curl error */
-    private function post(string $body): array
+    /** @return array{0: string|false, 1: int, 2: string, 3: bool} body, HTTP status, curl error, timed out */
+    private function post(string $body, int $timeoutSeconds): array
     {
         $curl = curl_init(sprintf(self::ENDPOINT, rawurlencode($this->model)));
         curl_setopt_array($curl, [
@@ -119,13 +135,14 @@ class GeminiClient implements JsonModel
             CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-goog-api-key: ' . $this->apiKey],
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CONNECTTIMEOUT => 15,
-            CURLOPT_TIMEOUT => self::TIMEOUT_SECONDS,
+            CURLOPT_TIMEOUT => max(1, $timeoutSeconds),
         ]);
         $raw = curl_exec($curl);
         $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
         $error = curl_error($curl);
+        $timedOut = curl_errno($curl) === CURLE_OPERATION_TIMEDOUT;
         curl_close($curl);
 
-        return [$raw, $status, $error];
+        return [$raw, $status, $error, $timedOut];
     }
 }

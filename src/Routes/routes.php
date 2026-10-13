@@ -518,7 +518,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
             }
             $filename = (string) $file->getClientFilename();
 
-            set_time_limit(180); // a bigger GEMINI_MODEL can take minutes
+            set_time_limit(180); // CPU time only; GeminiClient caps the wall-clock wait
             $filler = new RosterFiller(GeminiClient::fromEnv($_ENV));
             $suggestions = $filler->suggest(
                 $filename,
