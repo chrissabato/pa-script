@@ -524,6 +524,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
                 $filename,
                 (string) $file->getStream(),
                 (string) ($game[$side . '_school_name'] ?? ucfirst($side) . ' team'),
+                (string) ($game['sport_slug'] ?? ''),
                 $players,
                 $coaches
             );
@@ -532,7 +533,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
         }
 
         $response->getBody()->write($view->render('games/fill-review', [
-            'title' => 'Fill in from ' . ($filename !== '' ? $filename : 'a document'),
+            'title' => 'Check against ' . ($filename !== '' ? $filename : 'a document'),
             'game' => $game,
             'side' => $side,
             'filename' => $filename,
@@ -551,6 +552,7 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
         list($game, $side, $snapshot) = $rosterSide($request, $args);
         $data = (array) $request->getParsedBody();
         $values = (array) ($data['value'] ?? []);
+        $currents = (array) ($data['current'] ?? []);
         $filled = 0;
         foreach ((array) ($data['apply'] ?? []) as $key) {
             // key = "player:12:pronunciation" / "coach:3:seasons"
@@ -564,9 +566,11 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
             if ($value === null || !in_array($kind, ['player', 'coach'], true)) {
                 continue;
             }
+            // The roster's value when the review page was shown; the save is skipped if it has changed since.
+            $current = isset($currents[$key]) ? (string) $currents[$key] : null;
             $changed = $kind === 'player'
-                ? $gameRosters->fillPlayerField((int) $snapshot['id'], (int) $id, $field, (string) $value)
-                : $gameRosters->fillCoachField((int) $snapshot['id'], (int) $id, $field, $value);
+                ? $gameRosters->fillPlayerField((int) $snapshot['id'], (int) $id, $field, (string) $value, $current)
+                : $gameRosters->fillCoachField((int) $snapshot['id'], (int) $id, $field, $value, $current);
             $filled += $changed ? 1 : 0;
         }
 

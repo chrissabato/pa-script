@@ -264,20 +264,21 @@ class GameRosterRepository
     }
 
     /**
-     * Sets one blank field on a player, from an approved document-fill
-     * suggestion (App\Fill\RosterFiller). Scoped to the snapshot so a form
-     * can't reach another game's roster, and a no-op when the field already
-     * has a value — fills never overwrite.
+     * Sets one field on a player, from an approved document-fill suggestion
+     * (App\Fill\RosterFiller). Scoped to the snapshot so a form can't reach
+     * another game's roster, and only applied while the field still holds
+     * $expected (the value the review page showed; null = blank), so an
+     * edit made since isn't overwritten.
      *
      * @return bool whether a row changed
      */
-    public function fillPlayerField(int $snapshotId, int $playerId, string $field, string $value): bool
+    public function fillPlayerField(int $snapshotId, int $playerId, string $field, string $value, ?string $expected = null): bool
     {
-        if (!in_array($field, ['pronunciation', 'position', 'year', 'hometown'], true)) {
+        if (!in_array($field, ['number', 'name', 'pronunciation', 'position', 'year', 'hometown'], true)) {
             throw new \InvalidArgumentException('Unknown player field ' . $field);
         }
 
-        return $this->fillField('game_roster_players', $field, $snapshotId, $playerId, $value);
+        return $this->fillField('game_roster_players', $field, $snapshotId, $playerId, $value, $expected);
     }
 
     /**
@@ -285,27 +286,34 @@ class GameRosterRepository
      *
      * @param string|int $value
      */
-    public function fillCoachField(int $snapshotId, int $coachId, string $field, $value): bool
+    public function fillCoachField(int $snapshotId, int $coachId, string $field, $value, ?string $expected = null): bool
     {
-        if (!in_array($field, ['pronunciation', 'pronoun', 'seasons'], true)) {
+        if (!in_array($field, ['name', 'pronunciation', 'pronoun', 'seasons'], true)) {
             throw new \InvalidArgumentException('Unknown coach field ' . $field);
         }
 
-        return $this->fillField('game_roster_coaches', $field, $snapshotId, $coachId, $value);
+        return $this->fillField('game_roster_coaches', $field, $snapshotId, $coachId, $value, $expected);
     }
 
     /** @param string|int $value */
-    private function fillField(string $table, string $field, int $snapshotId, int $id, $value): bool
+    private function fillField(string $table, string $field, int $snapshotId, int $id, $value, ?string $expected): bool
     {
         // $table and $field come from the whitelists above.
-        $blank = $field === 'seasons' ? "{$field} is null" : "({$field} is null or {$field} = '')";
+        if ($expected === null || trim($expected) === '') {
+            $current = $field === 'seasons' ? "{$field} is null" : "({$field} is null or {$field} = '')";
+        } else {
+            $current = $field === 'seasons' ? "{$field} = cast(:expected as integer)" : "{$field} = :expected";
+        }
         $stmt = $this->pdo->prepare(
             "update {$table} set {$field} = :value, updated_at = current_timestamp "
-            . "where id = :id and snapshot_id = :snapshot_id and {$blank}"
+            . "where id = :id and snapshot_id = :snapshot_id and {$current}"
         );
         $stmt->bindValue('value', $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
         $stmt->bindValue('id', $id, PDO::PARAM_INT);
         $stmt->bindValue('snapshot_id', $snapshotId, PDO::PARAM_INT);
+        if ($expected !== null && trim($expected) !== '') {
+            $stmt->bindValue('expected', $expected, PDO::PARAM_STR);
+        }
         $stmt->execute();
 
         return $stmt->rowCount() > 0;

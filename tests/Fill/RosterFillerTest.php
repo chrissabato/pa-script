@@ -23,29 +23,37 @@ class RosterFillerTest extends TestCase
         ['id' => 3, 'name' => 'Jane Smith', 'title' => 'Head Coach', 'pronunciation' => null, 'pronoun' => null, 'seasons' => null],
     ];
 
-    public function testSuggestsOnlyBlankFieldsOfPeopleOnTheRoster(): void
+    public function testSuggestsBlankFieldsAndDifferencesForPeopleOnTheRoster(): void
     {
         $model = new FakeModel([
             'players' => [
-                ['id' => 11, 'pronunciation' => ' shi-VAWN  WIN ', 'position' => 'D', 'year' => '', 'evidence' => '7 | Siobhan Nguyen | shi-VAWN WIN'],
-                ['id' => 12, 'pronunciation' => 'AH-nah'],   // already set: not suggested
+                ['id' => 11, 'number' => '7', 'name' => 'Siobhan Nguyen', 'pronunciation' => ' shi-VAWN  WIN ', 'position' => 'D', 'year' => '',
+                    'evidence' => '7 | Siobhan Nguyen | shi-VAWN WIN'],
+                // Same in other words (agrees), except the number and the pronunciation.
+                ['id' => 12, 'number' => '#19', 'name' => 'ana ruiz', 'pronunciation' => 'AH-nah', 'position' => 'Midfielder',
+                    'year' => 'Senior', 'hometown' => 'Bend, OR'],
                 ['id' => 13, 'pronunciation' => 'Lia  Park', 'hometown' => 'Salem, Ore.'], // just the name: dropped
                 ['id' => 99, 'pronunciation' => 'nobody'],   // not on this roster
             ],
             'coaches' => [
-                ['id' => 3, 'pronoun' => 'Her', 'seasons' => '4', 'pronunciation' => '', 'evidence' => 'in her fourth season'],
+                ['id' => 3, 'name' => 'Jane Smith', 'pronoun' => 'Her', 'seasons' => '4', 'pronunciation' => '', 'evidence' => 'in her fourth season'],
             ],
         ]);
 
-        $result = (new RosterFiller($model))->suggest('guide.docx', $this->docx(), 'Linfield', $this->players, $this->coaches);
+        $result = (new RosterFiller($model))->suggest('guide.docx', $this->docx(), 'Linfield', 'soccer', $this->players, $this->coaches);
 
         $this->assertSame([
-            ['kind' => 'player', 'id' => 11, 'label' => '#7 Siobhan Nguyen', 'field' => 'pronunciation', 'value' => 'shi-VAWN WIN', 'evidence' => '7 | Siobhan Nguyen | shi-VAWN WIN'],
-            ['kind' => 'player', 'id' => 13, 'label' => 'Lia Park', 'field' => 'hometown', 'value' => 'Salem, Ore.', 'evidence' => ''],
-        ], $result['players']);
+            ['kind' => 'player', 'id' => 11, 'label' => '#7 Siobhan Nguyen', 'field' => 'position', 'current' => 'F', 'value' => 'D',
+                'evidence' => '7 | Siobhan Nguyen | shi-VAWN WIN'],
+            ['kind' => 'player', 'id' => 11, 'label' => '#7 Siobhan Nguyen', 'field' => 'pronunciation', 'current' => null, 'value' => 'shi-VAWN WIN',
+                'evidence' => '7 | Siobhan Nguyen | shi-VAWN WIN'],
+            ['kind' => 'player', 'id' => 12, 'label' => '#9 Ana Ruiz', 'field' => 'number', 'current' => '9', 'value' => '19', 'evidence' => ''],
+            ['kind' => 'player', 'id' => 12, 'label' => '#9 Ana Ruiz', 'field' => 'pronunciation', 'current' => 'AH-nuh', 'value' => 'AH-nah', 'evidence' => ''],
+            ['kind' => 'player', 'id' => 13, 'label' => 'Lia Park', 'field' => 'hometown', 'current' => null, 'value' => 'Salem, Ore.', 'evidence' => ''],
+        ], $this->sorted($result['players']));
         $this->assertSame([
-            ['kind' => 'coach', 'id' => 3, 'label' => 'Jane Smith', 'field' => 'pronoun', 'value' => 'her', 'evidence' => 'in her fourth season'],
-            ['kind' => 'coach', 'id' => 3, 'label' => 'Jane Smith', 'field' => 'seasons', 'value' => 4, 'evidence' => 'in her fourth season'],
+            ['kind' => 'coach', 'id' => 3, 'label' => 'Jane Smith', 'field' => 'pronoun', 'current' => null, 'value' => 'her', 'evidence' => 'in her fourth season'],
+            ['kind' => 'coach', 'id' => 3, 'label' => 'Jane Smith', 'field' => 'seasons', 'current' => null, 'value' => 4, 'evidence' => 'in her fourth season'],
         ], $result['coaches']);
 
         // The Word file went to the model as text, followed by the prompt with the roster.
@@ -53,10 +61,27 @@ class RosterFillerTest extends TestCase
         $this->assertStringContainsString('"name": "Siobhan Nguyen"', $model->parts[1]['text']);
     }
 
+    public function testAgreesIgnoresStyle(): void
+    {
+        $this->assertTrue(RosterFiller::agrees('year', 'Fr.', 'Freshman', 'soccer'));
+        $this->assertTrue(RosterFiller::agrees('hometown', 'Bend, Ore.', 'Bend, Oregon', 'soccer'));
+        $this->assertTrue(RosterFiller::agrees('position', 'GK', 'Goalkeeper', 'soccer'));
+        $this->assertTrue(RosterFiller::agrees('number', '#4', '4', 'soccer'));
+        $this->assertTrue(RosterFiller::agrees('name', 'Mary-Kate Smith', 'mary kate smith', 'soccer'));
+        $this->assertFalse(RosterFiller::agrees('number', '04', '4', 'soccer'));
+        $this->assertFalse(RosterFiller::agrees('year', 'Jr.', 'Sr.', 'soccer'));
+    }
+
+    public function testRefusesAnEmptyRoster(): void
+    {
+        $this->expectException(DocumentFillException::class);
+        (new RosterFiller(new FakeModel([])))->suggest('notes.pdf', '%PDF', 'Linfield', 'soccer', [], []);
+    }
+
     public function testSendsAPdfAsInlineData(): void
     {
         $model = new FakeModel(['players' => [], 'coaches' => []]);
-        (new RosterFiller($model))->suggest('notes.pdf', '%PDF-1.4 fake', 'Linfield', $this->players, $this->coaches);
+        (new RosterFiller($model))->suggest('notes.pdf', '%PDF-1.4 fake', 'Linfield', 'soccer', $this->players, $this->coaches);
 
         $this->assertSame('application/pdf', $model->parts[0]['inline_data']['mime_type']);
         $this->assertSame(base64_encode('%PDF-1.4 fake'), $model->parts[0]['inline_data']['data']);
@@ -66,7 +91,7 @@ class RosterFillerTest extends TestCase
     {
         $this->expectException(DocumentFillException::class);
         $this->expectExceptionMessageMatches('/\.docx or PDF/');
-        (new RosterFiller(new FakeModel([])))->suggest('notes.doc', 'x', 'Linfield', $this->players, $this->coaches);
+        (new RosterFiller(new FakeModel([])))->suggest('notes.doc', 'x', 'Linfield', 'soccer', $this->players, $this->coaches);
     }
 
     public function testCleansValuesPerField(): void
@@ -76,6 +101,22 @@ class RosterFillerTest extends TestCase
         $this->assertNull(RosterFiller::clean('pronoun', 'she'));
         $this->assertSame('their', RosterFiller::clean('pronoun', 'Their'));
         $this->assertNull(RosterFiller::clean('pronunciation', '   '));
+        $this->assertNull(RosterFiller::clean('year', 'Fy. Phonetics for Lucia Barrón'));
+        $this->assertSame('12', RosterFiller::clean('number', '#12'));
+        $this->assertNull(RosterFiller::clean('name', 'Lucia Barr3n N33ez'));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $suggestions
+     * @return array<int, array<string, mixed>> by id, then field
+     */
+    private function sorted(array $suggestions): array
+    {
+        usort($suggestions, function (array $a, array $b): int {
+            return [$a['id'], $a['field']] <=> [$b['id'], $b['field']];
+        });
+
+        return $suggestions;
     }
 
     private function docx(): string

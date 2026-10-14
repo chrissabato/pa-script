@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace App\Fill;
 
+use App\Rendering\Spoken;
+
 /**
- * Asks Gemini to find, in an uploaded document (game notes, a pronunciation
- * guide, a media guide), the roster details the scraped roster page didn't
- * have — mostly pronunciations and coaches' season counts.
+ * Asks Gemini to check a roster against an uploaded document (game notes, a
+ * pronunciation guide, a media guide): it finds the details the scraped
+ * roster page didn't have — mostly pronunciations and coaches' season
+ * counts — and the ones where the document disagrees with the roster (a
+ * different jersey number, spelling, class year, ...).
  *
- * Only blank fields are suggested, and nothing is saved here: the
- * suggestions go to a review page, and only the ones a person ticks are
- * written (GameRosterRepository::fillPlayerField / fillCoachField, which
- * also refuse to overwrite a value).
+ * Nothing is saved here: the suggestions go to a review page, and only the
+ * ones a person ticks are written (GameRosterRepository::fillPlayerField /
+ * fillCoachField, which only change a field still holding the value the
+ * review page showed).
  */
 class RosterFiller
 {
-    public const PLAYER_FIELDS = ['pronunciation', 'position', 'year', 'hometown'];
-    public const COACH_FIELDS = ['pronunciation', 'pronoun', 'seasons'];
+    public const PLAYER_FIELDS = ['number', 'name', 'pronunciation', 'position', 'year', 'hometown'];
+    public const COACH_FIELDS = ['name', 'pronunciation', 'pronoun', 'seasons'];
 
     /** Upload size cap; Gemini's inline-data request limit is 20 MB after base64. */
     public const MAX_BYTES = 12 * 1024 * 1024;
@@ -32,25 +36,67 @@ class RosterFiller
 
     /**
      * @param string $filename the uploaded name; its extension picks PDF / Word / text
+     * @param string $sportSlug for comparing positions ("F" and "Forward" agree)
      * @param array<int, array<string, mixed>> $players game_roster_players rows
      * @param array<int, array<string, mixed>> $coaches game_roster_coaches rows
      * @return array{players: array<int, array<string, mixed>>, coaches: array<int, array<string, mixed>>}
-     *         suggestions: ['id', 'label', 'field', 'value', 'evidence'] per blank field found
+     *         suggestions: ['kind', 'id', 'label', 'field', 'current', 'value', 'evidence'] per
+     *         field the document fills in (current null) or disagrees with (current = the roster's value)
      * @throws DocumentFillException
      */
-    public function suggest(string $filename, string $bytes, string $teamName, array $players, array $coaches): array
-    {
-        if ($this->blankFields($players, self::PLAYER_FIELDS) === 0 && $this->blankFields($coaches, self::COACH_FIELDS) === 0) {
-            throw new DocumentFillException('Nothing to fill in: every player and coach field on this roster already has a value.');
+    public function suggest(
+        string $filename,
+        string $bytes,
+        string $teamName,
+        string $sportSlug,
+        array $players,
+        array $coaches
+    ): array {
+        if ($players === [] && $coaches === []) {
+            throw new DocumentFillException('This roster has no players or coaches yet — import or add them first.');
         }
 
         $parts = [$this->documentPart($filename, $bytes), ['text' => self::prompt($teamName, $players, $coaches)]];
         $answer = $this->model->generateJson($parts, self::schema());
 
         return [
-            'players' => self::collect($answer['players'] ?? [], $players, self::PLAYER_FIELDS, 'player'),
-            'coaches' => self::collect($answer['coaches'] ?? [], $coaches, self::COACH_FIELDS, 'coach'),
+            'players' => self::collect($answer['players'] ?? [], $players, self::PLAYER_FIELDS, 'player', $sportSlug),
+            'coaches' => self::collect($answer['coaches'] ?? [], $coaches, self::COACH_FIELDS, 'coach', $sportSlug),
         ];
+    }
+
+    /**
+     * Whether two values of a field say the same thing, ignoring style:
+     * "Sr." / "Senior", "Bend, Ore." / "Bend, OR", "F" / "Forward",
+     * case, spacing and punctuation.
+     *
+     * @param mixed $a
+     * @param mixed $b
+     */
+    public static function agrees(string $field, $a, $b, string $sportSlug): bool
+    {
+        $a = trim((string) $a);
+        $b = trim((string) $b);
+        switch ($field) {
+            case 'number':
+                return ltrim($a, '#') === ltrim($b, '#');
+            case 'seasons':
+                return (int) $a === (int) $b;
+            case 'year':
+                return self::sameWords(Spoken::year($a), Spoken::year($b));
+            case 'hometown':
+                return self::sameWords(Spoken::hometown($a), Spoken::hometown($b));
+            case 'position':
+                $spoken = function (string $position) use ($sportSlug): string {
+                    return implode('/', array_map(function (string $part) use ($sportSlug): string {
+                        return Spoken::position($part, $sportSlug);
+                    }, explode('/', $position)));
+                };
+
+                return self::sameWords($spoken($a), $spoken($b));
+            default:
+                return self::sameWords($a, $b);
+        }
     }
 
     /**
@@ -65,6 +111,14 @@ class RosterFiller
         if ($value === '') {
             return null;
         }
+        if ($field === 'number') {
+            $value = ltrim($value, '# ');
+
+            return $value !== '' && strlen($value) <= 10 ? $value : null;
+        }
+        if ($field === 'name' && preg_match('/\d/', $value)) {
+            return null; // the model mangling accents ("Barr3n N33ez"), not a real spelling
+        }
         if ($field === 'seasons') {
             return ctype_digit($value) && (int) $value > 0 && (int) $value < 100 ? (int) $value : null;
         }
@@ -74,9 +128,10 @@ class RosterFiller
             return in_array($value, ['her', 'his', 'their'], true) ? $value : null;
         }
 
-        $max = $field === 'year' ? 20 : 255;
+        // An overlong value is the model running on, not a value to cut short.
+        $length = function_exists('mb_strlen') ? mb_strlen($value) : strlen($value);
 
-        return function_exists('mb_substr') ? mb_substr($value, 0, $max) : substr($value, 0, $max);
+        return $length <= ($field === 'year' ? 20 : 255) ? $value : null;
     }
 
     /** @return array<string, mixed> */
@@ -110,10 +165,10 @@ class RosterFiller
     {
         $roster = [
             'players' => array_map(function (array $p): array {
-                return self::pick($p, array_merge(['id', 'number', 'name'], self::PLAYER_FIELDS));
+                return self::pick($p, array_merge(['id'], self::PLAYER_FIELDS));
             }, $players),
             'coaches' => array_map(function (array $c): array {
-                return self::pick($c, array_merge(['id', 'name', 'title'], self::COACH_FIELDS));
+                return self::pick($c, array_merge(['id', 'title'], self::COACH_FIELDS));
             }, $coaches),
         ];
         $rosterJson = json_encode($roster, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
@@ -124,15 +179,17 @@ The document above (game notes, a pronunciation guide, or a media guide) is
 about {$teamName}. Below is that team's roster as currently entered, as JSON;
 a null field is missing.
 
-For each player and coach on the roster, find in the document any of their
-MISSING fields:
+For each player and coach on the roster, report what the document says about
+them, for every field below — whether the roster has it or not, so missing
+values can be filled in and disagreements with the roster spotted:
+- number, name: the jersey number and the name as the document gives them.
 - pronunciation: a phonetic pronunciation guide for the person's name, copied
   exactly as the document writes it (e.g. "kuh-NOR WAH-luhs"), including
   hints like "(rhymes with tree)". Leave out pronoun notes such as "(She/Her)".
   If the guide just repeats the name as spelled, there's no pronunciation to
   give. Never make one up or guess one from the spelling.
 - position, year (class year, e.g. "Sr." or "Junior"), hometown ("City, State"
-  as written) for players.
+  as written, without the high school) for players.
 - seasons for coaches: which season with this team they are in now, as a
   whole number (a coach "in their fourth season" or "entering year four" is 4;
   "has coached here since" a year means count the seasons through the current
@@ -140,12 +197,15 @@ MISSING fields:
 - pronoun for coaches: "her", "his" or "their", only if the document refers to
   the coach with one.
 
-Match people by jersey number and name together; if you aren't sure the
-document means the same person, leave them out. Return each person by their
-roster "id". Only include fields that are null on the roster and that the
-document actually states; use "" for anything you didn't find. For each person
-give "evidence": the short phrase from the document you took the values from
-(for a pronunciation, the pronunciation-guide line, not the roster line).
+Match each document entry to a roster person by name and jersey number; a
+person whose number (or name spelling) differs in the document still matches
+when the rest makes it clear it's the same person — report the document's
+number or spelling so the difference shows. If you aren't sure the document
+means the same person, leave them out. Return each person by their roster
+"id". Only give values the document actually states; use "" for anything it
+doesn't. For each person give "evidence": the short phrase from the document
+you took the values from (for a pronunciation, the pronunciation-guide line,
+not the roster line).
 
 ROSTER:
 {$rosterJson}
@@ -156,14 +216,21 @@ PROMPT;
     private static function schema(): array
     {
         $person = function (array $fields): array {
-            $properties = ['id' => ['type' => 'INTEGER'], 'evidence' => ['type' => 'STRING']];
+            $properties = ['id' => ['type' => 'INTEGER']];
             foreach ($fields as $field) {
                 $properties[$field] = ['type' => 'STRING'];
             }
+            $properties['evidence'] = ['type' => 'STRING'];
 
+            // Gemini otherwise writes the fields alphabetically.
             return [
                 'type' => 'ARRAY',
-                'items' => ['type' => 'OBJECT', 'properties' => $properties, 'required' => ['id']],
+                'items' => [
+                    'type' => 'OBJECT',
+                    'properties' => $properties,
+                    'propertyOrdering' => array_keys($properties),
+                    'required' => ['id'],
+                ],
             ];
         };
 
@@ -176,14 +243,15 @@ PROMPT;
 
     /**
      * Turns the model's answer into suggestions, keeping only ids on this
-     * roster, fields that are blank there, and values that clean up.
+     * roster and values that clean up and either fill a blank field or
+     * disagree with the roster's value.
      *
      * @param mixed $found
      * @param array<int, array<string, mixed>> $rows
      * @param string[] $fields
      * @return array<int, array<string, mixed>>
      */
-    private static function collect($found, array $rows, array $fields, string $kind): array
+    private static function collect($found, array $rows, array $fields, string $kind, string $sportSlug): array
     {
         $byId = [];
         foreach ($rows as $row) {
@@ -199,7 +267,8 @@ PROMPT;
             $row = $byId[$id];
             foreach ($fields as $field) {
                 $value = self::clean($field, (string) ($item[$field] ?? ''));
-                if ($value === null || !self::isBlank($row[$field] ?? null)) {
+                $current = self::isBlank($row[$field] ?? null) ? null : $row[$field];
+                if ($value === null || ($current !== null && self::agrees($field, $current, $value, $sportSlug))) {
                     continue;
                 }
                 // A guide that only repeats the name ("Iris Stutzman") adds nothing.
@@ -213,6 +282,7 @@ PROMPT;
                         ? '#' . $row['number'] . ' ' . $row['name']
                         : (string) $row['name'],
                     'field' => $field,
+                    'current' => $current === null ? null : (string) $current,
                     'value' => $value,
                     'evidence' => trim((string) ($item['evidence'] ?? '')),
                 ];
@@ -220,22 +290,6 @@ PROMPT;
         }
 
         return $suggestions;
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $rows
-     * @param string[] $fields
-     */
-    private function blankFields(array $rows, array $fields): int
-    {
-        $blank = 0;
-        foreach ($rows as $row) {
-            foreach ($fields as $field) {
-                $blank += self::isBlank($row[$field] ?? null) ? 1 : 0;
-            }
-        }
-
-        return $blank;
     }
 
     private static function sameWords(string $a, string $b): bool

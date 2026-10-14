@@ -1,7 +1,8 @@
 <?php
 /**
  * "Fill in from a document" panel on a game's roster page: upload game
- * notes or a pronunciation guide and Gemini suggests the blank fields.
+ * notes or a pronunciation guide and Gemini suggests the blank fields and
+ * flags where the document disagrees with the roster.
  *
  * Expects: $game, $side, $fillEnabled.
  */
@@ -16,11 +17,12 @@
         <label>Game notes or pronunciation guide
             <input type="file" name="document" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required>
         </label>
-        <button type="submit">Find missing details</button>
+        <button type="submit">Check the roster</button>
     </form>
     <p class="hint">
         Drop a PDF or Word (.docx) file here, or choose one, and Gemini looks for what's blank below — pronunciations, coaches' seasons,
-        positions, years, hometowns. You review every suggestion before anything is saved, and filled-in fields are never changed.
+        positions, years, hometowns — and for anything the document says differently (numbers, spellings, years, ...). You review
+        every suggestion before anything is saved; differences are only changed if you tick them.
     </p>
     <script>
         (function () {
