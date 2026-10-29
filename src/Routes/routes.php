@@ -627,7 +627,14 @@ return function (App $app, PDO $pdo, Renderer $view, PasswordGate $gate, AdminGa
         $data = (array) $request->getParsedBody();
         $announcement = trim((string) ($data['special_announcement'] ?? ''));
         $closing = trim((string) ($data['closing_announcement'] ?? ''));
+        // A half-typed or cleared date keeps the saved one.
+        $date = (string) ($data['date'] ?? '');
+        $parsed = \DateTime::createFromFormat('Y-m-d', $date);
+        if ($parsed === false || $parsed->format('Y-m-d') !== $date) {
+            $date = (string) $game['date'];
+        }
         $games->updateDetails((int) $game['id'], [
+            'date' => $date,
             'time_of_day' => ($data['time_of_day'] ?? '') !== '' ? $data['time_of_day'] : null,
             'venue' => trim((string) ($data['venue'] ?? '')) !== '' ? trim((string) $data['venue']) : null,
             'is_conference' => PgType::boolToString(!empty($data['is_conference'])),

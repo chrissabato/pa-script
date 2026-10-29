@@ -26,6 +26,9 @@
 <h3>Script details</h3>
 <form method="post" action="<?= $this->base() ?>/games/<?= (int) $game['id'] ?>/details" class="game-details" id="game-details" data-autosave>
     <p class="stacked-fields">
+        <label>Date
+            <input type="date" name="date" value="<?= htmlspecialchars((string) $game['date'], ENT_QUOTES) ?>" required>
+        </label>
         <label>Time
             <input type="time" name="time_of_day" value="<?= htmlspecialchars(substr((string) $game['time_of_day'], 0, 5), ENT_QUOTES) ?>">
         </label>

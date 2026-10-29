@@ -160,7 +160,7 @@ SQL;
     public function updateDetails(int $id, array $data): void
     {
         $stmt = $this->pdo->prepare(
-            'update games set time_of_day = :time_of_day, venue = :venue, is_conference = :is_conference, '
+            'update games set date = :date, time_of_day = :time_of_day, venue = :venue, is_conference = :is_conference, '
             . 'has_anthem = :has_anthem, special_announcement = :special_announcement, '
             . 'closing_announcement = :closing_announcement, updated_at = current_timestamp where id = :id'
         );
