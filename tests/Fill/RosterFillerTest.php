@@ -65,6 +65,8 @@ class RosterFillerTest extends TestCase
     {
         $this->assertTrue(RosterFiller::agrees('year', 'Fr.', 'Freshman', 'soccer'));
         $this->assertTrue(RosterFiller::agrees('hometown', 'Bend, Ore.', 'Bend, Oregon', 'soccer'));
+        $this->assertTrue(RosterFiller::agrees('position', 'Outside Hitter/Defensive Specialist OH/DS', 'OH/DS', 'volleyball'));
+        $this->assertFalse(RosterFiller::agrees('position', 'OH', 'OH/DS', 'volleyball'));
         $this->assertTrue(RosterFiller::agrees('position', 'GK', 'Goalkeeper', 'soccer'));
         $this->assertTrue(RosterFiller::agrees('number', '#4', '4', 'soccer'));
         $this->assertTrue(RosterFiller::agrees('name', 'Mary-Kate Smith', 'mary kate smith', 'soccer'));

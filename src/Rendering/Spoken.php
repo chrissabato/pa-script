@@ -9,64 +9,11 @@ namespace App\Rendering;
  * source sheets' FORMATPOS / FORMATCLASS / FORMATSTATE functions
  * ("GK" -> "goalie", "Fy." -> "first year", "Issaquah, Wash." ->
  * "Issaquah, Washington"). Per-sport position words are data here, not
- * template forks. Anything unrecognized is read lowercased as-is, like
+ * template forks (positions live in Positions). Anything unrecognized is read lowercased as-is, like
  * the sheets do.
  */
 class Spoken
 {
-    /**
-     * Position abbreviation (lowercase, no dots) -> spoken word, per sport
-     * slug. Combined positions ("F/M", "D/M") are read as their first part.
-     */
-    private const POSITIONS = [
-        'soccer' => [
-            'gk' => 'goalie', 'g' => 'goalie', 'goalkeeper' => 'goalie',
-            'd' => 'defense', 'b' => 'defense', 'def' => 'defense', 'defender' => 'defense', 'back' => 'defense',
-            'm' => 'midfield', 'mf' => 'midfield', 'mid' => 'midfield', 'midfielder' => 'midfield',
-            'f' => 'forward', 'fw' => 'forward', 'fwd' => 'forward', 'forward' => 'forward',
-        ],
-        'basketball' => [
-            'g' => 'guard', 'pg' => 'guard', 'sg' => 'guard', 'guard' => 'guard',
-            'f' => 'forward', 'sf' => 'forward', 'pf' => 'forward', 'forward' => 'forward',
-            'w' => 'wing', 'wing' => 'wing', 'c' => 'center', 'p' => 'post', 'post' => 'post', 'center' => 'center',
-        ],
-        // As the Lacrosse sheet reads them; "M/D" reads "midfield".
-        'lacrosse' => [
-            'gk' => 'goalie', 'g' => 'goalie', 'goalie' => 'goalie', 'goalkeeper' => 'goalie',
-            'd' => 'defense', 'def' => 'defense', 'defense' => 'defense', 'defender' => 'defense',
-            'm' => 'midfield', 'mf' => 'midfield', 'mid' => 'midfield', 'midfield' => 'midfield', 'midfielder' => 'midfield',
-            'a' => 'attack', 'att' => 'attack', 'attack' => 'attack', 'attacker' => 'attack',
-        ],
-        // Fallback when a lineup slot has no "Playing" position for the
-        // game (GameContextBuilder::lineupPosition()).
-        'baseball' => [
-            'p' => 'pitcher', 'rhp' => 'pitcher', 'lhp' => 'pitcher', 'pitcher' => 'pitcher',
-            'c' => 'catcher', 'catcher' => 'catcher',
-            '1b' => 'first base', '2b' => 'second base', '3b' => 'third base', 'ss' => 'shortstop',
-            'lf' => 'left field', 'cf' => 'center field', 'rf' => 'right field',
-            'of' => 'outfield', 'inf' => 'infield', 'if' => 'infield', 'ut' => 'utility', 'util' => 'utility',
-            'dh' => 'designated hitter',
-        ],
-        'softball' => [
-            'p' => 'pitcher', 'rhp' => 'pitcher', 'lhp' => 'pitcher', 'pitcher' => 'pitcher',
-            'c' => 'catcher', 'catcher' => 'catcher',
-            '1b' => 'first base', '2b' => 'second base', '3b' => 'third base', 'ss' => 'shortstop',
-            'lf' => 'left field', 'cf' => 'center field', 'rf' => 'right field',
-            'of' => 'outfield', 'inf' => 'infield', 'if' => 'infield', 'ut' => 'utility', 'util' => 'utility',
-            'dp' => 'designated player', 'dh' => 'designated player',
-        ],
-        // As the Volleyball sheet reads them ("OH" is "outside", not
-        // "outside hitter"). The match's libero is normally ticked on the
-        // roster page (is_libero); a listed position of "L" reads the same.
-        'volleyball' => [
-            's' => 'setter', 'setter' => 'setter',
-            'oh' => 'outside', 'outside' => 'outside',
-            'mb' => 'middle blocker', 'mh' => 'middle hitter', 'm' => 'middle blocker',
-            'opp' => 'opposite', 'op' => 'opposite', 'rs' => 'right side',
-            'ds' => 'defensive specialist', 'l' => 'libero', 'lib' => 'libero', 'libero' => 'libero',
-        ],
-    ];
-
     /** Class year (lowercase, no dots/spaces) -> spoken form. */
     private const YEARS = [
         'fy' => 'first year', 'firstyear' => 'first year', 'fr' => 'first year', 'freshman' => 'first year',
@@ -102,16 +49,20 @@ class Spoken
         'dc' => 'D.C.',
     ];
 
+    /**
+     * A listed position read aloud, from the per-sport library
+     * (Positions). Combined positions ("F/M", "Outside Hitter/Defensive
+     * Specialist OH/DS") are read as their first part.
+     */
     public static function position(?string $position, string $sportSlug): string
     {
-        $position = trim((string) $position);
-        if ($position === '') {
+        $first = Positions::parse($position, $sportSlug)[0] ?? null;
+        if ($first === null) {
             return '';
         }
-        $first = trim(explode('/', $position)[0]);
-        $key = strtolower(str_replace('.', '', $first));
+        $entry = $first['abbr'] !== null ? Positions::find($first['abbr'], $sportSlug) : null;
 
-        return self::POSITIONS[$sportSlug][$key] ?? strtolower($first);
+        return $entry !== null ? $entry['spoken'] : strtolower($first['text']);
     }
 
     public static function year(?string $year): string

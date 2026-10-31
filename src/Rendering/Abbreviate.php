@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Rendering;
 
 /**
- * Short forms for tight layouts (the printed roster): class years and
- * hometown states, whatever form a scraped roster used ("Junior", "jr",
+ * Short forms for tight layouts (the printed roster): positions, class
+ * years and hometown states, whatever form a scraped roster used ("Junior", "jr",
  * "Jr." -> "Jr."; "Portland, Oregon", "Portland, OR", "Portland, Ore." ->
  * "Portland, Ore."). States use AP style, matching most college rosters;
  * AP leaves eight short state names spelled out. The spoken (long) forms
@@ -38,6 +38,18 @@ class Abbreviate
         'Vermont' => 'Vt.', 'Virginia' => 'Va.', 'Washington' => 'Wash.', 'West Virginia' => 'W.Va.',
         'Wisconsin' => 'Wis.', 'Wyoming' => 'Wyo.',
     ];
+
+    /**
+     * "Outside Hitter/Defensive Specialist OH/DS" / "outside hitter, ds" ->
+     * "OH/DS", from the sport's position library (Positions); parts it
+     * doesn't know are kept as written.
+     */
+    public static function position(?string $position, string $sportSlug): string
+    {
+        return implode('/', array_map(function (array $part): string {
+            return $part['abbr'] ?? $part['text'];
+        }, Positions::parse($position, $sportSlug)));
+    }
 
     /** "Junior" / "jr" / "Jr." -> "Jr."; "Freshman" / "Fr." / "First Year" -> "Fy."; unknown kept as-is. */
     public static function year(?string $year): string

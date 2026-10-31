@@ -9,6 +9,28 @@ use PHPUnit\Framework\TestCase;
 
 class AbbreviateTest extends TestCase
 {
+    public function testPosition(): void
+    {
+        // Sidearm's long and short forms run together.
+        self::assertSame('OH/DS', Abbreviate::position('Outside Hitter/Defensive Specialist OH/DS', 'volleyball'));
+        self::assertSame('L/DS', Abbreviate::position('Libero/Defensive Specialist L/DS', 'volleyball'));
+        self::assertSame('OH/RS', Abbreviate::position('Outside Hitter/Right Side Hitter OH/RS', 'volleyball'));
+        self::assertSame('S', Abbreviate::position('Setter S', 'volleyball'));
+        self::assertSame('MH', Abbreviate::position('Middle Hitter MH', 'volleyball'));
+        // Long form only, or already short.
+        self::assertSame('DS', Abbreviate::position('Defensive Specialist', 'volleyball'));
+        self::assertSame('MB', Abbreviate::position('middle blocker', 'volleyball'));
+        self::assertSame('DS/L', Abbreviate::position('DS/L', 'volleyball'));
+        self::assertSame('MH/OPP', Abbreviate::position('MH/OPP', 'volleyball'));
+        self::assertSame('GK', Abbreviate::position('Goalkeeper', 'soccer'));
+        self::assertSame('RHP/INF', Abbreviate::position('Right-Handed Pitcher/Infielder', 'baseball'));
+        self::assertSame('DP', Abbreviate::position('DH', 'softball'));
+        // Unknown parts are kept as written.
+        self::assertSame('OH/Captain', Abbreviate::position('Outside Hitter/Captain', 'volleyball'));
+        self::assertSame('Rover', Abbreviate::position('Rover', 'soccer'));
+        self::assertSame('', Abbreviate::position(null, 'soccer'));
+    }
+
     public function testYear(): void
     {
         self::assertSame('Jr.', Abbreviate::year('Junior'));

@@ -91,7 +91,7 @@ $marksQuery = $showStarters ? 'show_starters=1' : '';
                             <?php if ($showStarters && $usesLibero && !empty($p['is_libero'])): ?><span class="print-badge" title="Libero">L</span><?php endif; ?>
                         </td>
                         <td class="print-name"><?= $h($p['name']) ?></td>
-                        <td class="print-cell"><?= $h($p['position']) ?></td>
+                        <td class="print-cell"><?= $h(Abbreviate::position($p['position'], (string) $game['sport_slug'])) ?></td>
                         <td class="print-cell"><?= $h(Abbreviate::year($p['year'])) ?></td>
                         <td class="print-cell"><?= $h(Abbreviate::hometown($p['hometown'])) ?></td>
                     </tr>

@@ -34,6 +34,12 @@ class SpokenTest extends TestCase
         self::assertSame('defensive specialist', Spoken::position('DS/L', 'volleyball'));
         self::assertSame('libero', Spoken::position('L', 'volleyball'));
         self::assertSame('xyz', Spoken::position('XYZ', 'soccer'));
+        self::assertSame('defensive specialist', Spoken::position('Defensive Specialist DS', 'volleyball'));
+        self::assertSame('outside', Spoken::position('Outside Hitter/Defensive Specialist OH/DS', 'volleyball'));
+        self::assertSame('right side', Spoken::position('RS', 'volleyball'));
+        self::assertSame('pitcher', Spoken::position('Right-Handed Pitcher', 'baseball'));
+        self::assertSame('midfield', Spoken::position('ACM', 'soccer'));
+        self::assertSame('defense', Spoken::position('Center Back', 'soccer'));
         self::assertSame('first year', Spoken::year('Fy.'));
         self::assertSame('first year', Spoken::year('Fr.'));
         self::assertSame('Issaquah, Washington', Spoken::hometown('Issaquah, Wash.'));

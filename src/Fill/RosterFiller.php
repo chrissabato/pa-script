@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fill;
 
+use App\Rendering\Abbreviate;
 use App\Rendering\Spoken;
 
 /**
@@ -87,13 +88,7 @@ class RosterFiller
             case 'hometown':
                 return self::sameWords(Spoken::hometown($a), Spoken::hometown($b));
             case 'position':
-                $spoken = function (string $position) use ($sportSlug): string {
-                    return implode('/', array_map(function (string $part) use ($sportSlug): string {
-                        return Spoken::position($part, $sportSlug);
-                    }, explode('/', $position)));
-                };
-
-                return self::sameWords($spoken($a), $spoken($b));
+                return self::sameWords(Abbreviate::position($a, $sportSlug), Abbreviate::position($b, $sportSlug));
             default:
                 return self::sameWords($a, $b);
         }
