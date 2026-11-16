@@ -85,7 +85,11 @@ var PaScriptScrape = (function () {
             players.push({
                 number: jersey(text(row.querySelector('.sidearm-roster-player-jersey-number'))),
                 name: name,
-                position: text(row.querySelector('.sidearm-roster-player-position .text-bold'))
+                // Some themes print the position twice for responsive
+                // layouts, long ("Wing", hide-on-small-down) then short
+                // ("W", hide-on-medium): take just the long form.
+                position: text(row.querySelector('.sidearm-roster-player-position-long-short.hide-on-small-down'))
+                    || text(row.querySelector('.sidearm-roster-player-position .text-bold'))
                     || text(row.querySelector('.sidearm-roster-player-position-long-short'))
                     || text(row.querySelector('.sidearm-roster-player-position')),
                 year: longestText(row.querySelectorAll('.sidearm-roster-player-academic-year')),
