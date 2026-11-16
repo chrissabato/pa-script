@@ -59,6 +59,13 @@ class Abbreviate
             return '';
         }
         $spoken = Spoken::year($year);
+        if ($spoken === 'redshirt') {
+            return 'RS';
+        }
+        // "redshirt junior" -> "RS Jr."
+        if (strpos($spoken, 'redshirt ') === 0 && isset(self::YEARS[substr($spoken, 9)])) {
+            return 'RS ' . self::YEARS[substr($spoken, 9)];
+        }
 
         return self::YEARS[$spoken] ?? $year;
     }

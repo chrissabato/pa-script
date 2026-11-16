@@ -72,8 +72,22 @@ class Spoken
             return '';
         }
         $key = strtolower(preg_replace('/[\s.\-]/', '', $year));
+        if (isset(self::YEARS[$key])) {
+            return self::YEARS[$key];
+        }
+        // Redshirt years: "Redshirt Junior", "RS Jr.", "R-Jr." -> "redshirt
+        // junior"; a bare "Redshirt"/"RS" -> "redshirt".
+        if (in_array($key, ['redshirt', 'rs'], true)) {
+            return 'redshirt';
+        }
+        foreach (['redshirt', 'rs', 'r'] as $prefix) {
+            $rest = substr($key, strlen($prefix));
+            if (strpos($key, $prefix) === 0 && isset(self::YEARS[$rest])) {
+                return 'redshirt ' . self::YEARS[$rest];
+            }
+        }
 
-        return self::YEARS[$key] ?? strtolower($year);
+        return strtolower($year);
     }
 
     /**

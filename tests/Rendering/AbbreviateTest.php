@@ -43,7 +43,12 @@ class AbbreviateTest extends TestCase
         self::assertSame('Fy.', Abbreviate::year('Freshman'));
         self::assertSame('Fy.', Abbreviate::year('Fy'));
         self::assertSame('Gr.', Abbreviate::year('Graduate'));
-        self::assertSame('Redshirt Junior', Abbreviate::year('Redshirt Junior')); // unknown: as-is
+        self::assertSame('RS Jr.', Abbreviate::year('Redshirt Junior'));
+        self::assertSame('RS Fy.', Abbreviate::year('Redshirt Freshman'));
+        self::assertSame('RS So.', Abbreviate::year('R-So.'));
+        self::assertSame('RS Sr.', Abbreviate::year('RS Sr.'));
+        self::assertSame('RS', Abbreviate::year('Redshirt'));
+        self::assertSame('Postgrad', Abbreviate::year('Postgrad')); // unknown: as-is
         self::assertSame('', Abbreviate::year(null));
     }
 

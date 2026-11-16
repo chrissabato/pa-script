@@ -42,6 +42,10 @@ class SpokenTest extends TestCase
         self::assertSame('defense', Spoken::position('Center Back', 'soccer'));
         self::assertSame('first year', Spoken::year('Fy.'));
         self::assertSame('first year', Spoken::year('Fr.'));
+        self::assertSame('redshirt junior', Spoken::year('Redshirt Junior'));
+        self::assertSame('redshirt junior', Spoken::year('RS Jr.'));
+        self::assertSame('redshirt sophomore', Spoken::year('R-So.'));
+        self::assertSame('redshirt', Spoken::year('RS'));
         self::assertSame('Issaquah, Washington', Spoken::hometown('Issaquah, Wash.'));
         self::assertSame('Albuquerque, New Mexico', Spoken::hometown('Albuquerque, N.M.'));
         self::assertSame('Montevideo, Uruguay', Spoken::hometown('Montevideo, Uruguay'));
