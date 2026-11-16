@@ -77,10 +77,14 @@ class GameRosterRepository
     /** @return array<int, array<string, mixed>> */
     public function playersFor(int $snapshotId): array
     {
-        // Same numeric jersey-number ordering as PlayerRepository::findByProgram.
+        // Numeric jersey-number order on the digits ("RS 12" → 12), unnumbered
+        // last. '[^0-9]', not '\D': with standard_conforming_strings off (as on
+        // production's shared database) '\D' is read as a plain "D". Capped at
+        // 9 digits so a junk value can't overflow the int cast.
         $stmt = $this->pdo->prepare(
             "select * from game_roster_players where snapshot_id = :snapshot_id "
-            . "order by nullif(regexp_replace(number, '\\D', '', 'g'), '')::int nulls last, number, name"
+            . "order by nullif(substr(regexp_replace(coalesce(number, ''), '[^0-9]', '', 'g'), 1, 9), '')::int "
+            . "nulls last, number, name"
         );
         $stmt->execute(['snapshot_id' => $snapshotId]);
 
